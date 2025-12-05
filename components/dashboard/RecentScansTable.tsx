@@ -1,5 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+'use client'
+
+import { useState } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import {
   Table,
   TableBody,
@@ -7,149 +10,132 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Activity, ExternalLink, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-const recentScans = [
-  {
-    id: "DEF-001",
-    type: "ILI прогон",
-    pipeline: "MT-02",
-    date: "2024-01-15",
-    method: "MFL",
-    grade: "D",
-    defects: 3,
-  },
-  {
-    id: "DEF-002",
-    type: "Прямая оценка",
-    pipeline: "BR-04",
-    date: "2024-01-14",
-    method: "ECDA",
-    grade: "C",
-    defects: 12,
-  },
-  {
-    id: "DEF-003",
-    type: "ILI прогон",
-    pipeline: "MT-02",
-    date: "2024-01-12",
-    method: "UT",
-    grade: "A",
-    defects: 28,
-  },
-  {
-    id: "DEF-004",
-    type: "Испытание давлением",
-    pipeline: "BR-04",
-    date: "2024-01-10",
-    method: "Гидро",
-    grade: "C",
-    defects: 0,
-  },
-];
-
-const gradeColors: Record<string, string> = {
-  A: "bg-risk-low text-background",
-  B: "bg-risk-low/70 text-background",
-  C: "bg-risk-medium text-background",
-  D: "bg-risk-high text-foreground",
-  F: "bg-risk-critical text-foreground",
-};
+} from '@/components/ui/table'
+import { Button } from '@/components/ui/button'
+import { Activity, ExternalLink, ChevronRight } from 'lucide-react'
+import { useObjects } from '@/hooks/useObjects'
+import { Pagination } from '@/components/ui/pagination'
 
 interface RecentScansTableProps {
-  onRowClick?: (defectId: string) => void;
+  onRowClick?: (defectId: string) => void
 }
 
 export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
+  const [page, setPage] = useState(1)
+  const perPage = 20
+  const { data, isLoading, error } = useObjects({ page, perPage })
+
+  if (isLoading) {
+    return (
+      <Card className='border-border/50 bg-card'>
+        <CardContent className='py-8'>
+          <div className='text-center text-sm text-muted-foreground'>
+            Загрузка...
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (error) {
+    return (
+      <Card className='border-border/50 bg-card'>
+        <CardContent className='py-8'>
+          <div className='text-center text-sm text-destructive'>
+            Ошибка загрузки данных
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
-    <Card className="border-border/50 bg-card">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-            <Activity className="h-4 w-4" />
+    <Card className='border-border/50 bg-card'>
+      <CardHeader className='pb-2'>
+        <CardTitle className='flex items-center justify-between'>
+          <span className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
+            <Activity className='h-4 w-4' />
             Последние сканирования
           </span>
-          <Button variant="ghost" size="sm" className="text-xs">
+          <Button variant='ghost' size='sm' className='text-xs'>
             Показать все
-            <ExternalLink className="ml-1.5 h-3 w-3" />
+            <ExternalLink className='ml-1.5 h-3 w-3' />
           </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <TableHeader>
-            <TableRow className="border-border/50 hover:bg-transparent">
-              <TableHead className="text-xs font-medium text-muted-foreground">
+            <TableRow className='border-border/50 hover:bg-transparent'>
+              <TableHead className='text-xs font-medium text-muted-foreground'>
                 ID
               </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">
+              <TableHead className='text-xs font-medium text-muted-foreground'>
+                Название
+              </TableHead>
+              <TableHead className='text-xs font-medium text-muted-foreground'>
                 Тип
               </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">
-                Трубопровод
+              <TableHead className='text-xs font-medium text-muted-foreground'>
+                Материал
               </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">
-                Дата
+              <TableHead className='text-xs font-medium text-muted-foreground'>
+                Год
               </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">
-                Метод
-              </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">
-                Оценка
-              </TableHead>
-              <TableHead className="text-xs font-medium text-muted-foreground">
-                Дефекты
-              </TableHead>
-              <TableHead className="w-[40px]"></TableHead>
+              <TableHead className='w-[40px]'></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {recentScans.map((scan) => (
+            {data?.items?.map(object => (
               <TableRow
-                key={scan.id}
-                onClick={() => onRowClick?.(scan.id)}
-                className="cursor-pointer border-border/50 transition-colors hover:bg-secondary/50"
+                key={object.id}
+                onClick={() => onRowClick?.(object.id)}
+                className='cursor-pointer border-border/50 transition-colors hover:bg-secondary/50'
               >
-                <TableCell className="font-mono text-xs text-muted-foreground">
-                  {scan.id}
+                <TableCell className='font-mono text-xs text-muted-foreground'>
+                  {object.id}
                 </TableCell>
-                <TableCell className="text-sm">{scan.type}</TableCell>
-                <TableCell className="font-medium">{scan.pipeline}</TableCell>
-                <TableCell className="tabular-nums text-sm text-muted-foreground">
-                  {scan.date}
+                <TableCell className='text-sm font-medium'>
+                  {object.name || '-'}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-xs">
-                    {scan.method}
+                  <Badge variant='outline' className='text-xs'>
+                    {object.type || '-'}
                   </Badge>
                 </TableCell>
-                <TableCell>
-                  <Badge
-                    className={cn("text-xs font-bold", gradeColors[scan.grade])}
-                  >
-                    {scan.grade}
-                  </Badge>
+                <TableCell className='text-sm text-muted-foreground'>
+                  {object.material || '-'}
                 </TableCell>
-                <TableCell
-                  className={cn(
-                    "tabular-nums text-sm",
-                    scan.defects > 20 && "text-risk-medium",
-                    scan.defects > 40 && "text-risk-critical"
-                  )}
-                >
-                  {scan.defects}
+                <TableCell className='tabular-nums text-sm text-muted-foreground'>
+                  {object.year || '-'}
                 </TableCell>
                 <TableCell>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  <ChevronRight className='h-4 w-4 text-muted-foreground' />
                 </TableCell>
               </TableRow>
             ))}
+            {data?.items?.length === 0 && (
+              <TableRow>
+                <TableCell
+                  colSpan={6}
+                  className='text-center text-sm text-muted-foreground py-8'
+                >
+                  Нет данных
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
+        {data && data.totalPages > 1 && (
+          <div className='mt-4 flex justify-center'>
+            <Pagination
+              currentPage={data.page}
+              totalPages={data.totalPages}
+              onPageChange={setPage}
+            />
+          </div>
+        )}
       </CardContent>
     </Card>
-  );
+  )
 }
