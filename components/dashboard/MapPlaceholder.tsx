@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button'
 import { useState } from 'react'
 
 const filterPills = [
-  { label: 'Defects > 30%', active: true },
-  { label: 'Critical Only', active: false },
-  { label: 'Recent Scans', active: true },
-  { label: 'High Pressure', active: false },
+  { label: 'Дефекты > 30%', active: true },
+  { label: 'Только критические', active: false },
+  { label: 'Последние сканирования', active: true },
+  { label: 'Высокое давление', active: false },
 ]
 
 const defectPoints = [
@@ -172,19 +172,19 @@ export function MapPlaceholder({ onDefectSelect }: MapPlaceholderProps) {
         <div className='space-y-2 text-xs'>
           <div className='flex items-center gap-2'>
             <div className='h-2 w-6 rounded-full bg-primary opacity-60' />
-            <span className='text-muted-foreground'>Active Pipeline</span>
+            <span className='text-muted-foreground'>Активный трубопровод</span>
           </div>
           <div className='flex items-center gap-2'>
             <div className='h-3 w-3 rounded-full bg-risk-critical' />
-            <span className='text-muted-foreground'>Critical Defect</span>
+            <span className='text-muted-foreground'>Критический дефект</span>
           </div>
           <div className='flex items-center gap-2'>
             <div className='h-3 w-3 rounded-full bg-risk-medium' />
-            <span className='text-muted-foreground'>Medium Risk</span>
+            <span className='text-muted-foreground'>Средний риск</span>
           </div>
           <div className='flex items-center gap-2'>
             <div className='h-3 w-3 rounded-full bg-risk-low' />
-            <span className='text-muted-foreground'>Low Risk</span>
+            <span className='text-muted-foreground'>Низкий риск</span>
           </div>
         </div>
       </div>

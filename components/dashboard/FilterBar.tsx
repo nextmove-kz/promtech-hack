@@ -26,36 +26,36 @@ interface FilterState {
 const presets = [
   {
     id: 'all' as const,
-    label: 'All Defects',
+    label: 'Все дефекты',
     icon: Layers,
     count: 847,
   },
   {
     id: 'critical' as const,
-    label: 'Critical',
+    label: 'Критический',
     icon: Flame,
     count: 23,
     variant: 'destructive' as const,
   },
   {
     id: 'recent' as const,
-    label: 'Last 7 Days',
+    label: 'Последние 7 дней',
     icon: Clock,
     count: 156,
   },
   {
     id: 'high-density' as const,
-    label: 'High Density Areas',
+    label: 'Зоны высокой плотности',
     icon: AlertTriangle,
     count: 45,
   },
 ]
 
 const riskFilters = [
-  { id: 'critical', label: 'Critical', color: 'bg-risk-critical' },
-  { id: 'high', label: 'High', color: 'bg-risk-high' },
-  { id: 'medium', label: 'Medium', color: 'bg-risk-medium' },
-  { id: 'low', label: 'Low', color: 'bg-risk-low' },
+  { id: 'critical', label: 'Критический', color: 'bg-risk-critical' },
+  { id: 'high', label: 'Высокий', color: 'bg-risk-high' },
+  { id: 'medium', label: 'Средний', color: 'bg-risk-medium' },
+  { id: 'low', label: 'Низкий', color: 'bg-risk-low' },
 ]
 
 export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
@@ -101,7 +101,7 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
       {/* Quick Presets Row */}
       <div className='flex items-center gap-2 overflow-x-auto'>
         <span className='text-sm font-medium text-muted-foreground whitespace-nowrap'>
-          Quick filters:
+          Быстрые фильтры:
         </span>
         <div className='flex items-center gap-2'>
           {presets.map(preset => {
@@ -154,7 +154,7 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
                 : 'bg-background text-foreground hover:bg-accent'
             )}
           >
-            <span>Risk Level</span>
+            <span>Уровень риска</span>
             {selectedRisks.length > 0 && (
               <Badge
                 variant='secondary'
@@ -207,7 +207,7 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
               className='gap-1.5 text-muted-foreground hover:text-foreground'
             >
               <X className='h-3.5 w-3.5' />
-              Clear filters
+              Очистить фильтры
             </Button>
           </>
         )}

@@ -25,11 +25,11 @@ type ImportStep = 'upload' | 'validating' | 'processing' | 'complete' | 'error'
 const mockErrors = [
   {
     row: 23,
-    field: 'Pressure',
-    error: 'Value exceeds maximum limit (1500 PSI)',
+    field: 'Давление',
+    error: 'Значение превышает максимальный предел (1500 PSI)',
   },
-  { row: 47, field: 'Date', error: 'Invalid date format' },
-  { row: 89, field: 'Material', error: 'Unknown material type' },
+  { row: 47, field: 'Дата', error: 'Неверный формат даты' },
+  { row: 89, field: 'Материал', error: 'Неизвестный тип материала' },
 ]
 
 interface DataImportDialogProps {
@@ -111,10 +111,10 @@ export function DataImportDialog({
         <DialogHeader>
           <DialogTitle className='flex items-center gap-2'>
             <Upload className='h-5 w-5' />
-            Import Inspection Data
+            Импорт данных инспекции
           </DialogTitle>
           <DialogDescription className='text-muted-foreground'>
-            Upload CSV or Excel files containing inspection records
+            Загрузите CSV или Excel файлы с записями инспекций
           </DialogDescription>
         </DialogHeader>
 
@@ -135,10 +135,10 @@ export function DataImportDialog({
             >
               <Upload className='mb-4 h-10 w-10 text-muted-foreground' />
               <p className='mb-2 text-sm font-medium text-foreground'>
-                Drag and drop files here
+                Перетащите файлы сюда
               </p>
               <p className='text-xs text-muted-foreground'>
-                or click to browse • CSV, XLS, XLSX up to 50MB
+                или нажмите для выбора • CSV, XLS, XLSX до 50МБ
               </p>
             </div>
           )}
@@ -151,18 +151,18 @@ export function DataImportDialog({
               <div className='space-y-2 text-center'>
                 <p className='text-sm font-medium text-foreground'>
                   {step === 'validating'
-                    ? 'Validating data...'
-                    : 'Processing ML analysis...'}
+                    ? 'Проверка данных...'
+                    : 'Обработка ML анализа...'}
                 </p>
                 <p className='text-xs text-muted-foreground'>
                   {step === 'validating'
-                    ? 'Checking data integrity and format'
-                    : 'Running anomaly detection algorithms'}
+                    ? 'Проверка целостности и формата данных'
+                    : 'Запуск алгоритмов обнаружения аномалий'}
                 </p>
               </div>
               <Progress value={progress} className='mx-auto max-w-[300px]' />
               <p className='text-center text-xs text-muted-foreground'>
-                {progress}% complete
+                {progress}% завершено
               </p>
             </div>
           )}
@@ -174,10 +174,10 @@ export function DataImportDialog({
                   <CheckCircle2 className='h-6 w-6 text-risk-low' />
                 </div>
                 <p className='text-lg font-medium text-foreground'>
-                  Import Complete
+                  Импорт завершен
                 </p>
                 <p className='text-sm text-muted-foreground'>
-                  1,247 records processed successfully
+                  1,247 записей успешно обработано
                 </p>
               </div>
 
@@ -187,16 +187,16 @@ export function DataImportDialog({
                   <div className='flex items-center gap-2'>
                     <AlertTriangle className='h-4 w-4 text-risk-medium' />
                     <span className='text-sm font-medium text-foreground'>
-                      {mockErrors.length} records with errors
+                      {mockErrors.length} записей с ошибками
                     </span>
                   </div>
                   <div className='max-h-[200px] overflow-y-auto rounded-md border border-border'>
                     <Table>
                       <TableHeader>
                         <TableRow className='border-border hover:bg-transparent'>
-                          <TableHead className='text-xs'>Row</TableHead>
-                          <TableHead className='text-xs'>Field</TableHead>
-                          <TableHead className='text-xs'>Error</TableHead>
+                          <TableHead className='text-xs'>Строка</TableHead>
+                          <TableHead className='text-xs'>Поле</TableHead>
+                          <TableHead className='text-xs'>Ошибка</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -223,10 +223,10 @@ export function DataImportDialog({
 
               <div className='flex gap-3'>
                 <Button className='flex-1' onClick={() => onOpenChange(false)}>
-                  Done
+                  Готово
                 </Button>
                 <Button variant='outline' onClick={resetDialog}>
-                  Import Another
+                  Импортировать еще
                 </Button>
               </div>
             </div>
