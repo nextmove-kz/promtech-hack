@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 const recentScans = [
   {
     id: 'DEF-001',
-    type: 'ILI Run',
+    type: 'ILI прогон',
     pipeline: 'MT-02',
     date: '2024-01-15',
     method: 'MFL',
@@ -24,7 +24,7 @@ const recentScans = [
   },
   {
     id: 'DEF-002',
-    type: 'Direct Assessment',
+    type: 'Прямая оценка',
     pipeline: 'BR-04',
     date: '2024-01-14',
     method: 'ECDA',
@@ -33,7 +33,7 @@ const recentScans = [
   },
   {
     id: 'DEF-003',
-    type: 'ILI Run',
+    type: 'ILI прогон',
     pipeline: 'MT-02',
     date: '2024-01-12',
     method: 'UT',
@@ -42,10 +42,10 @@ const recentScans = [
   },
   {
     id: 'DEF-004',
-    type: 'Pressure Test',
+    type: 'Испытание давлением',
     pipeline: 'BR-04',
     date: '2024-01-10',
-    method: 'Hydro',
+    method: 'Гидро',
     grade: 'C',
     defects: 0,
   },
@@ -70,10 +70,10 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
         <CardTitle className='flex items-center justify-between'>
           <span className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
             <Activity className='h-4 w-4' />
-            Recent Scans
+            Последние сканирования
           </span>
           <Button variant='ghost' size='sm' className='text-xs'>
-            View All
+            Показать все
             <ExternalLink className='ml-1.5 h-3 w-3' />
           </Button>
         </CardTitle>
@@ -86,22 +86,22 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
                 ID
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
-                Type
+                Тип
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
-                Pipeline
+                Трубопровод
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
-                Date
+                Дата
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
-                Method
+                Метод
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
-                Grade
+                Оценка
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
-                Defects
+                Дефекты
               </TableHead>
               <TableHead className='w-[40px]'></TableHead>
             </TableRow>

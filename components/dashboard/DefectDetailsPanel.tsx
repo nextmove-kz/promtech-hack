@@ -36,78 +36,79 @@ const defectData: Record<
 > = {
   'DEF-001': {
     id: 'DEF-001',
-    name: 'Wall Thinning Anomaly',
+    name: 'Аномалия истончения стенки',
     severity: 'critical',
     location: 'KP 45.2',
-    pipeline: 'MT-02 Main Trunk',
+    pipeline: 'MT-02 Главная магистраль',
     corrosionDepth: 68,
     lastInspection: '2024-01-15',
-    material: 'Carbon Steel X52',
-    pressure: '72 bar',
+    material: 'Углеродистая сталь X52',
+    pressure: '72 бар',
     yearInstalled: 1998,
     description:
-      'Significant wall loss detected. External corrosion suspected due to coating damage.',
+      'Обнаружена значительная потеря толщины стенки. Подозрение на внешнюю коррозию из-за повреждения покрытия.',
   },
   'DEF-002': {
     id: 'DEF-002',
-    name: 'Dent with Metal Loss',
+    name: 'Вмятина с потерей металла',
     severity: 'medium',
     location: 'KP 78.9',
-    pipeline: 'BR-04 Branch',
+    pipeline: 'BR-04 Отвод',
     corrosionDepth: 35,
     lastInspection: '2024-02-20',
-    material: 'Carbon Steel X60',
-    pressure: '65 bar',
+    material: 'Углеродистая сталь X60',
+    pressure: '65 бар',
     yearInstalled: 2005,
     description:
-      'Mechanical damage with associated metal loss. Monitoring recommended.',
+      'Механическое повреждение с сопутствующей потерей металла. Рекомендуется мониторинг.',
   },
   'DEF-003': {
     id: 'DEF-003',
-    name: 'Minor Pitting',
+    name: 'Незначительное питтингование',
     severity: 'low',
     location: 'KP 23.1',
-    pipeline: 'MT-02 Main Trunk',
+    pipeline: 'MT-02 Главная магистраль',
     corrosionDepth: 12,
     lastInspection: '2024-03-01',
-    material: 'Carbon Steel X52',
-    pressure: '72 bar',
+    material: 'Углеродистая сталь X52',
+    pressure: '72 бар',
     yearInstalled: 1998,
     description:
-      'Scattered pitting within acceptable limits. Continue routine monitoring.',
+      'Разрозненное питтингование в пределах допустимых норм. Продолжить плановый мониторинг.',
   },
   'DEF-004': {
     id: 'DEF-004',
-    name: 'Girth Weld Anomaly',
+    name: 'Аномалия кольцевого шва',
     severity: 'medium',
     location: 'KP 92.4',
-    pipeline: 'BR-04 Branch',
+    pipeline: 'BR-04 Отвод',
     corrosionDepth: 28,
     lastInspection: '2024-01-28',
-    material: 'Carbon Steel X60',
-    pressure: '65 bar',
+    material: 'Углеродистая сталь X60',
+    pressure: '65 бар',
     yearInstalled: 2005,
-    description: 'Weld-related indication requiring further assessment.',
+    description:
+      'Индикация, связанная со сварным швом, требующая дальнейшей оценки.',
   },
 }
 
 const severityConfig = {
   critical: {
-    label: 'Critical',
+    label: 'Критический',
     variant: 'destructive' as const,
     color: 'text-risk-critical',
   },
   high: {
-    label: 'High',
+    label: 'Высокий',
     variant: 'destructive' as const,
     color: 'text-risk-high',
   },
   medium: {
-    label: 'Medium',
+    label: 'Средний',
     variant: 'secondary' as const,
     color: 'text-risk-medium',
   },
-  low: { label: 'Low', variant: 'outline' as const, color: 'text-risk-low' },
+  low: { label: 'Низкий', variant: 'outline' as const, color: 'text-risk-low' },
 }
 
 export function DefectDetailsPanel({
@@ -122,7 +123,7 @@ export function DefectDetailsPanel({
   const severity = severityConfig[defect.severity]
 
   return (
-    <div className='h-full w-96 shrink-0 border-l border-border bg-card'>
+    <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
       <div className='flex h-full flex-col'>
         {/* Header */}
         <div className='border-b border-border p-4'>
@@ -133,7 +134,7 @@ export function DefectDetailsPanel({
             className='mb-3 gap-1.5 -ml-2 text-muted-foreground hover:text-foreground'
           >
             <ArrowLeft className='h-4 w-4' />
-            Back to list
+            Назад к списку
           </Button>
           <div className='flex items-center gap-3'>
             <div
@@ -172,7 +173,7 @@ export function DefectDetailsPanel({
             <Card className='border-border/50'>
               <CardHeader className='pb-2'>
                 <CardTitle className='text-sm font-medium text-muted-foreground'>
-                  Corrosion Depth
+                  Глубина коррозии
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -186,7 +187,7 @@ export function DefectDetailsPanel({
                     {defect.corrosionDepth}%
                   </span>
                   <span className='mb-1 text-sm text-muted-foreground'>
-                    of wall thickness
+                    от толщины стенки
                   </span>
                 </div>
                 <Progress value={defect.corrosionDepth} className='mt-2 h-2' />
@@ -200,14 +201,14 @@ export function DefectDetailsPanel({
               <div className='space-y-1'>
                 <div className='flex items-center gap-1.5 text-muted-foreground'>
                   <MapPin className='h-3.5 w-3.5' />
-                  <span className='text-xs'>Location</span>
+                  <span className='text-xs'>Местоположение</span>
                 </div>
                 <p className='font-medium text-foreground'>{defect.location}</p>
               </div>
               <div className='space-y-1'>
                 <div className='flex items-center gap-1.5 text-muted-foreground'>
                   <Calendar className='h-3.5 w-3.5' />
-                  <span className='text-xs'>Last Inspection</span>
+                  <span className='text-xs'>Последний осмотр</span>
                 </div>
                 <p className='font-medium text-foreground'>
                   {defect.lastInspection}
@@ -216,21 +217,23 @@ export function DefectDetailsPanel({
               <div className='space-y-1'>
                 <div className='flex items-center gap-1.5 text-muted-foreground'>
                   <Wrench className='h-3.5 w-3.5' />
-                  <span className='text-xs'>Material</span>
+                  <span className='text-xs'>Материал</span>
                 </div>
                 <p className='font-medium text-foreground'>{defect.material}</p>
               </div>
               <div className='space-y-1'>
-                <span className='text-xs text-muted-foreground'>Pressure</span>
+                <span className='text-xs text-muted-foreground'>Давление</span>
                 <p className='font-medium text-foreground'>{defect.pressure}</p>
               </div>
               <div className='space-y-1'>
-                <span className='text-xs text-muted-foreground'>Pipeline</span>
+                <span className='text-xs text-muted-foreground'>
+                  Трубопровод
+                </span>
                 <p className='font-medium text-foreground'>{defect.pipeline}</p>
               </div>
               <div className='space-y-1'>
                 <span className='text-xs text-muted-foreground'>
-                  Year Installed
+                  Год установки
                 </span>
                 <p className='font-medium text-foreground'>
                   {defect.yearInstalled}
@@ -244,7 +247,7 @@ export function DefectDetailsPanel({
         <div className='border-t border-border p-4'>
           <Button className='w-full gap-2'>
             <Download className='h-4 w-4' />
-            Export Report (PDF)
+            Экспорт отчета (PDF)
           </Button>
         </div>
       </div>
