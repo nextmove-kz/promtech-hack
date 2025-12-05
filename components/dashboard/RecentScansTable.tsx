@@ -68,9 +68,6 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
           <TableHeader>
             <TableRow className='border-border/50 hover:bg-transparent'>
               <TableHead className='text-xs font-medium text-muted-foreground'>
-                ID
-              </TableHead>
-              <TableHead className='text-xs font-medium text-muted-foreground'>
                 Название
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
@@ -92,9 +89,6 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
                 onClick={() => onRowClick?.(object.id)}
                 className='cursor-pointer border-border/50 transition-colors hover:bg-secondary/50'
               >
-                <TableCell className='font-mono text-xs text-muted-foreground'>
-                  {object.id}
-                </TableCell>
                 <TableCell className='text-sm font-medium'>
                   {object.name || '-'}
                 </TableCell>
