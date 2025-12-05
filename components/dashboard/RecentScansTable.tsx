@@ -111,7 +111,7 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
             {data?.items?.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={5}
                   className='text-center text-sm text-muted-foreground py-8'
                 >
                   Нет данных
