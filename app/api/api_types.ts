@@ -113,6 +113,7 @@ export enum DiagnosticsQualityGradeOptions {
 	"удовлетворительно" = "удовлетворительно",
 	"допустимо" = "допустимо",
 	"требует_мер" = "требует_мер",
+	"недопустимо" = "недопустимо",
 }
 
 export enum DiagnosticsMlLabelOptions {

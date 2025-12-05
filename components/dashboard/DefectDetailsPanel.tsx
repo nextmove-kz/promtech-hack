@@ -1,3 +1,5 @@
+'use client'
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,89 +9,30 @@ import {
   ArrowLeft,
   Download,
   AlertTriangle,
-  MapPin,
   Calendar,
-  Wrench,
+  Loader2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useDiagnostic } from '@/hooks/useDiagnostic'
+import type { DiagnosticsMlLabelOptions } from '@/app/api/api_types'
 
 interface DefectDetailsPanelProps {
   defectId: string | null
   onClose: () => void
 }
 
-const defectData: Record<
-  string,
-  {
-    id: string
-    name: string
-    severity: 'critical' | 'high' | 'medium' | 'low'
-    location: string
-    pipeline: string
-    corrosionDepth: number
-    lastInspection: string
-    material: string
-    pressure: string
-    yearInstalled: number
-    description: string
+const mapMlLabelToSeverity = (
+  mlLabel?: DiagnosticsMlLabelOptions
+): 'critical' | 'high' | 'medium' | 'low' => {
+  switch (mlLabel) {
+    case 'high':
+      return 'critical'
+    case 'medium':
+      return 'medium'
+    case 'normal':
+    default:
+      return 'low'
   }
-> = {
-  'DEF-001': {
-    id: 'DEF-001',
-    name: 'Аномалия истончения стенки',
-    severity: 'critical',
-    location: 'KP 45.2',
-    pipeline: 'MT-02 Главная магистраль',
-    corrosionDepth: 68,
-    lastInspection: '2024-01-15',
-    material: 'Углеродистая сталь X52',
-    pressure: '72 бар',
-    yearInstalled: 1998,
-    description:
-      'Обнаружена значительная потеря толщины стенки. Подозрение на внешнюю коррозию из-за повреждения покрытия.',
-  },
-  'DEF-002': {
-    id: 'DEF-002',
-    name: 'Вмятина с потерей металла',
-    severity: 'medium',
-    location: 'KP 78.9',
-    pipeline: 'BR-04 Отвод',
-    corrosionDepth: 35,
-    lastInspection: '2024-02-20',
-    material: 'Углеродистая сталь X60',
-    pressure: '65 бар',
-    yearInstalled: 2005,
-    description:
-      'Механическое повреждение с сопутствующей потерей металла. Рекомендуется мониторинг.',
-  },
-  'DEF-003': {
-    id: 'DEF-003',
-    name: 'Незначительное питтингование',
-    severity: 'low',
-    location: 'KP 23.1',
-    pipeline: 'MT-02 Главная магистраль',
-    corrosionDepth: 12,
-    lastInspection: '2024-03-01',
-    material: 'Углеродистая сталь X52',
-    pressure: '72 бар',
-    yearInstalled: 1998,
-    description:
-      'Разрозненное питтингование в пределах допустимых норм. Продолжить плановый мониторинг.',
-  },
-  'DEF-004': {
-    id: 'DEF-004',
-    name: 'Аномалия кольцевого шва',
-    severity: 'medium',
-    location: 'KP 92.4',
-    pipeline: 'BR-04 Отвод',
-    corrosionDepth: 28,
-    lastInspection: '2024-01-28',
-    material: 'Углеродистая сталь X60',
-    pressure: '65 бар',
-    yearInstalled: 2005,
-    description:
-      'Индикация, связанная со сварным швом, требующая дальнейшей оценки.',
-  },
 }
 
 const severityConfig = {
@@ -115,12 +58,36 @@ export function DefectDetailsPanel({
   defectId,
   onClose,
 }: DefectDetailsPanelProps) {
+  const { data: diagnostic, isLoading, error } = useDiagnostic(defectId)
+
   if (!defectId) return null
 
-  const defect = defectData[defectId]
-  if (!defect) return null
+  if (isLoading) {
+    return (
+      <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
+        <div className='flex h-full items-center justify-center'>
+          <Loader2 className='h-6 w-6 animate-spin text-muted-foreground' />
+        </div>
+      </div>
+    )
+  }
 
-  const severity = severityConfig[defect.severity]
+  if (error || !diagnostic) {
+    return (
+      <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
+        <div className='flex h-full items-center justify-center p-4'>
+          <div className='text-center text-sm text-destructive'>
+            Ошибка загрузки данных диагностики
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const severityKey = mapMlLabelToSeverity(diagnostic.ml_label)
+  const severity = severityConfig[severityKey]
+  const hasDefect = diagnostic.defect_found ?? false
+  const corrosionDepth = diagnostic.param1 ?? 0
 
   return (
     <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
@@ -140,15 +107,13 @@ export function DefectDetailsPanel({
             <div
               className={cn(
                 'rounded-md p-2',
-                defect.severity === 'critical'
-                  ? 'bg-risk-critical/20'
-                  : 'bg-muted'
+                severityKey === 'critical' ? 'bg-risk-critical/20' : 'bg-muted'
               )}
             >
               <AlertTriangle className={cn('h-5 w-5', severity.color)} />
             </div>
             <div>
-              <h2 className='font-semibold text-foreground'>{defect.id}</h2>
+              <h2 className='font-semibold text-foreground'>{diagnostic.id}</h2>
               <Badge variant={severity.variant} className='mt-1'>
                 {severity.label}
               </Badge>
@@ -162,37 +127,40 @@ export function DefectDetailsPanel({
             {/* Defect Name & Description */}
             <div>
               <h3 className='text-lg font-medium text-foreground'>
-                {defect.name}
+                {diagnostic.method || 'Диагностика'}
               </h3>
               <p className='mt-1 text-sm text-muted-foreground'>
-                {defect.description}
+                {diagnostic.defect_description ||
+                  (hasDefect ? 'Обнаружен дефект' : 'Дефекты не обнаружены')}
               </p>
             </div>
 
-            {/* Corrosion Depth */}
-            <Card className='border-border/50'>
-              <CardHeader className='pb-2'>
-                <CardTitle className='text-sm font-medium text-muted-foreground'>
-                  Глубина коррозии
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className='flex items-end gap-2'>
-                  <span
-                    className={cn(
-                      'text-3xl font-bold tabular-nums',
-                      severity.color
-                    )}
-                  >
-                    {defect.corrosionDepth}%
-                  </span>
-                  <span className='mb-1 text-sm text-muted-foreground'>
-                    от толщины стенки
-                  </span>
-                </div>
-                <Progress value={defect.corrosionDepth} className='mt-2 h-2' />
-              </CardContent>
-            </Card>
+            {/* Parameters */}
+            {corrosionDepth > 0 && (
+              <Card className='border-border/50'>
+                <CardHeader className='pb-2'>
+                  <CardTitle className='text-sm font-medium text-muted-foreground'>
+                    Параметр 1
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className='flex items-end gap-2'>
+                    <span
+                      className={cn(
+                        'text-3xl font-bold tabular-nums',
+                        severity.color
+                      )}
+                    >
+                      {corrosionDepth}
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(corrosionDepth, 100)}
+                    className='mt-2 h-2'
+                  />
+                </CardContent>
+              </Card>
+            )}
 
             <Separator />
 
@@ -200,45 +168,74 @@ export function DefectDetailsPanel({
             <div className='grid grid-cols-2 gap-4'>
               <div className='space-y-1'>
                 <div className='flex items-center gap-1.5 text-muted-foreground'>
-                  <MapPin className='h-3.5 w-3.5' />
-                  <span className='text-xs'>Местоположение</span>
-                </div>
-                <p className='font-medium text-foreground'>{defect.location}</p>
-              </div>
-              <div className='space-y-1'>
-                <div className='flex items-center gap-1.5 text-muted-foreground'>
                   <Calendar className='h-3.5 w-3.5' />
-                  <span className='text-xs'>Последний осмотр</span>
+                  <span className='text-xs'>Дата диагностики</span>
                 </div>
                 <p className='font-medium text-foreground'>
-                  {defect.lastInspection}
+                  {diagnostic.date
+                    ? new Date(diagnostic.date).toLocaleDateString('ru-RU')
+                    : '-'}
                 </p>
               </div>
               <div className='space-y-1'>
-                <div className='flex items-center gap-1.5 text-muted-foreground'>
-                  <Wrench className='h-3.5 w-3.5' />
-                  <span className='text-xs'>Материал</span>
-                </div>
-                <p className='font-medium text-foreground'>{defect.material}</p>
-              </div>
-              <div className='space-y-1'>
-                <span className='text-xs text-muted-foreground'>Давление</span>
-                <p className='font-medium text-foreground'>{defect.pressure}</p>
-              </div>
-              <div className='space-y-1'>
-                <span className='text-xs text-muted-foreground'>
-                  Трубопровод
-                </span>
-                <p className='font-medium text-foreground'>{defect.pipeline}</p>
-              </div>
-              <div className='space-y-1'>
-                <span className='text-xs text-muted-foreground'>
-                  Год установки
-                </span>
+                <span className='text-xs text-muted-foreground'>Метод</span>
                 <p className='font-medium text-foreground'>
-                  {defect.yearInstalled}
+                  {diagnostic.method || '-'}
                 </p>
               </div>
+              {diagnostic.temperature !== undefined && (
+                <div className='space-y-1'>
+                  <span className='text-xs text-muted-foreground'>
+                    Температура
+                  </span>
+                  <p className='font-medium text-foreground'>
+                    {diagnostic.temperature}°C
+                  </p>
+                </div>
+              )}
+              {diagnostic.humidity !== undefined && (
+                <div className='space-y-1'>
+                  <span className='text-xs text-muted-foreground'>
+                    Влажность
+                  </span>
+                  <p className='font-medium text-foreground'>
+                    {diagnostic.humidity}%
+                  </p>
+                </div>
+              )}
+              {diagnostic.illumination !== undefined && (
+                <div className='space-y-1'>
+                  <span className='text-xs text-muted-foreground'>
+                    Освещенность
+                  </span>
+                  <p className='font-medium text-foreground'>
+                    {diagnostic.illumination}
+                  </p>
+                </div>
+              )}
+              {diagnostic.quality_grade && (
+                <div className='space-y-1'>
+                  <span className='text-xs text-muted-foreground'>
+                    Оценка качества
+                  </span>
+                  <p className='font-medium text-foreground'>
+                    {diagnostic.quality_grade}
+                  </p>
+                </div>
+              )}
+              {diagnostic.defect_found !== undefined && (
+                <div className='space-y-1'>
+                  <span className='text-xs text-muted-foreground'>
+                    Дефект обнаружен
+                  </span>
+                  <Badge
+                    variant={hasDefect ? 'destructive' : 'outline'}
+                    className='text-xs'
+                  >
+                    {hasDefect ? 'Да' : 'Нет'}
+                  </Badge>
+                </div>
+              )}
             </div>
           </div>
         </div>
