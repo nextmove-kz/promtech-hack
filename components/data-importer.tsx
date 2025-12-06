@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { useDataImport } from '@/app/hooks/use-data-import';
+import { useDataImport } from '@/hooks/use-data-import';
 import { toast } from 'sonner';
 
 export function DataImporter({ className }: { className?: string }) {

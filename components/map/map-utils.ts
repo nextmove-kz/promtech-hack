@@ -4,7 +4,7 @@ import type {
   ObjectType,
   MarkerColor,
   MapBounds,
-} from '@/app/types/pipeline';
+} from '@/lib/types/pipeline';
 
 /**
  * Get marker color based on object type

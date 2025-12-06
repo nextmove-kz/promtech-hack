@@ -1,7 +1,7 @@
 'use client';
 
 import { Marker, Popup } from 'react-leaflet';
-import type { PipelineObject } from '@/app/types/pipeline';
+import type { PipelineObject } from '@/lib/types/pipeline';
 import { getMarkerColorByType, createColoredIcon } from './map-utils';
 
 interface PipelineMarkerProps {

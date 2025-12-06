@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
-import type { PipelineObject } from '@/app/types/pipeline';
+import type { PipelineObject } from '@/lib/types/pipeline';
 import { PipelineMarker } from './PipelineMarker';
 import {
   calculateBounds,
