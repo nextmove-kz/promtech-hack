@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/dashboard/Header';
 import { MapView } from '@/components/dashboard/MapView';
@@ -9,7 +9,7 @@ import { Sidebar } from '@/components/dashboard/Sidebar';
 
 type ViewMode = "map" | "table";
 
-const Index = () => {
+function HomeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialSelected = searchParams.get('object');
@@ -58,4 +58,10 @@ const Index = () => {
   );
 };
 
-export default Index;
+export default function Index() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  );
+}

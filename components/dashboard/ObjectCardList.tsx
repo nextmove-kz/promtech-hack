@@ -6,7 +6,9 @@ import { useInfiniteObjects } from '@/hooks/useInfiniteObjects'
 import { ObjectCard } from './ObjectCard'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
 import { useState } from 'react'
+import { useAtomValue } from 'jotai'
 import { cn } from '@/lib/utils'
+import { mapViewportAtom } from '@/store/mapViewportStore'
 
 interface ObjectCardListProps {
   onCardSelect: (id: string) => void
@@ -22,6 +24,7 @@ export function ObjectCardList({
   selectedId,
 }: ObjectCardListProps) {
   const [sortState, setSortState] = useState<SortState>('desc')
+  const viewportBounds = useAtomValue(mapViewportAtom)
 
   const {
     data,
@@ -38,6 +41,7 @@ export function ObjectCardList({
         : sortState === 'asc'
         ? '+urgency_score'
         : '-updated',
+    bounds: viewportBounds || undefined,
   })
 
   const { scrollContainerRef, loadMoreRef } = useInfiniteScroll({
