@@ -1,13 +1,18 @@
 "use client"
 
+import dynamic from "next/dynamic"
 import { useState, useMemo } from "react"
-import { PipelineMap } from "@/app/components/map"
 import type { PipelineObject, ObjectType } from "@/app/types/pipeline"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
+
+const PipelineMap = dynamic(
+  () => import("@/components/map").then((mod) => mod.PipelineMap),
+  { ssr: false }
+)
 
 // Sample pipeline objects across Kazakhstan
 const SAMPLE_OBJECTS: PipelineObject[] = [

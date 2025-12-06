@@ -12,7 +12,7 @@ The map system consists of three main components:
 ```tsx
 "use client"
 
-import { PipelineMap } from "@/app/components/map"
+import { PipelineMap } from "@/components/map"
 import type { PipelineObject } from "@/app/types/pipeline"
 
 const mockData: PipelineObject[] = [
@@ -54,7 +54,7 @@ export default function MapPage() {
 "use client"
 
 import { useState } from "react"
-import { PipelineMap } from "@/app/components/map"
+import { PipelineMap } from "@/components/map"
 import type { PipelineObject } from "@/app/types/pipeline"
 
 export default function InteractiveMapPage() {
@@ -103,7 +103,7 @@ import {
   calculateBounds,
   toBounds,
   getMarkerColorByType,
-} from "@/app/components/map"
+} from "@/components/map"
 
 // Calculate bounds for filtering
 const objects = [...] // your pipeline objects
@@ -163,7 +163,7 @@ Colors can be customized in `map-utils.ts` by modifying the `getMarkerColorByTyp
 "use client"
 
 import { useQuery } from "@tanstack/react-query"
-import { PipelineMap } from "@/app/components/map"
+import { PipelineMap } from "@/components/map"
 import type { PipelineObject } from "@/app/types/pipeline"
 import { clientPocketBase } from "@/app/api/client_pb"
 
