@@ -137,7 +137,9 @@ export function DiagnosticDetailsPanel({
 
   if (!objectId) return null;
 
-  if (isLoading) {
+  const isLoadingState = isLoading || isObjectLoading
+
+  if (isLoadingState) {
     return (
       <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
         <div className="flex h-full items-center justify-center">
@@ -176,6 +178,12 @@ export function DiagnosticDetailsPanel({
     "UNKNOWN") as keyof typeof healthStatusConfig;
   const statusConfig =
     healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN;
+
+  const contentState = error
+    ? 'error'
+    : hasDiagnostics
+      ? 'data'
+      : 'empty'
 
   return (
     <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
@@ -262,8 +270,7 @@ export function DiagnosticDetailsPanel({
                     )}
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
             <Separator />
             {/* Diagnostic History Accordion */}
@@ -427,12 +434,14 @@ export function DiagnosticDetailsPanel({
         </div>
       </div>
 
-      <ActionPlanModal
-        diagnosticId={firstDiagnostic.id}
-        diagnostic={firstDiagnostic}
-        isOpen={isModalOpen}
-        onOpenChange={setIsModalOpen}
-      />
+      {contentState === 'data' && firstDiagnostic && (
+        <ActionPlanModal
+          diagnosticId={firstDiagnostic.id}
+          diagnostic={firstDiagnostic}
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        />
+      )}
     </div>
   );
 }

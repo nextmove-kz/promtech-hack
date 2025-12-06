@@ -42,7 +42,7 @@ interface MapCanvasProps {
 }
 
 const KAZAKHSTAN_CENTER: [number, number] = [48.0, 66.5];
-const DEFAULT_ZOOM = 6;
+const DEFAULT_ZOOM = 5;
 const MIN_ZOOM = 5;
 const MAX_ZOOM = 18;
 

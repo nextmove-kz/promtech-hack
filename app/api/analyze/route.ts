@@ -29,26 +29,56 @@ const ANALYSIS_RULES = `DIAGNOSTIC METHODS REFERENCE:
 ANALYSIS RULES:
 1. **Trend Analysis**: If defect depth/severity increases over time across inspections → Escalate status.
 2. **Quality Grades**: 
-   - "недопустимо" (unacceptable) → CRITICAL
-   - "требует_мер" (needs action) → WARNING or CRITICAL based on params
-   - "допустимо" (acceptable) → WARNING if params are borderline
+   - "недопустимо" (unacceptable) → CRITICAL (but verify with params before assigning high scores)
+   - "требует_мер" (needs action) → WARNING (only CRITICAL if multiple severe factors present)
+   - "допустимо" (acceptable) → OK (minor concerns noted, but acceptable condition)
    - "удовлетворительно" (satisfactory) → OK
-3. **ML Labels**: Consider ml_label as a supporting factor (high=concern, medium=monitor, normal=ok).
-4. **Environmental Factors**: High humidity + temperature variations may accelerate corrosion.
+3. **ML Labels**: Consider ml_label as a SECONDARY factor only. Do not over-rely on ml_label alone.
+4. **Environmental Factors**: Note environmental conditions but don't over-weight them.
 
-SCORING GUIDELINES:
-- 0-30: OK (Good condition, routine monitoring sufficient)
-- 31-70: WARNING (Attention needed, schedule inspection/repair)
-- 71-100: CRITICAL (Immediate action required, safety risk)
+SCORING GUIDELINES (BE CONSERVATIVE - avoid extreme scores):
+- 0-25: OK (Good condition, routine monitoring)
+- 26-65: WARNING (Attention needed, schedule inspection/repair)
+- 66-85: CRITICAL (Serious issues requiring prompt action)
+- 86-95: CRITICAL (Severe - urgent intervention needed)
+- 96-100: EXTREME OUTLIER ONLY - Reserve for imminent catastrophic failure with multiple confirmed severe defects. Score of 100 should be VERY RARE.
 
-RECOMMENDED ACTIONS:
-- "Продолжить мониторинг" (Continue monitoring) - for OK status
-- "Запланировать повторную диагностику" (Schedule re-inspection) - for borderline cases
-- "Провести дополнительный UZK контроль" (Perform additional UZK inspection) - when wall thickness uncertain
-- "Подготовить к ремонту" (Prepare for repair) - for WARNING with degradation
-- "Немедленный вывод из эксплуатации" (Immediate shutdown) - for CRITICAL
-- "Произвести замену участка" (Replace section) - for severe metal loss
-- "Выполнить очистку и переизоляцию" (Clean and re-insulate) - for external corrosion`;
+TARGET DISTRIBUTION: Aim for approximately 30% OK, 50% WARNING, 20% CRITICAL across typical datasets. Do not over-classify to CRITICAL.
+
+RECOMMENDED ACTIONS (choose the most appropriate):
+
+For OK status (scores 0-25):
+- "Продолжить плановый мониторинг" (Continue routine monitoring)
+- "Включить в график следующей плановой диагностики" (Include in next scheduled inspection)
+- "Документировать текущее состояние" (Document current condition)
+
+For WARNING status (scores 26-65):
+- "Запланировать повторную диагностику через 3-6 месяцев" (Schedule re-inspection in 3-6 months)
+- "Провести дополнительный UZK контроль толщины стенки" (Perform additional UZK wall thickness check)
+- "Выполнить визуальный осмотр и фотофиксацию" (Perform visual inspection with photo documentation)
+- "Усилить периодичность мониторинга" (Increase monitoring frequency)
+- "Подготовить план превентивного ремонта" (Prepare preventive repair plan)
+- "Провести очистку и антикоррозионную обработку" (Perform cleaning and anti-corrosion treatment)
+- "Выполнить переизоляцию участка" (Re-insulate the section)
+- "Проверить работу катодной защиты" (Check cathodic protection operation)
+- "Заменить уплотнительные элементы" (Replace sealing elements)
+
+For CRITICAL status (scores 66-85):
+- "Срочно запланировать ремонтные работы" (Urgently schedule repair work)
+- "Подготовить участок к капитальному ремонту" (Prepare section for major repair)
+- "Установить временные ограничения давления" (Set temporary pressure restrictions)
+- "Провести дополнительную диагностику смежных участков" (Perform additional diagnostics on adjacent sections)
+- "Разработать проект ремонта с заменой дефектного участка" (Develop repair project with defective section replacement)
+
+For CRITICAL status (scores 86-95):
+- "Немедленно снизить рабочее давление" (Immediately reduce operating pressure)
+- "Подготовить аварийную бригаду" (Prepare emergency crew)
+- "Произвести срочную замену участка трубопровода" (Perform urgent pipeline section replacement)
+- "Вывести объект на внеплановый ремонт" (Take object for unscheduled repair)
+
+For EXTREME cases only (scores 96-100):
+- "Немедленный вывод из эксплуатации" (Immediate shutdown)
+- "Аварийная остановка и эвакуация персонала" (Emergency stop and personnel evacuation)`;
 
 const PARAMETER_CONTEXT = `PARAMETER CONTEXT:
 - If method is "VIBRO": param1 = Vibration Velocity (mm/s, critical if > 7.1), param2 = Vibration Acceleration (m/s²), param3 = Frequency (Hz) or bearing temperature.
@@ -60,6 +90,13 @@ const SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer with 20
 
 ${ANALYSIS_RULES}
 ${PARAMETER_CONTEXT}
+
+CRITICAL RULE - CONSISTENCY REQUIRED:
+The health_status MUST match the urgency_score range:
+- urgency_score 0-25 → health_status MUST be "OK"
+- urgency_score 26-65 → health_status MUST be "WARNING"
+- urgency_score 66-100 → health_status MUST be "CRITICAL"
+NEVER return a high score (66+) with "WARNING" or "OK" status. They must be consistent.
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object with this exact structure:
@@ -75,6 +112,13 @@ const BATCH_SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer w
 
 ${ANALYSIS_RULES}
 ${PARAMETER_CONTEXT}
+
+CRITICAL RULE - CONSISTENCY REQUIRED:
+The health_status MUST match the urgency_score range:
+- urgency_score 0-25 → health_status MUST be "OK"
+- urgency_score 26-65 → health_status MUST be "WARNING"
+- urgency_score 66-100 → health_status MUST be "CRITICAL"
+NEVER return a high score (66+) with "WARNING" or "OK" status. They must be consistent.
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON array where each element corresponds to an object in the input (same order).
@@ -328,17 +372,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         throw new Error("Invalid response structure");
       }
 
-      // Ensure health_status is valid
-      const validStatuses = ["OK", "WARNING", "CRITICAL"];
-      if (!validStatuses.includes(aiResult.health_status)) {
-        aiResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
-      }
-
       // Clamp urgency_score to 0-100
       aiResult.urgency_score = Math.max(
         0,
         Math.min(100, Math.round(aiResult.urgency_score))
       );
+
+      // Enforce consistency between health_status and urgency_score
+      // Score determines status, not the other way around
+      if (aiResult.urgency_score <= 25) {
+        aiResult.health_status = "OK" as ObjectsHealthStatusOptions;
+      } else if (aiResult.urgency_score <= 65) {
+        aiResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
+      } else {
+        aiResult.health_status = "CRITICAL" as ObjectsHealthStatusOptions;
+      }
     } catch (parseError) {
       console.error("Failed to parse AI response:", aiText, parseError);
       throw new Error("Failed to parse AI response");
@@ -567,15 +615,22 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       // Process each result
       for (const rawResult of batchResults) {
         const resultFromAi = { ...rawResult };
-        // Validate and sanitize
-        const validStatuses = ["OK", "WARNING", "CRITICAL"];
-        if (!validStatuses.includes(resultFromAi.health_status)) {
-          resultFromAi.health_status = "WARNING" as ObjectsHealthStatusOptions;
-        }
+        
+        // Clamp urgency_score to 0-100
         resultFromAi.urgency_score = Math.max(
           0,
           Math.min(100, Math.round(resultFromAi.urgency_score))
         );
+
+        // Enforce consistency between health_status and urgency_score
+        // Score determines status, not the other way around
+        if (resultFromAi.urgency_score <= 25) {
+          resultFromAi.health_status = "OK" as ObjectsHealthStatusOptions;
+        } else if (resultFromAi.urgency_score <= 65) {
+          resultFromAi.health_status = "WARNING" as ObjectsHealthStatusOptions;
+        } else {
+          resultFromAi.health_status = "CRITICAL" as ObjectsHealthStatusOptions;
+        }
 
         const diagList = diagnosticsMap.get(resultFromAi.object_id) || [];
         const latestDiagnostic = getLatestDiagnostic(diagList);

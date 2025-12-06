@@ -92,3 +92,19 @@ export async function getObjects(
     items: result.items,
   }
 }
+
+export async function getObjectById(
+  objectId: string
+): Promise<ObjectWithPipeline | null> {
+  try {
+    const record = await clientPocketBase
+      .collection('objects')
+      .getOne<ObjectWithPipeline>(objectId, {
+        expand: 'pipeline',
+      })
+
+    return record
+  } catch {
+    return null
+  }
+}
