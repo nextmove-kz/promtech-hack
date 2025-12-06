@@ -4,26 +4,31 @@ import { pocketbase } from "../pocketbase";
 import { cookies } from "next/headers";
 
 export const getUser = async () => {
-  return pocketbase().authStore.model as Promise<AuthSystemFields>;
+  const pb = await pocketbase();
+  return pb.authStore.model as AuthSystemFields;
 };
 
 export const isLoggedIn = async () => {
-  return pocketbase().authStore.isValid as unknown as Promise<boolean>;
+  const pb = await pocketbase();
+  return pb.authStore.isValid;
 };
 
 export const logOut = async () => {
-  pocketbase().authStore.clear();
-  cookies().delete("pb_auth");
+  const pb = await pocketbase();
+  pb.authStore.clear();
+  const cookieStore = await cookies();
+  cookieStore.delete("pb_auth");
 };
 
 export const signIn = async (email: string, password: string) => {
   try {
-    const pb = pocketbase();
+    const pb = await pocketbase();
     const authData = await pb
       .collection("users")
       .authWithPassword(email, password);
 
-    cookies().set("pb_auth", pb.authStore.exportToCookie());
+    const cookieStore = await cookies();
+    cookieStore.set("pb_auth", pb.authStore.exportToCookie());
     return authData;
   } catch (error) {
     console.log("ошибка" + error);
