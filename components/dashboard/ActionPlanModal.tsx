@@ -78,18 +78,29 @@ const healthStatusConfig = {
 };
 const PLAN_FIELDS = [
   {
-    id: "problem_description",
-    label: "Описание проблемы",
+    id: "problem_summary",
+    label: "Краткое заключение",
     minHeight: "min-h-[120px]",
   },
   {
-    id: "suggested_actions",
-    label: "Предлагаемые действия",
+    id: "action_plan",
+    label: "План действий (каждый пункт с новой строки)",
     minHeight: "min-h-[150px]",
+    isList: true,
   },
   {
-    id: "expected_result",
-    label: "Планируемый результат",
+    id: "required_resources",
+    label: "Необходимые ресурсы",
+    minHeight: "min-h-[100px]",
+  },
+  {
+    id: "safety_requirements",
+    label: "Требования по безопасности",
+    minHeight: "min-h-[100px]",
+  },
+  {
+    id: "expected_outcome",
+    label: "Ожидаемый результат",
     minHeight: "min-h-[100px]",
   },
 ] as const;
@@ -147,38 +158,9 @@ export function ActionPlanModal({
   const savePlanToPocketBase = useCallback(
     async (planData: ActionPlanResult, objectId: string) => {
       try {
-        // Parse suggested actions into individual items
-        // Expected formats:
-        // - "1. Action one\n2. Action two\n3. Action three"
-        // - "1. Action one. 2. Action two. 3. Action three."
-
-        // First, try to split by pattern like ". 2." or ". 3." etc.
-        // This regex matches: (end of sentence/period) + (space) + (digit) + (dot)
-        let actionItems = planData.suggested_actions
-          .split(/\.\s+(?=\d+\.\s)/) // Split before "2. ", "3. ", etc.
-          .map((line) => line.trim())
-          .map((line) => {
-            // Remove leading number and dot (e.g., "1. " or "2. ")
-            return line.replace(/^\d+\.\s*/, "");
-          })
-          .map((line) => {
-            // Remove trailing period if it exists
-            return line.replace(/\.$/, "");
-          })
-          .filter((line) => line.length > 0);
-
-        // If we only got 1 item, try splitting by newlines instead
-        if (actionItems.length <= 1) {
-          actionItems = planData.suggested_actions
-            .split(/\n/)
-            .map((line) => line.trim())
-            .filter((line) => line.match(/^\d+\./)) // Only lines starting with number and dot
-            .map((line) => line.replace(/^\d+\.\s*/, "")) // Remove the number prefix
-            .filter((line) => line.length > 0);
-        }
-
-        console.log("Parsed action items:", actionItems);
-        console.log("Original suggested_actions:", planData.suggested_actions);
+        const actionItems = (planData.action_plan || [])
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0);
 
         // Create action records for each parsed action
         const actionIds: string[] = [];
@@ -195,7 +177,7 @@ export function ActionPlanModal({
         // Create the plan record with linked actions
         const planRecord = await clientPocketBase.collection("plan").create({
           object: objectId,
-          problem: planData.problem_description,
+          problem: planData.problem_summary,
           status: "created" as PlanStatusOptions,
           actions: actionIds,
         });
@@ -432,31 +414,44 @@ export function ActionPlanModal({
                 </div>
               )}
             </div>
-            {PLAN_FIELDS.map((field) => (
-              <ActionPlanField
-                key={field.id}
-                id={field.id}
-                label={field.label}
-                value={
-                  actionPlanData.result?.[field.id as keyof ActionPlanResult] ||
-                  ""
-                }
-                minHeight={field.minHeight}
-                onChange={(value) =>
-                  setActionPlanData((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          result: {
-                            ...prev.result!,
-                            [field.id]: value,
-                          },
-                        }
-                      : null
-                  )
-                }
-              />
-            ))}
+            {PLAN_FIELDS.map((field) => {
+              const value =
+                field.id === "action_plan"
+                  ? (actionPlanData.result?.action_plan || []).join("\n")
+                  : (actionPlanData.result?.[
+                      field.id as keyof ActionPlanResult
+                    ] as string) || "";
+
+              return (
+                <ActionPlanField
+                  key={field.id}
+                  id={field.id}
+                  label={field.label}
+                  value={value}
+                  minHeight={field.minHeight}
+                  onChange={(updatedValue) =>
+                    setActionPlanData((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            result: {
+                              ...prev.result!,
+                              ...(field.id === "action_plan"
+                                ? {
+                                    action_plan: updatedValue
+                                      .split(/\n+/)
+                                      .map((line) => line.trim())
+                                      .filter((line) => line.length > 0),
+                                  }
+                                : { [field.id]: updatedValue }),
+                            },
+                          }
+                        : null
+                    )
+                  }
+                />
+              );
+            })}
           </div>
         ) : null}
 

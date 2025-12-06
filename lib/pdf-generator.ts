@@ -22,9 +22,11 @@ export interface ActionPlanPdfData {
     }
   }
   result: {
-    problem_description: string
-    suggested_actions: string
-    expected_result: string
+    problem_summary: string
+    action_plan: string[]
+    required_resources: string
+    safety_requirements: string
+    expected_outcome: string
   }
 }
 
@@ -206,26 +208,25 @@ export async function generateActionPlanPdf(
 
   yPos += 10
 
-  // Problem Description Section
+  // Summary Section
   doc.setFontSize(FONT_SIZE.sectionTitle)
   doc.setTextColor(...COLORS.primary)
-  doc.text('ОПИСАНИЕ ПРОБЛЕМЫ', margin, yPos)
+  doc.text('РЕЗЮМЕ ПРОБЛЕМЫ', margin, yPos)
   yPos += 2
 
-  // Underline
   doc.setDrawColor(...COLORS.border)
-  doc.setLineWidth(0.2) // Thinner line
+  doc.setLineWidth(0.2)
   doc.line(margin, yPos, margin + contentWidth, yPos)
   yPos += 8
 
   doc.setFontSize(FONT_SIZE.text)
   doc.setTextColor(...COLORS.text)
-  const problemLines = splitTextToLines(
+  const summaryLines = splitTextToLines(
     doc,
-    result.problem_description,
+    result.problem_summary,
     contentWidth
   )
-  for (const line of problemLines) {
+  for (const line of summaryLines) {
     if (yPos > pageHeight - margin - 10) {
       doc.addPage()
       setupCyrillicFont(doc)
@@ -236,7 +237,7 @@ export async function generateActionPlanPdf(
   }
   yPos += 10
 
-  // Suggested Actions Section
+  // Action Plan Section
   if (yPos > pageHeight - 60) {
     doc.addPage()
     setupCyrillicFont(doc)
@@ -245,7 +246,7 @@ export async function generateActionPlanPdf(
 
   doc.setFontSize(FONT_SIZE.sectionTitle)
   doc.setTextColor(...COLORS.primary)
-  doc.text('ПРЕДЛАГАЕМЫЕ ДЕЙСТВИЯ', margin, yPos)
+  doc.text('ПЛАН ДЕЙСТВИЙ', margin, yPos)
   yPos += 2
 
   doc.setDrawColor(...COLORS.border)
@@ -254,12 +255,46 @@ export async function generateActionPlanPdf(
 
   doc.setFontSize(FONT_SIZE.text)
   doc.setTextColor(...COLORS.text)
-  const actionLines = splitTextToLines(
+  const actions = result.action_plan || []
+  for (let i = 0; i < actions.length; i++) {
+    const actionText = `${i + 1}. ${actions[i]}`
+    const actionLines = splitTextToLines(doc, actionText, contentWidth)
+    for (const line of actionLines) {
+      if (yPos > pageHeight - margin - 10) {
+        doc.addPage()
+        setupCyrillicFont(doc)
+        yPos = margin
+      }
+      doc.text(line, margin, yPos)
+      yPos += 5
+    }
+  }
+  yPos += 10
+
+  // Required Resources Section
+  if (yPos > pageHeight - 50) {
+    doc.addPage()
+    setupCyrillicFont(doc)
+    yPos = margin
+  }
+
+  doc.setFontSize(FONT_SIZE.sectionTitle)
+  doc.setTextColor(...COLORS.primary)
+  doc.text('РЕСУРСЫ', margin, yPos)
+  yPos += 2
+
+  doc.setDrawColor(...COLORS.border)
+  doc.line(margin, yPos, margin + contentWidth, yPos)
+  yPos += 8
+
+  doc.setFontSize(FONT_SIZE.text)
+  doc.setTextColor(...COLORS.text)
+  const resourcesLines = splitTextToLines(
     doc,
-    result.suggested_actions,
+    result.required_resources,
     contentWidth
   )
-  for (const line of actionLines) {
+  for (const line of resourcesLines) {
     if (yPos > pageHeight - margin - 10) {
       doc.addPage()
       setupCyrillicFont(doc)
@@ -270,8 +305,8 @@ export async function generateActionPlanPdf(
   }
   yPos += 10
 
-  // Expected Result Section
-  if (yPos > pageHeight - 40) {
+  // Safety Requirements Section
+  if (yPos > pageHeight - 50) {
     doc.addPage()
     setupCyrillicFont(doc)
     yPos = margin
@@ -279,7 +314,7 @@ export async function generateActionPlanPdf(
 
   doc.setFontSize(FONT_SIZE.sectionTitle)
   doc.setTextColor(...COLORS.primary)
-  doc.text('ПЛАНИРУЕМЫЙ РЕЗУЛЬТАТ', margin, yPos)
+  doc.text('ТРЕБОВАНИЯ ПО БЕЗОПАСНОСТИ', margin, yPos)
   yPos += 2
 
   doc.setDrawColor(...COLORS.border)
@@ -288,12 +323,46 @@ export async function generateActionPlanPdf(
 
   doc.setFontSize(FONT_SIZE.text)
   doc.setTextColor(...COLORS.text)
-  const resultLines = splitTextToLines(
+  const safetyLines = splitTextToLines(
     doc,
-    result.expected_result,
+    result.safety_requirements,
     contentWidth
   )
-  for (const line of resultLines) {
+  for (const line of safetyLines) {
+    if (yPos > pageHeight - margin - 10) {
+      doc.addPage()
+      setupCyrillicFont(doc)
+      yPos = margin
+    }
+    doc.text(line, margin, yPos)
+    yPos += 5
+  }
+  yPos += 10
+
+  // Expected Outcome Section
+  if (yPos > pageHeight - 40) {
+    doc.addPage()
+    setupCyrillicFont(doc)
+    yPos = margin
+  }
+
+  doc.setFontSize(FONT_SIZE.sectionTitle)
+  doc.setTextColor(...COLORS.primary)
+  doc.text('ОЖИДАЕМЫЙ РЕЗУЛЬТАТ', margin, yPos)
+  yPos += 2
+
+  doc.setDrawColor(...COLORS.border)
+  doc.line(margin, yPos, margin + contentWidth, yPos)
+  yPos += 8
+
+  doc.setFontSize(FONT_SIZE.text)
+  doc.setTextColor(...COLORS.text)
+  const outcomeLines = splitTextToLines(
+    doc,
+    result.expected_outcome,
+    contentWidth
+  )
+  for (const line of outcomeLines) {
     if (yPos > pageHeight - margin - 10) {
       doc.addPage()
       setupCyrillicFont(doc)
