@@ -161,6 +161,7 @@ export function ActionPlanModal({
         .filter((item) => item.length > 0);
 
       const actionIds: string[] = [];
+      let createdPlanId: string | null = null;
 
       try {
         for (const actionDescription of actionItems) {
@@ -179,6 +180,18 @@ export function ActionPlanModal({
           status: 'created' as PlanStatusOptions,
           actions: actionIds,
         });
+        createdPlanId = planRecord.id;
+
+        // Backlink actions to the created plan so relations stay in sync
+        if (actionIds.length > 0) {
+          await Promise.all(
+            actionIds.map((actionId) =>
+              clientPocketBase
+                .collection('action')
+                .update(actionId, { plan: planRecord.id }),
+            ),
+          );
+        }
 
         setPlanId(planRecord.id);
         return planRecord.id;
@@ -192,6 +205,12 @@ export function ActionPlanModal({
               .catch(() => {}),
           ),
         );
+        if (createdPlanId) {
+          await clientPocketBase
+            .collection('plan')
+            .delete(createdPlanId)
+            .catch(() => {});
+        }
         throw error;
       }
     },
