@@ -18,7 +18,9 @@ export const PIPELINE_NAMES: Record<string, string> = {
 export async function fetchAllPipelines(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
-    const items = await pb.collection("pipelines").getFullList<PipelinesResponse>();
+    const items = await pb
+      .collection("pipelines")
+      .getFullList<PipelinesResponse>();
     for (const item of items) {
       map.set(item.name, item.id);
     }
@@ -67,7 +69,7 @@ export async function fetchAllObjects(): Promise<Map<number, string>> {
       fields: "id,object_id",
     });
     for (const item of items) {
-      const num = Number(item.object_id);
+      const num = Number(item.id);
       if (!isNaN(num)) {
         map.set(num, item.id);
       }
@@ -148,4 +150,3 @@ export async function createDiagnosticsBatch(
 
   return { errors, ids };
 }
-
