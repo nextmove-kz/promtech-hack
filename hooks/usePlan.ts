@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  getAllPlans,
   getPlan,
   getPlanByObjectId,
   getLatestDiagnostic,
@@ -22,6 +23,18 @@ export function usePlanByObjectId(objectId: string | null) {
     },
     enabled: !!objectId,
     staleTime: 60000, // 1 minute
+  })
+}
+
+/**
+ * Hook to fetch all plans
+ */
+export function usePlans() {
+  return useQuery<PlanWithExpanded[]>({
+    queryKey: ['plans', 'all'],
+    queryFn: getAllPlans,
+    staleTime: 60000,
+    refetchOnWindowFocus: false,
   })
 }
 

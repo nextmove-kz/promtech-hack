@@ -19,6 +19,19 @@ export type DiagnosticWithObject = DiagnosticsResponse<{
 }>
 
 /**
+ * Get all plans with expanded relations
+ * Returns every plan ever created
+ */
+export async function getAllPlans(): Promise<PlanWithExpanded[]> {
+  const plans = await clientPocketBase.collection('plan').getFullList<PlanWithExpanded>({
+    expand: 'actions,object,object.pipeline',
+    sort: '-created',
+  })
+
+  return plans
+}
+
+/**
  * Get a plan by object ID with expanded relations
  * Returns the most recent plan for the given object
  */

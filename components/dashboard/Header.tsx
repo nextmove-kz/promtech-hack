@@ -1,8 +1,10 @@
 'use client'
 
+import Link from 'next/link'
 import { Gauge } from 'lucide-react'
 import { FilterBar } from '@/components/dashboard/FilterBar'
 import { DataImporter } from '@/components/data-importer'
+import { Button } from '@/components/ui/button'
 
 export function Header() {
   return (
@@ -17,7 +19,12 @@ export function Header() {
           </span>
         </div>
 
-        <DataImporter />
+        <div className='flex items-center gap-2'>
+          <Button variant='outline' size='sm' asChild>
+            <Link href='/plans'>Трекер задач</Link>
+          </Button>
+          <DataImporter />
+        </div>
       </div>
       <FilterBar />
     </header>
