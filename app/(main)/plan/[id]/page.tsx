@@ -2,7 +2,15 @@
 
 import { useParams, useRouter } from "next/navigation";
 import { useState } from "react";
-import { ArrowLeft, CheckCircle2, Circle, Loader2, Calendar, AlertTriangle } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  Circle,
+  Loader2,
+  Calendar,
+  AlertTriangle,
+  Gauge,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -102,13 +110,20 @@ export default function PlanPage() {
   const router = useRouter();
   const objectId = params.id as string;
 
-  const { data: plan, isLoading: planLoading, error: planError } = usePlanByObjectId(objectId);
-  const { data: diagnostic, isLoading: diagnosticLoading } = useLatestDiagnostic(objectId);
+  const {
+    data: plan,
+    isLoading: planLoading,
+    error: planError,
+  } = usePlanByObjectId(objectId);
+  const { data: diagnostic, isLoading: diagnosticLoading } =
+    useLatestDiagnostic(objectId);
 
   const updateActionMutation = useUpdateActionStatus();
   const updatePlanMutation = useUpdatePlanStatus();
 
-  const [localActionStates, setLocalActionStates] = useState<Record<string, boolean>>({});
+  const [localActionStates, setLocalActionStates] = useState<
+    Record<string, boolean>
+  >({});
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const handleActionToggle = (actionId: string, currentStatus: boolean) => {
@@ -119,7 +134,7 @@ export default function PlanPage() {
 
   const handleMarkAsDoneClick = () => {
     if (!plan) return;
-    
+
     const actions = plan.expand?.actions || [];
     const allActionsCompleted = actions.every(
       (action) => localActionStates[action.id] ?? action.status
@@ -173,7 +188,9 @@ export default function PlanPage() {
 
   const object = plan.expand?.object;
   const actions = plan.expand?.actions || [];
-  const completedCount = actions.filter((a) => localActionStates[a.id] ?? a.status).length;
+  const completedCount = actions.filter(
+    (a) => localActionStates[a.id] ?? a.status
+  ).length;
   const totalCount = actions.length;
   const allActionsCompleted = completedCount === totalCount;
 
@@ -190,7 +207,8 @@ export default function PlanPage() {
               <DialogTitle>Не все действия выполнены</DialogTitle>
             </div>
             <DialogDescription className="text-left">
-              Выполнено {completedCount} из {totalCount} действий. Вы уверены, что хотите отметить план как выполненный?
+              Выполнено {completedCount} из {totalCount} действий. Вы уверены,
+              что хотите отметить план как выполненный?
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2">
@@ -221,15 +239,14 @@ export default function PlanPage() {
       {/* Header */}
       <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur">
         <div className="px-4 py-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => router.push("/")}
-            className="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Назад
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
+              <Gauge className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-semibold text-foreground">
+              IntegrityOS
+            </span>
+          </div>
         </div>
       </div>
 
@@ -244,17 +261,17 @@ export default function PlanPage() {
                 plan.status === PlanStatusOptions.done
                   ? "default"
                   : plan.status === PlanStatusOptions.pending
-                    ? "secondary"
-                    : "outline"
+                  ? "secondary"
+                  : "outline"
               }
             >
               {plan.status === PlanStatusOptions.done
                 ? "Выполнено"
                 : plan.status === PlanStatusOptions.pending
-                  ? "В работе"
-                  : plan.status === PlanStatusOptions.created
-                    ? "Создано"
-                    : "Архив"}
+                ? "В работе"
+                : plan.status === PlanStatusOptions.created
+                ? "Создано"
+                : "Архив"}
             </Badge>
           </div>
 
@@ -323,7 +340,9 @@ export default function PlanPage() {
 
               {diagnostic.humidity !== undefined && (
                 <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">Влажность</span>
+                  <span className="text-xs text-muted-foreground">
+                    Влажность
+                  </span>
                   <p className="font-medium text-foreground">
                     {diagnostic.humidity}%
                   </p>
@@ -358,7 +377,9 @@ export default function PlanPage() {
                     Дефект обнаружен
                   </span>
                   <Badge
-                    variant={diagnostic.defect_found ? "destructive" : "outline"}
+                    variant={
+                      diagnostic.defect_found ? "destructive" : "outline"
+                    }
                     className="text-xs"
                   >
                     {diagnostic.defect_found ? "Да" : "Нет"}
@@ -416,7 +437,11 @@ export default function PlanPage() {
                   <button
                     key={action.id}
                     onClick={() => handleActionToggle(action.id, isChecked)}
-                    disabled={updateActionMutation.isPending}
+                    disabled={
+                      updateActionMutation.isPending ||
+                      plan.status === PlanStatusOptions.done ||
+                      plan.status === PlanStatusOptions.archive
+                    }
                     className={cn(
                       "w-full flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:bg-accent/50",
                       isChecked && "bg-muted/50"
