@@ -20,6 +20,7 @@ export interface AdvancedFilterState {
 export interface FilterState {
   activeFilters: FilterOptionId[]
   advanced: AdvancedFilterState
+  searchQuery: string
 }
 
 export const defaultAdvancedFilters: AdvancedFilterState = {
@@ -35,6 +36,7 @@ export const defaultAdvancedFilters: AdvancedFilterState = {
 export const defaultFilters: FilterState = {
   activeFilters: [],
   advanced: { ...defaultAdvancedFilters },
+  searchQuery: '',
 }
 
 export const filterAtom = atom<FilterState>(defaultFilters)

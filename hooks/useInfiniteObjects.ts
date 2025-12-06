@@ -3,6 +3,7 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { useAtomValue } from 'jotai'
 import { getObjects, type GetObjectsResult } from '@/app/api/objects'
 import { filterAtom } from '@/store/filterStore'
+import { useDebounce } from './useDebounce'
 
 interface UseInfiniteObjectsParams {
   perPage?: number
@@ -10,7 +11,8 @@ interface UseInfiniteObjectsParams {
 
 export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const perPage = params.perPage ?? 20
-  const { activeFilters, advanced } = useAtomValue(filterAtom)
+  const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom)
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const recentSince =
     activeFilters.includes('recent') && typeof window !== 'undefined'
       ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
@@ -30,7 +32,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       ),
     [advanced]
   )
-  const hasFilters = activeFilters.length > 0 || hasAdvancedFilters
+  const hasFilters = activeFilters.length > 0 || hasAdvancedFilters || debouncedSearchQuery.length > 0
 
   const filter = useMemo(() => {
     if (!hasFilters) return undefined
@@ -61,8 +63,11 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       const value = advanced.pipeline.replace(/"/g, '\\"')
       filters.push(`pipeline = "${value}"`)
     }
+    if (debouncedSearchQuery) {
+      filters.push(`name ~ "${debouncedSearchQuery}"`)
+    }
     return filters.join(' && ')
-  }, [activeFilters, advanced, hasFilters])
+  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters])
 
   return useInfiniteQuery<GetObjectsResult>({
     queryKey: [

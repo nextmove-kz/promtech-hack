@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useAtomValue } from 'jotai'
 import { getObjects, type GetObjectsResult } from '@/app/api/objects'
 import { filterAtom } from '@/store/filterStore'
+import { useDebounce } from './useDebounce'
 
 interface UseObjectsParams {
   page?: number
@@ -12,7 +13,8 @@ interface UseObjectsParams {
 export function useObjects(params: UseObjectsParams = {}) {
   const page = params.page ?? 1
   const perPage = params.perPage ?? 20
-  const { activeFilters, advanced } = useAtomValue(filterAtom)
+  const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom)
+  const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
   const recentSince =
     activeFilters.includes('recent') && typeof window !== 'undefined'
@@ -35,7 +37,7 @@ export function useObjects(params: UseObjectsParams = {}) {
     [advanced]
   )
 
-  const hasFilters = activeFilters.length > 0 || hasAdvancedFilters
+  const hasFilters = activeFilters.length > 0 || hasAdvancedFilters || debouncedSearchQuery.length > 0
 
   const filter = useMemo(() => {
     if (!hasFilters) return undefined
@@ -66,8 +68,11 @@ export function useObjects(params: UseObjectsParams = {}) {
       const value = advanced.pipeline.replace(/"/g, '\\"')
       filters.push(`pipeline = "${value}"`)
     }
+    if (debouncedSearchQuery) {
+      filters.push(`name ~ "${debouncedSearchQuery}"`)
+    }
     return filters.join(' && ')
-  }, [activeFilters, advanced, hasFilters])
+  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters])
 
   const pageToUse = page
 
