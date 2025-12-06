@@ -7,13 +7,40 @@ import { useDebounce } from './useDebounce'
 
 interface UseInfiniteObjectsParams {
   perPage?: number
+  sort?: string
 }
 
 export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const perPage = params.perPage ?? 20
-  const { activeFilters, searchQuery } = useAtomValue(filterAtom)
+  const sort = params.sort
+  const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom)
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
-  const hasFilters = activeFilters.length > 0 || debouncedSearchQuery.length > 0
+  const recentSince = useMemo(() => {
+    if (activeFilters.includes('recent') && typeof window !== 'undefined') {
+      const now = new Date()
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+    }
+    return undefined
+  }, [activeFilters])
+  const hasAdvancedFilters = useMemo(
+    () =>
+      Boolean(
+        advanced.type ||
+          advanced.diagnosticMethod ||
+          advanced.healthStatus ||
+          advanced.material ||
+          advanced.pipeline ||
+          advanced.yearFrom ||
+          advanced.yearTo
+      ),
+    [advanced]
+  )
+  const hasFilters =
+    activeFilters.length > 0 ||
+    hasAdvancedFilters ||
+    debouncedSearchQuery.length > 0
 
   const filter = useMemo(() => {
     if (!hasFilters) return undefined
@@ -24,19 +51,51 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
     if (activeFilters.includes('defective')) {
       filters.push(`has_defects = true`)
     }
-    if (activeFilters.includes('recent')) {
-      filters.push(`last_analysis_at > "2022-01-01"`)
+    if (advanced.type) {
+      filters.push(`type = "${advanced.type}"`)
+    }
+    if (advanced.healthStatus) {
+      filters.push(`health_status = "${advanced.healthStatus}"`)
+    }
+    if (advanced.material) {
+      const value = advanced.material.replace(/"/g, '\\"')
+      filters.push(`material = "${value}"`)
+    }
+    if (advanced.yearFrom) {
+      filters.push(`year >= ${advanced.yearFrom}`)
+    }
+    if (advanced.yearTo) {
+      filters.push(`year <= ${advanced.yearTo}`)
+    }
+    if (advanced.pipeline) {
+      const value = advanced.pipeline.replace(/"/g, '\\"')
+      filters.push(`pipeline = "${value}"`)
     }
     if (debouncedSearchQuery) {
       filters.push(`name ~ "${debouncedSearchQuery}"`)
     }
     return filters.join(' && ')
-  }, [activeFilters, debouncedSearchQuery, hasFilters])
+  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters])
 
   return useInfiniteQuery<GetObjectsResult>({
-    queryKey: ['objects', 'infinite', perPage, filter],
+    queryKey: [
+      'objects',
+      'infinite',
+      perPage,
+      filter,
+      sort ?? '',
+      advanced.diagnosticMethod ?? '',
+      recentSince ?? '',
+    ],
     queryFn: ({ pageParam }) =>
-      getObjects({ page: pageParam as number, perPage, filter }),
+      getObjects({
+        page: pageParam as number,
+        perPage,
+        filter,
+        sort,
+        diagnosticMethod: advanced.diagnosticMethod || undefined,
+        recentSince,
+      }),
     initialPageParam: 1,
     getNextPageParam: lastPage => {
       if (lastPage.page < lastPage.totalPages) {

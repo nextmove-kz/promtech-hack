@@ -179,7 +179,7 @@ export function DiagnosticDetailsPanel({
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="mb-2 gap-1.5 -ml-2 text-muted-foreground hover:text-foreground"
+            className="mb-2 gap-1.5 -ml-2 text-muted-foreground cursor-pointer hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Назад к списку
@@ -198,12 +198,6 @@ export function DiagnosticDetailsPanel({
                 <h2 className="font-semibold text-xl text-foreground truncate">
                   {objectName || "Объект без имени"}
                 </h2>
-                <Badge
-                  variant="outline"
-                  className={cn("text-sm", healthStyles.badgeClass)}
-                >
-                  {statusConfig.label}
-                </Badge>
               </div>
               <div className="mt-1 text-xs text-muted-foreground/70">
                 ID: {diagnostic.id}
