@@ -139,7 +139,7 @@ export function ActionPlanModal({
     }
   }, [isOpen, diagnosticId, actionPlanData, isGenerating, generateActionPlan])
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     if (!actionPlanData?.result || !actionPlanData.object_data) return
 
     const pdfData = {
@@ -165,7 +165,7 @@ export function ActionPlanModal({
       result: actionPlanData.result,
     }
 
-    generateActionPlanPdf(pdfData)
+    await generateActionPlanPdf(pdfData)
   }
 
   const handleOpenChange = (open: boolean) => {

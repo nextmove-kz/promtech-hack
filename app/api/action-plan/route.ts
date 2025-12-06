@@ -50,6 +50,7 @@ export interface ActionPlanResponse {
   success: boolean
   result?: ActionPlanResult
   object_data?: {
+    id: string
     name: string
     type: string
     pipeline_name: string
@@ -201,6 +202,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       success: true,
       result: actionPlan,
       object_data: {
+        id: object.id,
         name: object.name || 'Объект без имени',
         type:
           objectTypeLabels[object.type || ''] ||

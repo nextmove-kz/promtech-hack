@@ -1,8 +1,10 @@
 import { jsPDF } from 'jspdf'
+import QRCode from 'qrcode'
 import robotoFont from './fonts/roboto-regular.json'
 
 export interface ActionPlanPdfData {
   object_data: {
+    id: string
     name: string
     type: string
     pipeline_name: string
@@ -32,6 +34,8 @@ const FONT_SIZE = {
   label: 11,
   text: 10,
 }
+
+const QR_SIZE = 42
 
 const COLORS = {
   primary: [0, 0, 0] as [number, number, number], // Black for formal look
@@ -69,8 +73,12 @@ const setupCyrillicFont = (doc: jsPDF): void => {
   doc.setFont('Roboto', 'normal')
 }
 
-export function generateActionPlanPdf(data: ActionPlanPdfData): void {
+export async function generateActionPlanPdf(
+  data: ActionPlanPdfData
+): Promise<void> {
   const { object_data, result } = data
+  const qrLink = `https://link-integrity.netlify.app/plan/${object_data.id}`
+  const qrDataUrl = await QRCode.toDataURL(qrLink, { margin: 1, scale: 6 })
 
   // Create PDF document (A4 size)
   const doc = new jsPDF({
@@ -108,6 +116,23 @@ export function generateActionPlanPdf(data: ActionPlanPdfData): void {
     align: 'center',
   })
   yPos += 15
+
+  // QR code top-right (first page only)
+  const qrX = pageWidth - margin - QR_SIZE
+  const qrY = margin
+  doc.addImage(qrDataUrl, 'PNG', qrX, qrY, QR_SIZE, QR_SIZE)
+  doc.setFontSize(FONT_SIZE.text)
+  doc.setTextColor(...COLORS.text)
+  const qrLabelY = qrY + QR_SIZE + 6
+  doc.text('QR для онлайн-плана', qrX + QR_SIZE / 2, qrLabelY, {
+    align: 'center',
+  })
+  const qrLinkY = qrLabelY + 6
+  doc.text('Открыть в браузере', qrX + QR_SIZE / 2, qrLinkY, {
+    align: 'center',
+  })
+  doc.link(qrX, qrY, QR_SIZE, QR_SIZE + 12, { url: qrLink })
+  yPos = Math.max(yPos, qrLinkY + 8)
 
   // Object Info Section
   // Removed gray background for formal look
