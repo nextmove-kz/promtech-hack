@@ -5,10 +5,11 @@ import { Maximize2, Loader2, ArrowDownUp } from 'lucide-react'
 import { useInfiniteObjects } from '@/hooks/useInfiniteObjects'
 import { ObjectCard } from './ObjectCard'
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useAtomValue } from 'jotai'
 import { cn } from '@/lib/utils'
 import { mapViewportAtom } from '@/store/mapViewportStore'
+import { filterAtom } from '@/store/filterStore'
 
 interface ObjectCardListProps {
   onCardSelect: (id: string) => void
@@ -24,7 +25,42 @@ export function ObjectCardList({
   selectedId,
 }: ObjectCardListProps) {
   const [sortState, setSortState] = useState<SortState>('desc')
+  const filters = useAtomValue(filterAtom)
   const viewportBounds = useAtomValue(mapViewportAtom)
+  const nonBoundsSignature = useMemo(
+    () =>
+      JSON.stringify({
+        active: filters.activeFilters,
+        advanced: filters.advanced,
+        search: filters.searchQuery,
+        sort: sortState,
+      }),
+    [filters.activeFilters, filters.advanced, filters.searchQuery, sortState]
+  )
+  const boundsSignature = useMemo(() => {
+    if (!viewportBounds) return 'no-bounds'
+    return `${viewportBounds.south}:${viewportBounds.west}:${viewportBounds.north}:${viewportBounds.east}`
+  }, [viewportBounds])
+  const prevNonBoundsRef = useRef<string | null>(null)
+  const prevBoundsRef = useRef<string | null>(null)
+  const [lastChange, setLastChange] = useState<'initial' | 'nonBounds' | 'bounds'>('initial')
+
+  useEffect(() => {
+    const prevNonBounds = prevNonBoundsRef.current
+    const prevBounds = prevBoundsRef.current
+
+    const nonBoundsChanged = prevNonBounds !== null && prevNonBounds !== nonBoundsSignature
+    const boundsChanged = prevBounds !== null && prevBounds !== boundsSignature
+
+    if (nonBoundsChanged) {
+      setLastChange('nonBounds')
+    } else if (boundsChanged) {
+      setLastChange('bounds')
+    }
+
+    prevNonBoundsRef.current = nonBoundsSignature
+    prevBoundsRef.current = boundsSignature
+  }, [nonBoundsSignature, boundsSignature])
 
   const {
     data,
@@ -33,6 +69,7 @@ export function ObjectCardList({
     isFetchingNextPage,
     isLoading,
     isError,
+    isFetching,
   } = useInfiniteObjects({
     perPage: 20,
     sort:
@@ -53,6 +90,9 @@ export function ObjectCardList({
 
   const allObjects = data?.pages.flatMap(page => page.items) ?? []
   const totalItems = data?.pages[0]?.totalItems ?? 0
+  const hasInitialData = allObjects.length > 0
+  const shouldShowPrimaryLoader =
+    (!hasInitialData && isLoading) || (isFetching && lastChange === 'nonBounds' && !isFetchingNextPage)
 
   return (
     <div className='flex h-full w-1/4 shrink-0 flex-col border-l border-border bg-card overflow-hidden'>
@@ -105,7 +145,7 @@ export function ObjectCardList({
 
       <div ref={scrollContainerRef} className='flex-1 overflow-y-auto'>
         <div className='space-y-2 p-3'>
-          {isLoading && (
+          {shouldShowPrimaryLoader && (
             <div className='flex items-center justify-center py-8'>
               <Loader2 className='h-6 w-6 animate-spin text-muted-foreground' />
             </div>
@@ -115,7 +155,7 @@ export function ObjectCardList({
               Ошибка загрузки данных
             </div>
           )}
-          {!isLoading && !isError && allObjects.length === 0 && (
+          {!shouldShowPrimaryLoader && !isError && allObjects.length === 0 && (
             <div className='py-8 text-center text-sm text-muted-foreground'>
               Нет объектов
             </div>

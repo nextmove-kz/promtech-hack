@@ -118,5 +118,6 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       }
       return undefined
     },
+    placeholderData: previousData => previousData,
   })
 }
