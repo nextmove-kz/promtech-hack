@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Papa from "papaparse";
 import { toast } from "sonner";
 import {
@@ -17,8 +18,8 @@ import {
   createDiagnosticsBatch,
 } from "@/app/api/importer";
 
-const BATCH_SIZE = 250;
-const BATCH_DELAY = 150;
+const BATCH_SIZE = 50; // Smaller batches for smoother real-time updates
+const BATCH_DELAY = 100;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -97,6 +98,7 @@ export interface UseDataImportOptions {
 }
 
 export function useDataImport(options: UseDataImportOptions = {}) {
+  const queryClient = useQueryClient();
   const [state, setState] = useState<ImportState>({
     phase: "idle",
     total: 0,
@@ -118,6 +120,11 @@ export function useDataImport(options: UseDataImportOptions = {}) {
       options.onComplete?.();
     }, 500);
   }, [reset, options]);
+
+  // Invalidate objects query to refresh the map
+  const refreshMap = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["objects"] });
+  }, [queryClient]);
 
   const runImport = useCallback(
     async (files: File[]) => {
@@ -149,6 +156,7 @@ export function useDataImport(options: UseDataImportOptions = {}) {
       let processed = 0;
       let errors = 0;
       let objectMap = new Map<number, string>();
+      let batchCount = 0;
 
       // Upload objects
       if (objectsData) {
@@ -169,10 +177,19 @@ export function useDataImport(options: UseDataImportOptions = {}) {
           });
 
           processed += batch.length;
+          batchCount++;
           setState((s) => ({ ...s, processed, errors }));
+
+          // Refresh map every 2 batches for real-time effect
+          if (batchCount % 2 === 0) {
+            refreshMap();
+          }
 
           if (i + BATCH_SIZE < objectsData.records.length) await sleep(BATCH_DELAY);
         }
+
+        // Final refresh after all objects uploaded
+        refreshMap();
       }
 
       // Upload diagnostics
@@ -200,6 +217,9 @@ export function useDataImport(options: UseDataImportOptions = {}) {
       // Done
       setState((s) => ({ ...s, phase: "done" }));
 
+      // Final refresh to ensure map is up to date
+      refreshMap();
+
       const success = processed - errors;
       if (errors === 0) {
         toast.success(`Импорт завершён`, {
@@ -217,7 +237,7 @@ export function useDataImport(options: UseDataImportOptions = {}) {
         options.onComplete?.();
       }, 1500);
     },
-    [reset, options]
+    [reset, options, refreshMap]
   );
 
   const onDrop = useCallback(
@@ -239,4 +259,3 @@ export function useDataImport(options: UseDataImportOptions = {}) {
     abort,
   };
 }
-

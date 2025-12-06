@@ -1,5 +1,8 @@
 export { PipelineMap } from "./PipelineMap"
 export { PipelineMarker } from "./PipelineMarker"
+export { MapCanvas } from "./MapCanvas"
+export { PipelinesLayer } from "./layers/PipelinesLayer"
+export { ObjectsLayer } from "./layers/ObjectsLayer"
 export {
   getMarkerColorByType,
   createColoredIcon,

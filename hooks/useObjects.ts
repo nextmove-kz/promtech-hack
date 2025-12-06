@@ -13,5 +13,7 @@ export function useObjects(params: UseObjectsParams = {}) {
   return useQuery<GetObjectsResult>({
     queryKey: ['objects', page, perPage],
     queryFn: () => getObjects({ page, perPage }),
+    staleTime: 0, // Always consider data stale for real-time updates
+    refetchOnWindowFocus: false,
   })
 }
