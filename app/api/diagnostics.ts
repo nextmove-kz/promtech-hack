@@ -21,3 +21,20 @@ export async function getDiagnosticByObjectId(
     return null
   }
 }
+
+export async function getAllDiagnosticsByObjectId(
+  objectId: string
+): Promise<DiagnosticWithObject[]> {
+  try {
+    const records = await clientPocketBase
+      .collection('diagnostics')
+      .getFullList<DiagnosticWithObject>({
+        filter: `object="${objectId}"`,
+        sort: 'date',
+        expand: 'object,object.pipeline'
+      })
+    return records
+  } catch {
+    return []
+  }
+}

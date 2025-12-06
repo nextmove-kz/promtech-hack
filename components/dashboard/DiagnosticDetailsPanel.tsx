@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   ArrowLeft,
   Download,
   AlertTriangle,
@@ -127,7 +133,7 @@ export function DiagnosticDetailsPanel({
   objectId,
   onClose,
 }: DiagnosticDetailsPanelProps) {
-  const { data: diagnostic, isLoading, error } = useDiagnostic(objectId);
+  const { data: diagnostics, isLoading, error } = useDiagnostic(objectId);
 
   if (!objectId) return null;
 
@@ -141,22 +147,23 @@ export function DiagnosticDetailsPanel({
     );
   }
 
-  if (error || !diagnostic) {
+  if (error || !diagnostics || diagnostics.length === 0) {
     return (
       <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
         <div className="flex h-full items-center justify-center p-4">
           <div className="text-center text-sm text-destructive">
-            Ошибка загрузки данных диагностики
+            {diagnostics?.length === 0
+              ? "Диагностики не найдены"
+              : "Ошибка загрузки данных диагностики"}
           </div>
         </div>
       </div>
     );
   }
 
-  const hasDiagnosticIssue = diagnostic.defect_found ?? false;
-
-  // Extract expanded object and pipeline data
-  const object = diagnostic.expand?.object;
+  // Extract expanded object and pipeline data from first diagnostic (all have same object)
+  const firstDiagnostic = diagnostics[0];
+  const object = firstDiagnostic.expand?.object;
   const pipeline = object?.expand?.pipeline;
   const objectType = object?.type;
   const objectName = object?.name;
@@ -200,7 +207,7 @@ export function DiagnosticDetailsPanel({
                 </h2>
               </div>
               <div className="mt-1 text-xs text-muted-foreground/70">
-                ID: {diagnostic.id}
+                ID: {object?.id || firstDiagnostic.id}
               </div>
               {(objectType || pipelineName) && (
                 <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
@@ -267,104 +274,140 @@ export function DiagnosticDetailsPanel({
             )}
 
             <Separator />
-            {/* Properties Grid */}
+            {/* Diagnostic History Accordion */}
             <h3 className="text-sm font-medium text-foreground mb-5">
-              Последняя диагностика
+              История диагностик
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5" />
-                  <span className="text-xs">Дата диагностики</span>
-                </div>
-                <p className="font-medium text-foreground">
-                  {diagnostic.date
-                    ? new Date(diagnostic.date).toLocaleDateString("ru-RU")
-                    : "-"}
-                </p>
-              </div>
-              <div className="space-y-1">
-                <span className="text-xs text-muted-foreground">Метод</span>
-                <p className="font-medium text-foreground">
-                  {diagnostic.method || "-"}
-                </p>
-              </div>
-              {diagnostic.temperature !== undefined && (
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Температура
-                  </span>
-                  <p className="font-medium text-foreground">
-                    {diagnostic.temperature}°C
-                  </p>
-                </div>
-              )}
-              {diagnostic.humidity !== undefined && (
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Влажность
-                  </span>
-                  <p className="font-medium text-foreground">
-                    {diagnostic.humidity}%
-                  </p>
-                </div>
-              )}
-              {diagnostic.illumination !== undefined && (
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Освещенность
-                  </span>
-                  <p className="font-medium text-foreground">
-                    {diagnostic.illumination}
-                  </p>
-                </div>
-              )}
-              {diagnostic.quality_grade && (
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    Оценка качества
-                  </span>
-                  <p className="font-medium text-foreground">
-                    {diagnostic.quality_grade}
-                  </p>
-                </div>
-              )}
-              {diagnostic.defect_found !== undefined && (
-                <div className="space-y-1 space-x-2">
-                  <span className="text-xs text-muted-foreground">
-                    Дефект обнаружен
-                  </span>
-                  <Badge
-                    variant={hasDiagnosticIssue ? "destructive" : "outline"}
-                    className="text-xs"
-                  >
-                    {hasDiagnosticIssue ? "Да" : "Нет"}
-                  </Badge>
-                </div>
-              )}
-            </div>
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+            >
+              {diagnostics.map((diagnostic) => {
+                const hasDiagnosticIssue = diagnostic.defect_found ?? false;
+                const diagnosticDate = diagnostic.date
+                  ? new Date(diagnostic.date).toLocaleDateString("ru-RU")
+                  : "-";
+
+                return (
+                  <AccordionItem key={diagnostic.id} value={diagnostic.id}>
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3 flex-1 text-left">
+                        <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          <span className="text-xs truncate">{diagnosticDate}</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {diagnostic.method || "-"}
+                        </span>
+                        <Badge
+                          variant={hasDiagnosticIssue ? "destructive" : "outline"}
+                          className="text-xs shrink-0"
+                        >
+                          {hasDiagnosticIssue ? "Дефект" : "Норма"}
+                        </Badge>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4 pt-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5" />
+                              <span className="text-xs">Дата диагностики</span>
+                            </div>
+                            <p className="font-medium text-foreground">
+                              {diagnosticDate}
+                            </p>
+                          </div>
+                          <div className="space-y-1">
+                            <span className="text-xs text-muted-foreground">Метод</span>
+                            <p className="font-medium text-foreground">
+                              {diagnostic.method || "-"}
+                            </p>
+                          </div>
+                          {diagnostic.temperature !== undefined && (
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
+                                Температура
+                              </span>
+                              <p className="font-medium text-foreground">
+                                {diagnostic.temperature}°C
+                              </p>
+                            </div>
+                          )}
+                          {diagnostic.humidity !== undefined && (
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
+                                Влажность
+                              </span>
+                              <p className="font-medium text-foreground">
+                                {diagnostic.humidity}%
+                              </p>
+                            </div>
+                          )}
+                          {diagnostic.illumination !== undefined && (
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
+                                Освещенность
+                              </span>
+                              <p className="font-medium text-foreground">
+                                {diagnostic.illumination}
+                              </p>
+                            </div>
+                          )}
+                          {diagnostic.quality_grade && (
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
+                                Оценка качества
+                              </span>
+                              <p className="font-medium text-foreground">
+                                {diagnostic.quality_grade}
+                              </p>
+                            </div>
+                          )}
+                          {diagnostic.defect_found !== undefined && (
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
+                                Дефект обнаружен
+                              </span>
+                              <Badge
+                                variant={hasDiagnosticIssue ? "destructive" : "outline"}
+                                className="text-xs"
+                              >
+                                {hasDiagnosticIssue ? "Да" : "Нет"}
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+
+                        {(() => {
+                          const paramsContent = renderParams(
+                            diagnostic.method,
+                            diagnostic.param1,
+                            diagnostic.param2,
+                            diagnostic.param3
+                          );
+                          if (!paramsContent) return null;
+
+                          return (
+                            <div className="space-y-2">
+                              <h4 className="text-xs font-medium text-foreground">
+                                Параметры диагностики
+                              </h4>
+                              <div className="space-y-1 rounded-md border border-border/70 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
+                                {paramsContent}
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
+            </Accordion>
           </div>
-
-          {(function () {
-            const paramsContent = renderParams(
-              diagnostic.method,
-              diagnostic.param1,
-              diagnostic.param2,
-              diagnostic.param3
-            );
-            if (!paramsContent) return null;
-
-            return (
-              <div className="mt-6 space-y-2">
-                <h3 className="text-sm font-medium text-foreground">
-                  Параметры диагностики
-                </h3>
-                <div className="space-y-1 rounded-md border border-border/70 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
-                  {paramsContent}
-                </div>
-              </div>
-            );
-          })()}
         </div>
 
         {/* Footer Actions */}
