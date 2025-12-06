@@ -1,33 +1,33 @@
-import { DefectDetailsPanel } from './DefectDetailsPanel'
+import { DiagnosticDetailsPanel } from './DiagnosticDetailsPanel'
 import { ObjectCardList } from './ObjectCardList'
 
 interface SidebarProps {
-  selectedDefect: string | null
+  selectedObjectId: string | null
   viewMode: 'map' | 'table'
-  onDefectSelect: (defectId: string) => void
+  onObjectSelect: (objectId: string) => void
   onClosePanel: () => void
   onExpandTable: () => void
 }
 
 export function Sidebar({
-  selectedDefect,
+  selectedObjectId,
   viewMode,
-  onDefectSelect,
+  onObjectSelect,
   onClosePanel,
   onExpandTable,
 }: SidebarProps) {
-  if (selectedDefect) {
+  if (selectedObjectId) {
     return (
-      <DefectDetailsPanel defectId={selectedDefect} onClose={onClosePanel} />
+      <DiagnosticDetailsPanel objectId={selectedObjectId} onClose={onClosePanel} />
     )
   }
 
   if (viewMode === 'map') {
     return (
       <ObjectCardList
-        onCardSelect={onDefectSelect}
+        onCardSelect={onObjectSelect}
         onExpandTable={onExpandTable}
-        selectedId={selectedDefect}
+        selectedId={selectedObjectId}
       />
     )
   }

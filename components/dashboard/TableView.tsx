@@ -2,12 +2,12 @@ import { Button } from '@/components/ui/button'
 import { RecentScansTable } from './RecentScansTable'
 
 interface TableViewProps {
-  onDefectSelect: (defectId: string) => void
+  onObjectSelect: (objectId: string) => void
   onBackToMap: () => void
 }
 
 export function TableView({
-  onDefectSelect,
+  onObjectSelect,
   onBackToMap,
 }: TableViewProps) {
   return (
@@ -22,7 +22,7 @@ export function TableView({
           ← Назад к карте
         </Button>
       </div>
-      <RecentScansTable onRowClick={onDefectSelect} />
+      <RecentScansTable onRowClick={onObjectSelect} />
     </div>
   )
 }
