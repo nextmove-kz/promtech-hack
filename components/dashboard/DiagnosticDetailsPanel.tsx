@@ -25,6 +25,7 @@ import { useDiagnostic } from '@/hooks/useDiagnostic';
 import { usePlanByObjectId } from '@/hooks/usePlan';
 import { ActionPlanModal } from './ActionPlanModal';
 import { useRouter } from 'next/navigation';
+import { PlanStatusOptions } from '@/app/api/api_types';
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
@@ -340,10 +341,10 @@ export function DiagnosticDetailsPanel({
 
         {contentState === 'data' && firstDiagnostic && (
           <div className="border-t border-border p-4">
-            {plan?.status === 'pending' ? (
+            {plan?.status !== PlanStatusOptions.archive ? (
               <Button
                 className="w-full gap-2"
-                onClick={() => router.push(`/plan/${plan.object}`)}
+                onClick={() => router.push(`/plan/${plan?.object ?? ''}`)}
               >
                 <ClipboardList className="h-4 w-4" />
                 Перейти к плану

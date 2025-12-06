@@ -11,7 +11,7 @@ export interface GetObjectsParams {
   filter?: string;
   sort?: string;
   diagnosticMethod?: DiagnosticsMethodOptions;
-  recentSince?: string;
+  hasActivePlan?: boolean;
 }
 
 export type ObjectWithPipeline = ObjectsResponse<{
@@ -34,17 +34,47 @@ export async function getObjects(
   const filter = params.filter;
   const sort = params.sort;
   const diagnosticMethod = params.diagnosticMethod;
-  const recentSince = params.recentSince;
+  const hasActivePlan = params.hasActivePlan;
 
   let combinedFilter = filter;
 
-  if (diagnosticMethod || recentSince) {
+  if (hasActivePlan) {
+    const plans = await clientPocketBase.collection('plan').getFullList<{
+      object?: string;
+    }>({
+      fields: 'object',
+      filter: 'status != "archive"',
+    });
+
+    const planObjectIds = Array.from(
+      new Set(
+        plans.map((plan) => plan.object).filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    if (planObjectIds.length === 0) {
+      return {
+        page,
+        perPage,
+        totalItems: 0,
+        totalPages: 0,
+        items: [],
+      };
+    }
+
+    const planClause = planObjectIds
+      .map((id) => `id = "${id}"`)
+      .join(' || ');
+
+    combinedFilter = combinedFilter
+      ? `(${combinedFilter}) && (${planClause})`
+      : planClause;
+  }
+
+  if (diagnosticMethod) {
     const diagFilters: string[] = [];
     if (diagnosticMethod) {
       diagFilters.push(`method = "${diagnosticMethod}"`);
-    }
-    if (recentSince) {
-      diagFilters.push(`date >= "${recentSince}"`);
     }
 
     const diagnostics = await clientPocketBase

@@ -23,15 +23,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const bounds = params.bounds;
   const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-  const recentSince = useMemo(() => {
-    if (activeFilters.includes('recent') && typeof window !== 'undefined') {
-      const now = new Date();
-      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0];
-    }
-    return undefined;
-  }, [activeFilters]);
+  const hasActivePlan = activeFilters.includes('hasActivePlan');
   const hasAdvancedFilters = useMemo(
     () =>
       Boolean(
@@ -73,11 +65,11 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       filter,
       sort ?? '',
       advanced.diagnosticMethod ?? '',
-      recentSince ?? '',
       bounds?.south ?? '',
       bounds?.west ?? '',
       bounds?.north ?? '',
       bounds?.east ?? '',
+      hasActivePlan,
     ],
     queryFn: ({ pageParam }) =>
       getObjects({
@@ -86,7 +78,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
         filter,
         sort,
         diagnosticMethod: advanced.diagnosticMethod || undefined,
-        recentSince,
+        hasActivePlan,
       }),
     initialPageParam: 1,
     getNextPageParam: (lastPage) => {

@@ -5,11 +5,11 @@ import { useQuery } from '@tanstack/react-query';
 import {
   Layers,
   Flame,
-  Clock,
   X,
   Search,
   SlidersHorizontal,
   ChevronDown,
+  ListChecks,
 } from 'lucide-react';
 import { useAtom } from 'jotai';
 import { cn } from '@/lib/utils';
@@ -48,10 +48,10 @@ const filterOptions: Array<{
     helper: 'Показывать объекты с критическим статусом',
   },
   {
-    id: 'recent',
-    label: 'Последние 7 дней',
-    icon: Clock,
-    helper: 'Объекты с обновлениями за неделю',
+    id: 'hasActivePlan',
+    label: 'Есть активный план',
+    icon: ListChecks,
+    helper: 'Объекты с планом (кроме архива)',
   },
 ];
 

@@ -16,15 +16,7 @@ export function useObjects(params: UseObjectsParams = {}) {
   const perPage = params.perPage ?? 20;
   const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom);
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
-  const recentSince = useMemo(() => {
-    if (!activeFilters.includes('recent') || typeof window === 'undefined') {
-      return undefined;
-    }
-    const threshold = new Date();
-    threshold.setDate(threshold.getDate() - 30);
-    return threshold.toISOString().split('T')[0];
-  }, [activeFilters]);
+  const hasActivePlan = activeFilters.includes('hasActivePlan');
 
   const hasAdvancedFilters = useMemo(
     () =>
@@ -66,7 +58,7 @@ export function useObjects(params: UseObjectsParams = {}) {
       perPage,
       filter,
       advanced.diagnosticMethod ?? '',
-      recentSince ?? '',
+      hasActivePlan,
     ],
     queryFn: () =>
       getObjects({
@@ -74,7 +66,7 @@ export function useObjects(params: UseObjectsParams = {}) {
         perPage,
         filter,
         diagnosticMethod: advanced.diagnosticMethod || undefined,
-        recentSince,
+        hasActivePlan,
       }),
     staleTime: 60000, // 1 minute cache for better performance
     refetchOnWindowFocus: false,

@@ -5,7 +5,7 @@ import type {
   ObjectsTypeOptions,
 } from '@/app/api/api_types';
 
-export type FilterOptionId = 'defective' | 'critical' | 'recent';
+export type FilterOptionId = 'defective' | 'critical' | 'hasActivePlan';
 
 export interface AdvancedFilterState {
   type?: ObjectsTypeOptions | '';
