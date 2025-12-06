@@ -88,6 +88,16 @@ Each element must have this structure:
 
 IMPORTANT: Return results for ALL objects in the input, in the SAME ORDER.`;
 
+// Helper: latest timestamp from diagnostics (date field preferred, fallback to updated/created)
+const getLatestDiagnosticTimestamp = (diagnostics: DiagnosticsResponse[]): number => {
+  return diagnostics.reduce((latest, d) => {
+    const ts = new Date(
+      d.date || (d as { updated?: string }).updated || (d as { created?: string }).created || 0
+    ).getTime();
+    return Number.isFinite(ts) ? Math.max(latest, ts) : latest;
+  }, 0);
+};
+
 export interface AnalysisRequest {
   object_id: string;
 }
@@ -105,6 +115,8 @@ export interface AnalysisResponse {
   object_id: string;
   result?: AnalysisResult;
   error?: string;
+  skipped?: boolean;
+  reason?: string;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
@@ -144,26 +156,30 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       console.error("Failed to fetch diagnostics:", e);
     }
 
-    // If no diagnostics, return a default OK status
+    const latestDiagnosticTs =
+      diagnostics.length > 0 ? getLatestDiagnosticTimestamp(diagnostics) : 0;
+    const lastAnalysisTs = object.last_analysis_at
+      ? new Date(object.last_analysis_at).getTime()
+      : 0;
+    const hasUrgency = typeof object.urgency_score === "number";
+
+    // Skip if no diagnostics
     if (diagnostics.length === 0) {
-      const defaultResult: AnalysisResult = {
-        health_status: "OK" as ObjectsHealthStatusOptions,
-        urgency_score: 0,
-        ai_summary: "Диагностические данные отсутствуют. Требуется первичное обследование.",
-        recommended_action: "Запланировать первичную диагностику объекта",
-        conflict_detected: false,
-      };
-
-      // Update the object with default result
-      await pb.collection("objects").update(object_id, {
-        ...defaultResult,
-        last_analysis_at: new Date().toISOString(),
-      });
-
       return NextResponse.json({
         success: true,
         object_id,
-        result: defaultResult,
+        skipped: true,
+        reason: "no_diagnostics",
+      });
+    }
+
+    // Skip if already analyzed and no new diagnostics since last analysis
+    if (hasUrgency && lastAnalysisTs && latestDiagnosticTs <= lastAnalysisTs) {
+      return NextResponse.json({
+        success: true,
+        object_id,
+        skipped: true,
+        reason: "no_new_diagnostics",
       });
     }
 
@@ -303,6 +319,7 @@ export interface BatchAnalysisResponse {
   success: boolean;
   results: BatchAnalysisResult[];
   errors: Array<{ object_id: string; error: string }>;
+  skipped?: Array<{ object_id: string; reason: string }>;
 }
 
 export async function PATCH(request: NextRequest): Promise<NextResponse> {
@@ -354,62 +371,77 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       diagnosticsMap.get(objId)!.push(d);
     }
 
-    // Prepare batch data for AI
-    const batchData = objects.map((obj) => {
-      const diagnostics = diagnosticsMap.get(obj.id) || [];
-      return {
-        object: {
-          id: obj.id,
-          name: obj.name,
-          type: obj.type,
-          material: obj.material,
-          year: obj.year,
-        },
-        diagnostics: diagnostics
-          .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
-          .slice(0, 5) // Limit diagnostics per object to save tokens
-          .map((d) => ({
-            date: d.date,
-            method: d.method,
-            defect_found: d.defect_found,
-            defect_description: d.defect_description,
-            quality_grade: d.quality_grade,
-            ml_label: d.ml_label,
-            param1: d.param1,
-            param2: d.param2,
-            param3: d.param3,
-          })),
-      };
-    });
+  // Prepare batch data for AI with skipping rules
+  const results: BatchAnalysisResult[] = [];
+  const errors: Array<{ object_id: string; error: string }> = [];
+  const skipped: Array<{ object_id: string; reason: string }> = [];
 
-    // Handle objects with no diagnostics
-    const results: BatchAnalysisResult[] = [];
-    const errors: Array<{ object_id: string; error: string }> = [];
-    const objectsToAnalyze = batchData.filter((d) => d.diagnostics.length > 0);
-    const objectsWithoutDiagnostics = batchData.filter((d) => d.diagnostics.length === 0);
+  const batchData = objects.map((obj) => {
+    const diagnostics = diagnosticsMap.get(obj.id) || [];
+    const sortedDiagnostics = diagnostics
+      .sort(
+        (a, b) =>
+          new Date(b.date || (b as { updated?: string }).updated || 0).getTime() -
+          new Date(a.date || (a as { updated?: string }).updated || 0).getTime()
+      )
+      .slice(0, 5);
 
-    // Default results for objects without diagnostics
-    for (const obj of objectsWithoutDiagnostics) {
-      const defaultResult: BatchAnalysisResult = {
-        object_id: obj.object.id,
-        health_status: "OK" as ObjectsHealthStatusOptions,
-        urgency_score: 0,
-        ai_summary: "Диагностические данные отсутствуют. Требуется первичное обследование.",
-        recommended_action: "Запланировать первичную диагностику объекта",
-        conflict_detected: false,
-      };
-      results.push(defaultResult);
+    return {
+      object: {
+        id: obj.id,
+        name: obj.name,
+        type: obj.type,
+        material: obj.material,
+        year: obj.year,
+        last_analysis_at: obj.last_analysis_at,
+        urgency_score: obj.urgency_score,
+      },
+      diagnostics: sortedDiagnostics.map((d) => ({
+        date: d.date,
+        method: d.method,
+        defect_found: d.defect_found,
+        defect_description: d.defect_description,
+        quality_grade: d.quality_grade,
+        ml_label: d.ml_label,
+        param1: d.param1,
+        param2: d.param2,
+        param3: d.param3,
+        updated: (d as { updated?: string }).updated,
+        created: (d as { created?: string }).created,
+      })),
+      latestDiagnosticTs: diagnostics.length ? getLatestDiagnosticTimestamp(diagnostics) : 0,
+    };
+  });
 
-      // Update in DB
-      await pb.collection("objects").update(obj.object.id, {
-        health_status: defaultResult.health_status,
-        urgency_score: defaultResult.urgency_score,
-        ai_summary: defaultResult.ai_summary,
-        recommended_action: defaultResult.recommended_action,
-        conflict_detected: defaultResult.conflict_detected,
-        last_analysis_at: new Date().toISOString(),
-      });
+  const objectsToAnalyze = batchData.filter((entry) => {
+    if (entry.diagnostics.length === 0) {
+      skipped.push({ object_id: entry.object.id, reason: "no_diagnostics" });
+      return false;
     }
+
+    const hasUrgency = typeof entry.object.urgency_score === "number";
+    const lastAnalysisTs = entry.object.last_analysis_at
+      ? new Date(entry.object.last_analysis_at).getTime()
+      : 0;
+    const hasNewDiagnostics =
+      entry.latestDiagnosticTs > 0 &&
+      (!lastAnalysisTs || entry.latestDiagnosticTs > lastAnalysisTs);
+
+    if (!hasUrgency) return true;
+    if (hasNewDiagnostics) return true;
+
+    skipped.push({ object_id: entry.object.id, reason: "no_new_diagnostics" });
+    return false;
+  });
+
+  if (objectsToAnalyze.length === 0) {
+    return NextResponse.json({
+      success: true,
+      results,
+      errors,
+      skipped,
+    } as BatchAnalysisResponse);
+  }
 
     // If there are objects with diagnostics, call AI
     if (objectsToAnalyze.length > 0) {
@@ -420,7 +452,20 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
             role: "user",
             parts: [
               {
-                text: `Analyze these ${objectsToAnalyze.length} pipeline objects and provide health assessments for each:\n\n${JSON.stringify(objectsToAnalyze, null, 2)}`,
+                text: `Analyze these ${objectsToAnalyze.length} pipeline objects and provide health assessments for each:\n\n${JSON.stringify(
+                  objectsToAnalyze.map(({ object, diagnostics }) => ({
+                    object: {
+                      id: object.id,
+                      name: object.name,
+                      type: object.type,
+                      material: object.material,
+                      year: object.year,
+                    },
+                    diagnostics,
+                  })),
+                  null,
+                  2
+                )}`,
               },
             ],
           },
@@ -480,7 +525,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       results,
-      errors,
+    errors,
+    skipped,
     } as BatchAnalysisResponse);
   } catch (error) {
     console.error("Batch analysis error:", error);
@@ -506,37 +552,52 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 
     const pb = await pocketbase();
 
-    // If no IDs provided, fetch all objects
-    let idsToAnalyze: string[] = object_ids || [];
+    // Fetch objects and diagnostics once
+    const allObjects = await pb.collection("objects").getFullList();
+    const targetSet = object_ids && object_ids.length > 0 ? new Set(object_ids) : null;
+    const objects = targetSet ? allObjects.filter((o) => targetSet.has(o.id)) : allObjects;
 
-    if (!object_ids || object_ids.length === 0) {
-      const objects = await pb.collection("objects").getFullList();
-      idsToAnalyze = objects.map((o) => o.id);
+    const diagnostics = await pb.collection("diagnostics").getFullList();
+    const diagnosticsMap = new Map<string, DiagnosticsResponse[]>();
+
+    for (const d of diagnostics) {
+      const objectId = d.object as string;
+      if (targetSet && !targetSet.has(objectId)) continue;
+      if (!diagnosticsMap.has(objectId)) diagnosticsMap.set(objectId, []);
+      diagnosticsMap.get(objectId)!.push(d);
     }
 
-    // If prioritizing high risk, sort by existing ml_label from diagnostics
+    // Filter to objects that actually need analysis
+    let idsToAnalyze = objects
+      .filter((obj) => {
+        const diagList = diagnosticsMap.get(obj.id) || [];
+        if (diagList.length === 0) return false; // no diagnostics -> skip
+
+        const latestDiagTs = getLatestDiagnosticTimestamp(diagList);
+        const lastAnalysisTs = obj.last_analysis_at
+          ? new Date(obj.last_analysis_at).getTime()
+          : 0;
+        const hasUrgency = typeof obj.urgency_score === "number";
+
+        if (!hasUrgency) return true;
+        return latestDiagTs > lastAnalysisTs;
+      })
+      .map((o) => o.id);
+
+    // Prioritize by risk if requested
     if (prioritize_high_risk && idsToAnalyze.length > 0) {
-      // Fetch ALL diagnostics (no filter to avoid query length limits)
-      const diagnostics = await pb.collection("diagnostics").getFullList();
-
-      // Create a set of IDs we care about for quick lookup
       const idsSet = new Set(idsToAnalyze);
-
-      // Create a map of object_id -> highest risk level
       const riskMap = new Map<string, number>();
       for (const d of diagnostics) {
         const objectId = d.object as string;
-        
-        // Skip if not in our list
         if (!idsSet.has(objectId)) continue;
-        
+
         const currentRisk = riskMap.get(objectId) || 0;
         let newRisk = 0;
         if (d.ml_label === "high") newRisk = 3;
         else if (d.ml_label === "medium") newRisk = 2;
         else if (d.ml_label === "normal") newRisk = 1;
 
-        // Also consider quality grade
         if (d.quality_grade === "недопустимо") newRisk = Math.max(newRisk, 4);
         else if (d.quality_grade === "требует_мер") newRisk = Math.max(newRisk, 3);
         else if (d.quality_grade === "допустимо") newRisk = Math.max(newRisk, 2);
@@ -546,7 +607,6 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         }
       }
 
-      // Sort IDs by risk level (highest first)
       idsToAnalyze.sort((a, b) => {
         const riskA = riskMap.get(a) || 0;
         const riskB = riskMap.get(b) || 0;

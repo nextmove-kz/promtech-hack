@@ -295,6 +295,8 @@ console.log("🚀 Generating synthetic data with random distribution...\n");
 const TOTAL_OBJECTS = 200;
 const AVG_DIAGNOSTICS_PER_OBJECT = 4;
 const HIGH_RISK_PERCENTAGE = 0.12;
+const SMALL_OBJECTS = 10;
+const SMALL_DIAGNOSTICS = 25;
 
 console.log(`📍 Pipeline routes defined:`);
 for (const pipeline of PIPELINES) {
@@ -327,6 +329,8 @@ console.log(`   📈 Risk distribution: High=${highRisk}, Medium=${mediumRisk}, 
 const projectRoot = process.cwd();
 const objectsPath = join(projectRoot, "Objects.csv");
 const diagnosticsPath = join(projectRoot, "Diagnostics.csv");
+const smallObjectsPath = join(projectRoot, "small_objects.csv");
+const smallDiagnosticsPath = join(projectRoot, "small_diagnostics.csv");
 
 console.log(`\n💾 Writing CSV files...`);
 writeFileSync(objectsPath, objectsToCsv(objects), "utf-8");
@@ -334,5 +338,25 @@ console.log(`   ✅ ${objectsPath}`);
 
 writeFileSync(diagnosticsPath, diagnosticsToCsv(diagnostics), "utf-8");
 console.log(`   ✅ ${diagnosticsPath}`);
+
+// Smaller sample set for quick testing/import
+console.log(`\n📦 Generating small sample set (${SMALL_OBJECTS} objects, ${SMALL_DIAGNOSTICS} diagnostics)...`);
+const smallObjects = generateObjects(SMALL_OBJECTS, 99);
+const smallDiagnosticsFull = generateDiagnostics(
+  smallObjects,
+  Math.max(1, Math.ceil(SMALL_DIAGNOSTICS / SMALL_OBJECTS)),
+  0.15,
+  456
+);
+const smallDiagnostics = smallDiagnosticsFull.slice(0, SMALL_DIAGNOSTICS).map((diag, idx) => ({
+  ...diag,
+  diag_id: idx + 1, // ensure contiguous IDs in the sample
+}));
+
+writeFileSync(smallObjectsPath, objectsToCsv(smallObjects), "utf-8");
+console.log(`   ✅ ${smallObjectsPath}`);
+
+writeFileSync(smallDiagnosticsPath, diagnosticsToCsv(smallDiagnostics), "utf-8");
+console.log(`   ✅ ${smallDiagnosticsPath}`);
 
 console.log(`\n🎉 Done! Files are ready for import.`);
