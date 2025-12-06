@@ -54,6 +54,75 @@ const objectTypeLabels: Record<string, string> = {
   pipeline_section: "Участок трубопровода",
 };
 
+const renderParams = (
+  method?: string,
+  p1?: number | string,
+  p2?: number | string,
+  p3?: number | string
+) => {
+  const hasValue = (v?: number | string | null) => {
+    if (v === undefined || v === null) return false;
+    if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
+    if (typeof v === "string") return v.trim() !== "" && v.trim() !== "0";
+    return true;
+  };
+
+  const v1 = hasValue(p1);
+  const v2 = hasValue(p2);
+  const v3 = hasValue(p3);
+  const hasAny = v1 || v2 || v3;
+
+  if (!hasAny) return null;
+
+  switch (method) {
+    case "VIBRO":
+      return (
+        <>
+          {v1 && (
+            <div>
+              Виброскорость: <b>{p1} мм/с</b>
+            </div>
+          )}
+          {v2 && <div>Ускорение: {p2} м/с²</div>}
+          {v3 && <div>Частота/Температура: {p3}</div>}
+        </>
+      );
+    case "MFL":
+    case "UTWM":
+      return (
+        <>
+          {v1 && (
+            <div>
+              Глубина коррозии:{" "}
+              <b className="text-red-500">{p1} мм</b>
+            </div>
+          )}
+          {v2 && <div>Остаток стенки: {p2} мм</div>}
+          {v3 && <div>Длина дефекта: {p3} мм</div>}
+        </>
+      );
+    default:
+      if (v1 && v2) {
+        return (
+          <>
+            <div>
+              Размеры (ДхШ): {p1} x {p2} мм
+            </div>
+            {v3 && <div>Параметр 3: {p3}</div>}
+          </>
+        );
+      }
+
+      return (
+        <>
+          {v1 && <div>Параметр 1: {p1}</div>}
+          {v2 && <div>Параметр 2: {p2}</div>}
+          {v3 && <div>Параметр 3: {p3}</div>}
+        </>
+      );
+  }
+};
+
 export function DiagnosticDetailsPanel({
   objectId,
   onClose,
@@ -204,7 +273,6 @@ export function DiagnosticDetailsPanel({
             )}
 
             <Separator />
-
             {/* Properties Grid */}
             <h3 className="text-sm font-medium text-foreground mb-5">
               Последняя диагностика
@@ -282,6 +350,27 @@ export function DiagnosticDetailsPanel({
               )}
             </div>
           </div>
+
+          {(function () {
+            const paramsContent = renderParams(
+              diagnostic.method,
+              diagnostic.param1,
+              diagnostic.param2,
+              diagnostic.param3
+            );
+            if (!paramsContent) return null;
+
+            return (
+              <div className="mt-6 space-y-2">
+                <h3 className="text-sm font-medium text-foreground">
+                  Параметры диагностики
+                </h3>
+                <div className="space-y-1 rounded-md border border-border/70 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
+                  {paramsContent}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Footer Actions */}

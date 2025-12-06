@@ -2,7 +2,7 @@
 
 import { Gauge } from 'lucide-react'
 import { FilterBar } from '@/components/dashboard/FilterBar'
-import { DataImporter } from '@/app/components/data-importer'
+import { DataImporter } from '@/components/data-importer'
 
 export function Header() {
   return (

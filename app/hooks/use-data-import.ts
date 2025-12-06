@@ -17,6 +17,12 @@ import {
   createObjectsBatch,
   createDiagnosticsBatch,
 } from "@/app/api/importer";
+import type {
+  DiagnosticsMethodOptions,
+  DiagnosticsMlLabelOptions,
+  DiagnosticsQualityGradeOptions,
+  ObjectsTypeOptions,
+} from "@/app/api/api_types";
 
 const BATCH_SIZE = 50; // Smaller batches for smoother real-time updates
 const BATCH_DELAY = 100;
@@ -41,7 +47,7 @@ interface FileData {
 const toObjectPB = (o: ObjectRow, pipelines: Map<string, string>) => ({
   object_id: o.object_id,
   name: o.object_name,
-  type: o.object_type,
+  type: o.object_type as ObjectsTypeOptions,
   pipeline: o.pipeline_id ? pipelines.get(o.pipeline_id) : undefined,
   lat: o.lat,
   lon: o.lon,
@@ -52,18 +58,18 @@ const toObjectPB = (o: ObjectRow, pipelines: Map<string, string>) => ({
 const toDiagnosticPB = (d: DiagnosticRow, objects: Map<number, string>) => ({
   diag_id: d.diag_id,
   object: objects.get(d.object_id),
-  method: d.method,
+  method: d.method as DiagnosticsMethodOptions,
   date: d.date,
   temperature: d.temperature,
   humidity: d.humidity,
   illumination: d.illumination,
   defect_found: d.defect_found,
   defect_description: d.defect_description,
-  quality_grade: d.quality_grade,
+  quality_grade: d.quality_grade as DiagnosticsQualityGradeOptions | undefined,
   param1: d.param1,
   param2: d.param2,
   param3: d.param3,
-  ml_label: d.ml_label,
+  ml_label: d.ml_label as DiagnosticsMlLabelOptions | undefined,
 });
 
 // === File Parsing ===
