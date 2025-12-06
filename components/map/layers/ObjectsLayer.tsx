@@ -1,126 +1,157 @@
-"use client"
+"use client";
 
-import { CircleMarker, Popup } from "react-leaflet"
-import type { ObjectsResponse, DiagnosticsMlLabelOptions } from "@/app/api/api_types"
+import { useEffect, useRef } from "react";
+import { CircleMarker, Popup } from "react-leaflet";
+import type { CircleMarker as LeafletCircleMarker } from "leaflet";
+import type {
+  ObjectsResponse,
+  DiagnosticsMlLabelOptions,
+  ObjectsHealthStatusOptions,
+} from "@/app/api/api_types";
 
-export type ObjectStatus = "critical" | "warning" | "normal"
+export type ObjectStatus = "critical" | "warning" | "normal" | "unknown";
 
 interface ObjectWithDiagnostic extends ObjectsResponse {
-  diagnosticMlLabel?: DiagnosticsMlLabelOptions
+  diagnosticMlLabel?: DiagnosticsMlLabelOptions;
 }
 
 interface ObjectsLayerProps {
-  items: ObjectWithDiagnostic[]
-  onObjectSelect: (id: string) => void
+  items: ObjectWithDiagnostic[];
+  onObjectSelect: (id: string) => void;
+  selectedObjectId?: string | null;
 }
 
-function getStatusFromMlLabel(mlLabel?: DiagnosticsMlLabelOptions): ObjectStatus {
-  switch (mlLabel) {
-    case "high":
-      return "critical"
-    case "medium":
-      return "warning"
-    case "normal":
+function getStatusFromHealthStatus(
+  health_status?: ObjectsHealthStatusOptions | null
+): ObjectStatus {
+  if (!health_status) return "unknown";
+
+  switch (health_status) {
+    case "CRITICAL":
+      return "critical";
+    case "WARNING":
+      return "warning";
+    case "OK":
+      return "normal";
     default:
-      return "normal"
+      return "unknown";
   }
 }
 
 function getMarkerColor(status: ObjectStatus): string {
   switch (status) {
     case "critical":
-      return "#ef4444" // red-500
+      return "#ef4444"; // red-500
     case "warning":
-      return "#f97316" // orange-500
+      return "#f97316"; // orange-500
     case "normal":
-    default:
-      return "#10b981" // emerald-500
+      return "#10b981"; // emerald-500
+    case "unknown":
+      return "#9ca3af"; // gray-400
   }
 }
 
 function getStatusLabel(status: ObjectStatus): string {
   switch (status) {
     case "critical":
-      return "Критический"
+      return "Критический";
     case "warning":
-      return "Предупреждение"
+      return "Предупреждение";
     case "normal":
-    default:
-      return "Норма"
+      return "Норма";
+    case "unknown":
+      return "Неизвестно";
   }
 }
 
-export function ObjectsLayer({ items, onObjectSelect }: ObjectsLayerProps) {
+interface ObjectMarkerProps {
+  item: ObjectWithDiagnostic;
+  status: ObjectStatus;
+  color: string;
+  isCritical: boolean;
+  isSelected: boolean;
+  onObjectSelect: (id: string) => void;
+}
+
+function ObjectMarker({
+  item,
+  status,
+  color,
+  isCritical,
+  isSelected,
+  onObjectSelect,
+}: ObjectMarkerProps) {
+  const markerRef = useRef<LeafletCircleMarker | null>(null);
+
+  useEffect(() => {
+    if (isSelected && markerRef.current) {
+      // Open popup when this marker is selected
+      markerRef.current.openPopup();
+    }
+  }, [isSelected]);
+
+  return (
+    <CircleMarker
+      ref={markerRef}
+      center={[item.lat!, item.lon!]}
+      radius={isSelected ? 10 : isCritical ? 8 : 6}
+      pathOptions={{
+        fillColor: color,
+        fillOpacity: isSelected ? 1 : 0.9,
+        color: isSelected ? "#ffffff" : color,
+        weight: isSelected ? 4 : 2,
+        opacity: 1,
+      }}
+      eventHandlers={{
+        click: () => onObjectSelect(item.id),
+      }}
+    >
+      <Popup>
+        <div className="min-w-[180px]">
+          <h3 className="font-bold text-sm mb-1">
+            {item.name || `Объект ${item.id}`}
+          </h3>
+          <div className="space-y-0.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="text-gray-500">Статус:</span>
+              <span className="font-medium" style={{ color }}>
+                {getStatusLabel(status)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </Popup>
+    </CircleMarker>
+  );
+}
+
+export function ObjectsLayer({
+  items,
+  onObjectSelect,
+  selectedObjectId,
+}: ObjectsLayerProps) {
   return (
     <>
       {items.map((item) => {
-        if (!item.lat || !item.lon) return null
-        
-        const status = getStatusFromMlLabel(item.diagnosticMlLabel)
-        const color = getMarkerColor(status)
-        const isCritical = status === "critical"
-        
+        if (!item.lat || !item.lon) return null;
+
+        const status = getStatusFromHealthStatus(item.health_status);
+        const color = getMarkerColor(status);
+        const isCritical = status === "critical";
+        const isSelected = selectedObjectId === item.id;
+
         return (
-          <CircleMarker
+          <ObjectMarker
             key={item.id}
-            center={[item.lat, item.lon]}
-            radius={isCritical ? 8 : 6}
-            pathOptions={{
-              fillColor: color,
-              fillOpacity: 0.9,
-              color: color,
-              weight: 2,
-              opacity: 1,
-              className: isCritical ? "marker-pulse" : undefined,
-            }}
-            eventHandlers={{
-              click: () => onObjectSelect(item.id),
-            }}
-          >
-            <Popup>
-              <div className="min-w-[180px]">
-                <h3 className="font-bold text-sm mb-1">
-                  {item.name || `Объект ${item.id}`}
-                </h3>
-                <div className="space-y-0.5 text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">Статус:</span>
-                    <span
-                      className="font-medium"
-                      style={{ color }}
-                    >
-                      {getStatusLabel(status)}
-                    </span>
-                  </div>
-                  {item.type && (
-                    <div>
-                      <span className="text-gray-500">Тип:</span>{" "}
-                      <span className="capitalize">{item.type.replace("_", " ")}</span>
-                    </div>
-                  )}
-                  {item.year && (
-                    <div>
-                      <span className="text-gray-500">Год:</span> {item.year}
-                    </div>
-                  )}
-                  {item.material && (
-                    <div>
-                      <span className="text-gray-500">Материал:</span> {item.material}
-                    </div>
-                  )}
-                </div>
-                <button
-                  className="mt-2 w-full text-xs bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded transition-colors"
-                  onClick={() => onObjectSelect(item.id)}
-                >
-                  Подробнее
-                </button>
-              </div>
-            </Popup>
-          </CircleMarker>
-        )
+            item={item}
+            status={status}
+            color={color}
+            isCritical={isCritical}
+            isSelected={isSelected}
+            onObjectSelect={onObjectSelect}
+          />
+        );
       })}
     </>
-  )
+  );
 }
-

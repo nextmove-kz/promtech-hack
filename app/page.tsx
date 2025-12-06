@@ -23,7 +23,10 @@ const Index = () => {
       <main className="flex h-full overflow-hidden pt-[120px]">
         <div className="flex min-w-0 flex-1">
           {viewMode === "map" ? (
-            <MapView onObjectSelect={handleObjectSelect} />
+            <MapView
+              onObjectSelect={handleObjectSelect}
+              selectedObjectId={selectedObjectId}
+            />
           ) : (
             <TableView
               onObjectSelect={handleObjectSelect}
