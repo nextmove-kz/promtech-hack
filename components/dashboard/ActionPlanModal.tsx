@@ -49,7 +49,7 @@ function ActionPlanField({
   onChange,
 }: ActionPlanFieldProps) {
   return (
-    <div className="grid w-full gap-1.5">
+    <div className="grid w-full gap-4">
       <Label htmlFor={id}>{label}</Label>
       <Textarea
         id={id}
@@ -79,17 +79,17 @@ const PLAN_FIELDS = [
   {
     id: "problem_description",
     label: "Описание проблемы",
-    minHeight: "min-h-[100px]",
+    minHeight: "min-h-[120px]",
   },
   {
     id: "suggested_actions",
     label: "Предлагаемые действия",
-    minHeight: "min-h-[120px]",
+    minHeight: "min-h-[150px]",
   },
   {
     id: "expected_result",
     label: "Планируемый результат",
-    minHeight: "min-h-[80px]",
+    minHeight: "min-h-[100px]",
   },
 ] as const;
 
@@ -264,7 +264,7 @@ export function ActionPlanModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -286,13 +286,13 @@ export function ActionPlanModal({
             </Button>
           </div>
         ) : actionPlanData?.result && actionPlanData.object_data ? (
-          <div className="flex-1 overflow-auto space-y-4">
+          <div className="flex-1 overflow-auto space-y-8">
             {/* Object Info */}
-            <div className="rounded-lg border border-border bg-muted/30 p-4 hidden">
-              <h4 className="text-sm font-medium text-muted-foreground mb-2">
+            <div className="rounded-lg border border-border bg-muted/30 p-8 hidden">
+              <h4 className="text-sm font-medium text-muted-foreground mb-4">
                 Информация об объекте
               </h4>
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-2 gap-8 text-sm">
                 <div>
                   <span className="text-muted-foreground">Название:</span>
                   <p className="font-medium">
@@ -336,11 +336,11 @@ export function ActionPlanModal({
                 </div>
               </div>
               {diagnostic && (
-                <div className="mt-4 border-t border-border/50 pt-4">
+                <div className="mt-6 border-t border-border/50 pt-6">
                   <h5 className="text-xs font-medium text-muted-foreground mb-2">
                     Последняя диагностика
                   </h5>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground text-xs">
                         Дата:
@@ -457,7 +457,7 @@ export function ActionPlanModal({
         ) : null}
 
         {actionPlanData?.result && !isGenerating && (
-          <DialogFooter className="border-t border-border pt-4">
+          <DialogFooter className="border-t border-border pt-8">
             <Button
               variant="outline"
               onClick={() => onOpenChange(false)}
