@@ -2,20 +2,12 @@
 
 import { Badge } from '@/components/ui/badge'
 import type { ObjectsResponse } from '@/app/api/api_types'
+import { getHealthStyles } from '@/lib/objectHealthStyles'
 
 const typeLabels: Record<string, string> = {
   crane: 'Кран',
   compressor: 'Компрессор',
   pipeline_section: 'Участок трубопровода',
-}
-
-const typeConfig: Record<
-  string,
-  { variant: 'destructive' | 'secondary' | 'outline' }
-> = {
-  crane: { variant: 'destructive' },
-  compressor: { variant: 'secondary' },
-  pipeline_section: { variant: 'outline' },
 }
 
 interface ObjectCardProps {
@@ -25,17 +17,18 @@ interface ObjectCardProps {
 }
 
 export function ObjectCard({ object, isSelected, onSelect }: ObjectCardProps) {
-  const config = typeConfig[object.type ?? 'pipeline_section'] ?? {
-    variant: 'outline' as const,
-  }
+  const statusStyles = getHealthStyles(object.health_status)
+  const typeLabel = typeLabels[object.type ?? ''] || object.type || '—'
 
   return (
     <button
       onClick={() => onSelect(object.id)}
       className={`w-full rounded-lg border p-3 text-left transition-colors ${
+        statusStyles.borderClass
+      } ${
         isSelected
           ? 'border-primary bg-primary/5'
-          : 'border-border bg-background hover:border-primary/50 hover:bg-muted/50'
+          : `border-border bg-background ${statusStyles.hoverClass}`
       }`}
     >
       <div className='flex items-start justify-between gap-2 min-w-0'>
@@ -44,19 +37,19 @@ export function ObjectCard({ object, isSelected, onSelect }: ObjectCardProps) {
             {object.name || 'Без названия'}
           </p>
           <p className='mt-0.5 text-xs text-muted-foreground truncate'>
-            {object.id} · {object.material || '—'}
+            {typeLabel} · {object.material || '—'}
           </p>
         </div>
-        <Badge variant={config.variant} className='shrink-0 text-xs'>
-          {typeLabels[object.type ?? ''] || object.type || 'Неизвестно'}
+        <Badge
+          variant='outline'
+          className={`shrink-0 text-xs ${statusStyles.badgeClass}`}
+        >
+          {object.urgency_score ?? '—'}
         </Badge>
       </div>
       {object.year && (
-        <p className='mt-2 text-xs text-muted-foreground'>
-          Год: {object.year}
-        </p>
+        <p className='mt-2 text-xs text-muted-foreground'>Год: {object.year}</p>
       )}
     </button>
   )
 }
-

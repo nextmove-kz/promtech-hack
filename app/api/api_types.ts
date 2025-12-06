@@ -151,25 +151,23 @@ export enum ObjectsHealthStatusOptions {
 	"WARNING" = "WARNING",
 	"CRITICAL" = "CRITICAL",
 }
-
 export type ObjectsRecord = {
+	ai_summary?: string
+	conflict_detected?: boolean
 	created: IsoAutoDateString
+	health_status?: ObjectsHealthStatusOptions
 	id: string
+	last_analysis_at?: IsoAutoDateString
 	lat?: number
 	lon?: number
 	material?: string
 	name?: string
 	pipeline?: RecordIdString
+	recommended_action?: string
 	type?: ObjectsTypeOptions
 	updated: IsoAutoDateString
-	year?: number
-	// AI Analysis Fields
-	health_status?: ObjectsHealthStatusOptions
 	urgency_score?: number
-	ai_summary?: string
-	recommended_action?: string
-	conflict_detected?: boolean
-	last_analysis_at?: IsoDateString
+	year?: number
 }
 
 export type PipelinesRecord = {
