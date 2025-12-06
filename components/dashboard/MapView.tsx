@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic'
 
 // Dynamic import to avoid SSR issues with Leaflet
 const MapCanvas = dynamic(
-  () => import('@/app/components/map/MapCanvas').then((mod) => mod.MapCanvas),
+  () => import('@/components/map/MapCanvas').then((mod) => mod.MapCanvas),
   {
     ssr: false,
     loading: () => (

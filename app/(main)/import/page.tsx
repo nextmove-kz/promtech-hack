@@ -1,4 +1,4 @@
-import { DataImporter } from "@/app/components/data-importer";
+import { DataImporter } from "@/components/data-importer";
 
 export default function ImportPage() {
   return (

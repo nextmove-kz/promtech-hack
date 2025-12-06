@@ -65,6 +65,7 @@ export function useObjectAnalysis(options: UseAnalysisOptions = {}) {
  */
 export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
   const queryClient = useQueryClient();
+  const onComplete = options.onComplete;
   const [state, setState] = useState<BatchAnalysisState>({
     isRunning: false,
     currentIndex: 0,
@@ -107,9 +108,9 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
   const runBatchAnalysis = useCallback(
     async (
       objectIds?: string[],
-      options: { highRiskOnly?: boolean; delayMs?: number } = {}
+      runOptions: { highRiskOnly?: boolean; delayMs?: number } = {}
     ) => {
-      const { highRiskOnly = true, delayMs = 300 } = options;
+      const { highRiskOnly = true, delayMs = 300 } = runOptions;
 
       setState((prev) => ({
         ...prev,
@@ -167,14 +168,14 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
         // Invalidate queries to refresh data
         queryClient.invalidateQueries({ queryKey: ["objects"] });
 
-        options.onComplete?.();
+        onComplete?.();
 
         return { results, errors };
       } finally {
         setState((prev) => ({ ...prev, isRunning: false }));
       }
     },
-    [fetchPriorityQueue, analyzeObject, queryClient]
+    [fetchPriorityQueue, analyzeObject, queryClient, onComplete]
   );
 
   const reset = useCallback(() => {
