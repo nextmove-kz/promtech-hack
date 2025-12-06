@@ -21,6 +21,16 @@ import {
 } from "lucide-react";
 import type { AnalysisResponse, AnalysisResult } from "@/app/api/analyze/route";
 
+const createInitialSummary = () => ({
+  total: 0,
+  completed: 0,
+  critical: 0,
+  warning: 0,
+  ok: 0,
+  errors: 0,
+  defects: 0,
+});
+
 interface LogEntry {
   id: string;
   timestamp: Date;
@@ -52,19 +62,27 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [totalObjects, setTotalObjects] = useState(0);
-  const [summary, setSummary] = useState<AnalysisSummary>({
-    total: 0,
-    completed: 0,
-    critical: 0,
-    warning: 0,
-    ok: 0,
-    errors: 0,
-    defects: 0,
-  });
+  const [summary, setSummary] = useState<AnalysisSummary>(createInitialSummary);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const objectQueueRef = useRef<string[]>([]);
+  const isPausedRef = useRef(false);
+  const summaryRef = useRef<AnalysisSummary>(createInitialSummary());
+
+  const syncSummaryRef = useCallback((updater: (prev: AnalysisSummary) => AnalysisSummary) => {
+    setSummary((prev) => {
+      const next = updater(prev);
+      summaryRef.current = next;
+      return next;
+    });
+  }, []);
+
+  const resetSummary = useCallback(() => {
+    const initial = createInitialSummary();
+    summaryRef.current = initial;
+    setSummary(initial);
+  }, []);
 
   // Auto-scroll to latest log entry
   useEffect(() => {
@@ -72,6 +90,14 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [logs]);
+
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+
+  useEffect(() => {
+    summaryRef.current = summary;
+  }, [summary]);
 
   const fetchObjectsToAnalyze = useCallback(async (): Promise<string[]> => {
     if (objectIds && objectIds.length > 0) {
@@ -111,15 +137,8 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
     setIsPaused(false);
     setLogs([]);
     setCurrentIndex(0);
-    setSummary({
-      total: 0,
-      completed: 0,
-      critical: 0,
-      warning: 0,
-      ok: 0,
-      errors: 0,
-      defects: 0,
-    });
+    setTotalObjects(0);
+    resetSummary();
 
     abortControllerRef.current = new AbortController();
 
@@ -128,7 +147,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
       const objects = await fetchObjectsToAnalyze();
       objectQueueRef.current = objects;
       setTotalObjects(objects.length);
-      setSummary((prev) => ({ ...prev, total: objects.length }));
+      syncSummaryRef((prev) => ({ ...prev, total: objects.length }));
 
       if (objects.length === 0) {
         toast.info("Нет объектов для анализа", {
@@ -146,9 +165,13 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
         }
 
         // Wait while paused
-        while (isPaused) {
+        while (isPausedRef.current) {
           await new Promise((resolve) => setTimeout(resolve, 100));
           if (abortControllerRef.current?.signal.aborted) break;
+        }
+
+        if (abortControllerRef.current?.signal.aborted) {
+          break;
         }
 
         const objectId = objects[i];
@@ -189,7 +212,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
 
           // Update summary
           if (result.success && result.result) {
-            setSummary((prev) => ({
+            syncSummaryRef((prev) => ({
               ...prev,
               completed: prev.completed + 1,
               critical:
@@ -202,7 +225,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
               defects: prev.defects + (result.result?.has_defects ? 1 : 0),
             }));
           } else {
-            setSummary((prev) => ({
+            syncSummaryRef((prev) => ({
               ...prev,
               completed: prev.completed + 1,
               errors: prev.errors + 1,
@@ -225,7 +248,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
             )
           );
 
-          setSummary((prev) => ({
+          syncSummaryRef((prev) => ({
             ...prev,
             completed: prev.completed + 1,
             errors: prev.errors + 1,
@@ -234,12 +257,13 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
       }
 
       // Analysis complete
-      const finalSummary = summary;
-      toast.success("Анализ завершён", {
-        description: `Обработано ${finalSummary.completed} объектов. Критических: ${finalSummary.critical}`,
-      });
-
-      onComplete?.();
+      const finalSummary = summaryRef.current;
+      if (!abortControllerRef.current?.signal.aborted) {
+        toast.success("Анализ завершён", {
+          description: `Обработано ${finalSummary.completed} объектов. Критических: ${finalSummary.critical}`,
+        });
+        onComplete?.();
+      }
     } catch (error) {
       console.error("Analysis failed:", error);
       toast.error("Ошибка анализа", {
@@ -250,7 +274,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
       setIsRunning(false);
       abortControllerRef.current = null;
     }
-  }, [fetchObjectsToAnalyze, analyzeObject, isPaused, summary, onComplete]);
+  }, [fetchObjectsToAnalyze, analyzeObject, resetSummary, syncSummaryRef, onComplete]);
 
   const stopAnalysis = useCallback(() => {
     abortControllerRef.current?.abort();

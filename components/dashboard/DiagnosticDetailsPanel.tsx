@@ -19,6 +19,8 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from "@/lib/constants";
+import { renderDiagnosticParams } from "@/lib/utils/diagnosticParams";
 import { useDiagnostic } from "@/hooks/useDiagnostic";
 import { useObject } from "@/hooks/useObject";
 import { usePlanByObjectId } from "@/hooks/usePlan";
@@ -29,103 +31,6 @@ interface DiagnosticDetailsPanelProps {
   objectId: string | null;
   onClose: () => void;
 }
-
-const healthStatusConfig = {
-  OK: {
-    label: "Норма",
-    variant: "outline" as const,
-    iconColor: "text-emerald-600",
-    iconBg: "bg-emerald-100",
-  },
-  WARNING: {
-    label: "Предупреждение",
-    variant: "secondary" as const,
-    iconColor: "text-amber-600",
-    iconBg: "bg-amber-100",
-  },
-  CRITICAL: {
-    label: "Критический",
-    variant: "destructive" as const,
-    iconColor: "text-red-600",
-    iconBg: "bg-red-100",
-  },
-  UNKNOWN: {
-    label: "Неизвестно",
-    variant: "outline" as const,
-    iconColor: "text-gray-600",
-    iconBg: "bg-gray-100",
-  },
-};
-
-const objectTypeLabels: Record<string, string> = {
-  crane: "Кран",
-  compressor: "Компрессор",
-  pipeline_section: "Участок трубопровода",
-};
-
-const renderParams = (
-  method?: string,
-  p1?: number | string,
-  p2?: number | string,
-  p3?: number | string
-) => {
-  const hasValue = (v?: number | string | null) => {
-    if (v === undefined || v === null) return false;
-    if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
-    if (typeof v === "string") return v.trim() !== "" && v.trim() !== "0";
-    return true;
-  };
-
-  const v1 = hasValue(p1);
-  const v2 = hasValue(p2);
-  const v3 = hasValue(p3);
-  const hasAny = v1 || v2 || v3;
-
-  if (!hasAny) return null;
-
-  switch (method) {
-    case "VIBRO":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Виброскорость: <b>{p1} мм/с</b>
-            </div>
-          )}
-          {v2 && <div>Ускорение: {p2} м/с²</div>}
-          {v3 && <div>Частота/Температура: {p3}</div>}
-        </>
-      );
-    case "MFL":
-    case "UTWM":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Глубина коррозии: <b className="text-red-500">{p1} мм</b>
-            </div>
-          )}
-          {v2 && <div>Остаток стенки: {p2} мм</div>}
-          {v3 && <div>Длина дефекта: {p3} мм</div>}
-        </>
-      );
-    case "TVK":
-      // TVK параметры без названий не показываем
-      return null;
-    default:
-      if (v1 && v2) {
-        return (
-          <>
-            <div>
-              Размеры (ДхШ): {p1} x {p2} мм
-            </div>
-          </>
-        );
-      }
-
-      return null;
-  }
-};
 
 export function DiagnosticDetailsPanel({
   objectId,
@@ -167,9 +72,9 @@ export function DiagnosticDetailsPanel({
   const displayId = object?.id || firstDiagnostic?.id || objectId;
 
   const statusKey = (healthStatus ??
-    "UNKNOWN") as keyof typeof healthStatusConfig;
+    "UNKNOWN") as keyof typeof HEALTH_STATUS_CONFIG;
   const statusConfig =
-    healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN;
+    HEALTH_STATUS_CONFIG[statusKey] ?? HEALTH_STATUS_CONFIG.UNKNOWN;
 
   const contentState = error ? "error" : hasDiagnostics ? "data" : "empty";
 
@@ -204,7 +109,11 @@ export function DiagnosticDetailsPanel({
               {(objectType || pipelineName) && (
                 <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
                   {objectType && (
-                    <div>{objectTypeLabels[objectType] || objectType}</div>
+                    <div>
+                      {OBJECT_TYPE_LABELS[objectType as keyof typeof OBJECT_TYPE_LABELS] ||
+                        objectType ||
+                        "Неизвестный тип"}
+                    </div>
                   )}
                   {pipelineName && <div>{pipelineName}</div>}
                 </div>
@@ -382,7 +291,7 @@ export function DiagnosticDetailsPanel({
                           </div>
 
                           {(() => {
-                            const paramsContent = renderParams(
+                            const paramsContent = renderDiagnosticParams(
                               diagnostic.method,
                               diagnostic.param1,
                               diagnostic.param2,

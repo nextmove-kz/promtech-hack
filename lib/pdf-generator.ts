@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import QRCode from 'qrcode'
+import { HEALTH_STATUS_LABELS } from './constants'
 import robotoFont from './fonts/roboto-regular.json'
 
 export interface ActionPlanPdfData {
@@ -47,13 +48,6 @@ const COLORS = {
   success: [0, 0, 0] as [number, number, number], // No colors in text
   warning: [0, 0, 0] as [number, number, number],
   critical: [0, 0, 0] as [number, number, number],
-}
-
-const healthStatusLabels: Record<string, string> = {
-  OK: 'Норма',
-  WARNING: 'Предупреждение',
-  CRITICAL: 'Критический',
-  UNKNOWN: 'Неизвестно',
 }
 
 // Helper to split text into lines that fit within maxWidth
@@ -163,7 +157,10 @@ export async function generateActionPlanPdf(
   drawField('Тип:', object_data.type)
   drawField('Трубопровод:', object_data.pipeline_name)
   
-  const statusLabel = healthStatusLabels[object_data.health_status] || object_data.health_status
+  const statusLabel =
+    HEALTH_STATUS_LABELS[
+      object_data.health_status as keyof typeof HEALTH_STATUS_LABELS
+    ] || object_data.health_status
   drawField('Статус:', `${statusLabel} (${object_data.urgency_score}/100)`)
 
   yPos += 5
@@ -256,17 +253,23 @@ export async function generateActionPlanPdf(
   doc.setFontSize(FONT_SIZE.text)
   doc.setTextColor(...COLORS.text)
   const actions = result.action_plan || []
-  for (let i = 0; i < actions.length; i++) {
-    const actionText = `${i + 1}. ${actions[i]}`
-    const actionLines = splitTextToLines(doc, actionText, contentWidth)
-    for (const line of actionLines) {
-      if (yPos > pageHeight - margin - 10) {
-        doc.addPage()
-        setupCyrillicFont(doc)
-        yPos = margin
+  if (actions.length === 0) {
+    doc.setTextColor(...COLORS.muted)
+    doc.text('Действия не определены', margin, yPos)
+    yPos += 10
+  } else {
+    for (let i = 0; i < actions.length; i++) {
+      const actionText = `${i + 1}. ${actions[i]}`
+      const actionLines = splitTextToLines(doc, actionText, contentWidth)
+      for (const line of actionLines) {
+        if (yPos > pageHeight - margin - 10) {
+          doc.addPage()
+          setupCyrillicFont(doc)
+          yPos = margin
+        }
+        doc.text(line, margin, yPos)
+        yPos += 5
       }
-      doc.text(line, margin, yPos)
-      yPos += 5
     }
   }
   yPos += 10

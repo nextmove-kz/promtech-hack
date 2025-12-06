@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Layers, Flame, Clock, X, Search, SlidersHorizontal, ChevronDown } from 'lucide-react'
 import { useAtom } from 'jotai'
 import { cn } from '@/lib/utils'
@@ -13,14 +14,11 @@ import {
   DiagnosticsMethodOptions,
   ObjectsHealthStatusOptions,
   ObjectsTypeOptions,
+  type PipelinesResponse,
 } from '@/app/api/api_types'
+import clientPocketBase from '@/app/api/client_pb'
 
 const MATERIAL_OPTIONS = ['Ст3', '09Г2С', '17Г1С', '13ХФА', '20А', '10Г2']
-const PIPELINE_OPTIONS = [
-  { value: 'gyb5o38bnf3t0hn', label: 'Магистраль Павлодар-Шымкент' },
-  { value: 'vrm8bp99zwvnda3', label: 'Магистраль Актау-Актобе' },
-  { value: 'fnhxk2x3j5mkawy', label: 'Магистраль Атырау-Самара' },
-]
 
 interface FilterBarProps {
   onFilterChange?: (filters: FilterState) => void;
@@ -55,11 +53,19 @@ const filterOptions: Array<{
 export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
   const [filters, setFilters] = useAtom(filterAtom)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [yearError, setYearError] = useState<string | null>(null)
 
   const applyFilters = (next: FilterState) => {
     setFilters(next)
     onFilterChange?.(next)
   }
+
+  const { data: pipelines, isLoading: pipelinesLoading } = useQuery<PipelinesResponse[]>({
+    queryKey: ['pipelines'],
+    queryFn: async () =>
+      clientPocketBase.collection('pipelines').getFullList<PipelinesResponse>(),
+    staleTime: Infinity,
+  })
 
   const toggleFilter = (id: FilterOptionId) => {
     const isActive = filters.activeFilters.includes(id)
@@ -83,6 +89,7 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
       advanced: { ...defaultAdvancedFilters },
       searchQuery: ''
     })
+    setYearError(null)
   }
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -91,6 +98,42 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
 
   const clearSearch = () => {
     applyFilters({ ...filters, searchQuery: '' })
+  }
+
+  const handleYearFromChange = (value: number | '') => {
+    const nextTo = filters.advanced.yearTo
+    let yearTo = nextTo
+    let yearFrom = value
+
+    if (value && nextTo && value > nextTo) {
+      yearTo = value
+      setYearError('Год "от" скорректирован, чтобы не превышать "до".')
+    } else {
+      setYearError(null)
+    }
+
+    applyFilters({
+      ...filters,
+      advanced: { ...filters.advanced, yearFrom, yearTo },
+    })
+  }
+
+  const handleYearToChange = (value: number | '') => {
+    const nextFrom = filters.advanced.yearFrom
+    let yearFrom = nextFrom
+    let yearTo = value
+
+    if (value && nextFrom && value < nextFrom) {
+      yearFrom = value
+      setYearError('Год "до" скорректирован, чтобы не быть меньше "от".')
+    } else {
+      setYearError(null)
+    }
+
+    applyFilters({
+      ...filters,
+      advanced: { ...filters.advanced, yearFrom, yearTo },
+    })
   }
 
   const hasAdvancedFilters = useMemo(() => {
@@ -307,8 +350,7 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
                   placeholder='Мин.'
                   value={filters.advanced.yearFrom ?? ''}
                   onChange={e =>
-                    updateAdvanced(
-                      'yearFrom',
+                    handleYearFromChange(
                       e.target.value ? Number(e.target.value) : ''
                     )
                   }
@@ -325,13 +367,17 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
                   placeholder='Макс.'
                   value={filters.advanced.yearTo ?? ''}
                   onChange={e =>
-                    updateAdvanced(
-                      'yearTo',
+                    handleYearToChange(
                       e.target.value ? Number(e.target.value) : ''
                     )
                   }
                 />
               </div>
+              {yearError && (
+                <div className="md:col-span-3 text-xs text-destructive">
+                  {yearError}
+                </div>
+              )}
 
               <div className='flex flex-col gap-1'>
                 <label className='text-xs font-medium text-muted-foreground'>
@@ -341,11 +387,13 @@ export const FilterBar = ({ onFilterChange }: FilterBarProps) => {
                   className='h-9 rounded-md border border-border bg-card px-2 text-sm'
                   value={filters.advanced.pipeline ?? ''}
                   onChange={e => updateAdvanced('pipeline', e.target.value)}
+                  disabled={pipelinesLoading}
                 >
                   <option value=''>Любой</option>
-                  {PIPELINE_OPTIONS.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
+                  {pipelinesLoading && <option value='' disabled>Загрузка...</option>}
+                  {pipelines?.map(option => (
+                    <option key={option.id} value={option.id}>
+                      {option.name}
                     </option>
                   ))}
                 </select>

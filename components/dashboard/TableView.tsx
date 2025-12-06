@@ -29,7 +29,6 @@ export function TableView({
         </Button>
       </div>
       <RecentScansTable onRowClick={onObjectSelect} />
-      <PlanTrackerTable onShowOnMap={handleShowOnMap} />
     </div>
   )
 }

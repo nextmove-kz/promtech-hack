@@ -168,8 +168,8 @@ export type ObjectsRecord = {
 	health_status?: ObjectsHealthStatusOptions
 	id: string
 	last_analysis_at?: IsoAutoDateString
-	lat?: number
-	lon?: number
+	lat: number
+	lon: number
 	material?: string
 	name?: string
 	pipeline?: RecordIdString
@@ -267,7 +267,7 @@ type ProcessCreateAndUpdateFields<T> = Omit<{
 		// Convert FileNameString to File
 		T[K] extends infer U ? 
 			U extends (FileNameString | FileNameString[]) ? 
-				U extends unknown[] ? File[] : File 
+				U extends any[] ? File[] : File 
 			: U
 		: never
 }, 'id'>

@@ -4,6 +4,7 @@ import { useAtomValue } from 'jotai'
 import { getObjects, type GetObjectsResult } from '@/app/api/objects'
 import { filterAtom } from '@/store/filterStore'
 import { useDebounce } from './useDebounce'
+import { buildObjectsFilter } from '@/lib/utils/filters'
 
 interface UseObjectsParams {
   page?: number
@@ -41,40 +42,17 @@ export function useObjects(params: UseObjectsParams = {}) {
 
   const hasFilters = activeFilters.length > 0 || hasAdvancedFilters || debouncedSearchQuery.length > 0
 
-  const filter = useMemo(() => {
-    if (!hasFilters) return undefined
-    const filters: string[] = []
-    if (activeFilters.includes('critical')) {
-      filters.push(`health_status = "CRITICAL"`)
-    }
-    if (activeFilters.includes('defective')) {
-      filters.push(`has_defects = true`)
-    }
-    if (advanced.type) {
-      filters.push(`type = "${advanced.type}"`)
-    }
-    if (advanced.healthStatus) {
-      filters.push(`health_status = "${advanced.healthStatus}"`)
-    }
-    if (advanced.material) {
-      const value = advanced.material.replace(/"/g, '\\"')
-      filters.push(`material = "${value}"`)
-    }
-    if (advanced.yearFrom) {
-      filters.push(`year >= ${advanced.yearFrom}`)
-    }
-    if (advanced.yearTo) {
-      filters.push(`year <= ${advanced.yearTo}`)
-    }
-    if (advanced.pipeline) {
-      const value = advanced.pipeline.replace(/"/g, '\\"')
-      filters.push(`pipeline = "${value}"`)
-    }
-    if (debouncedSearchQuery) {
-      filters.push(`name ~ "${debouncedSearchQuery}"`)
-    }
-    return filters.join(' && ')
-  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters])
+  const filter = useMemo(
+    () =>
+      hasFilters
+        ? buildObjectsFilter({
+            activeFilters,
+            advanced,
+            searchQuery: debouncedSearchQuery,
+          })
+        : undefined,
+    [activeFilters, advanced, debouncedSearchQuery, hasFilters]
+  )
 
   const pageToUse = page
 

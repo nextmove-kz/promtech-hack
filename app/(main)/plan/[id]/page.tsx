@@ -23,6 +23,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { OBJECT_TYPE_LABELS } from "@/lib/constants";
+import { renderDiagnosticParams } from "@/lib/utils/diagnosticParams";
 import {
   usePlanByObjectId,
   useLatestDiagnostic,
@@ -31,76 +33,6 @@ import {
 } from "@/hooks/usePlan";
 import { PlanStatusOptions } from "@/app/api/api_types";
 import Link from "next/link";
-
-const objectTypeLabels: Record<string, string> = {
-  crane: "Кран",
-  compressor: "Компрессор",
-  pipeline_section: "Участок трубопровода",
-};
-
-const renderParams = (
-  method?: string,
-  p1?: number | string,
-  p2?: number | string,
-  p3?: number | string
-) => {
-  const hasValue = (v?: number | string | null) => {
-    if (v === undefined || v === null) return false;
-    if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
-    if (typeof v === "string") return v.trim() !== "" && v.trim() !== "0";
-    return true;
-  };
-
-  const v1 = hasValue(p1);
-  const v2 = hasValue(p2);
-  const v3 = hasValue(p3);
-  const hasAny = v1 || v2 || v3;
-
-  if (!hasAny) return null;
-
-  switch (method) {
-    case "VIBRO":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Виброскорость: <b>{p1} мм/с</b>
-            </div>
-          )}
-          {v2 && <div>Ускорение: {p2} м/с²</div>}
-          {v3 && <div>Частота/Температура: {p3}</div>}
-        </>
-      );
-    case "MFL":
-    case "UTWM":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Глубина коррозии: <b className="text-red-500">{p1} мм</b>
-            </div>
-          )}
-          {v2 && <div>Остаток стенки: {p2} мм</div>}
-          {v3 && <div>Длина дефекта: {p3} мм</div>}
-        </>
-      );
-    case "TVK":
-      // TVK параметры без названий не показываем
-      return null;
-    default:
-      if (v1 && v2) {
-        return (
-          <>
-            <div>
-              Размеры (ДхШ): {p1} x {p2} мм
-            </div>
-          </>
-        );
-      }
-
-      return null;
-  }
-};
 
 export default function PlanPage() {
   const params = useParams();
@@ -291,7 +223,11 @@ export default function PlanPage() {
                 {object.name || "Объект без имени"}
               </div>
               {object.type && (
-                <div>{objectTypeLabels[object.type] || object.type}</div>
+                <div>
+                  {OBJECT_TYPE_LABELS[object.type as keyof typeof OBJECT_TYPE_LABELS] ||
+                    object.type ||
+                    "Неизвестный тип"}
+                </div>
               )}
             </div>
           )}
@@ -388,7 +324,7 @@ export default function PlanPage() {
             </div>
 
             {(function () {
-              const paramsContent = renderParams(
+              const paramsContent = renderDiagnosticParams(
                 diagnostic.method,
                 diagnostic.param1,
                 diagnostic.param2,

@@ -4,6 +4,7 @@ import { useAtomValue } from 'jotai'
 import { getObjects, type GetObjectsResult } from '@/app/api/objects'
 import { filterAtom } from '@/store/filterStore'
 import { useDebounce } from './useDebounce'
+import { buildObjectsFilter } from '@/lib/utils/filters'
 
 interface UseInfiniteObjectsParams {
   perPage?: number
@@ -48,45 +49,18 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const hasFilters =
     activeFilters.length > 0 || hasAdvancedFilters || debouncedSearchQuery.length > 0 || hasBounds
 
-  const filter = useMemo(() => {
-    if (!hasFilters) return undefined
-    const filters: string[] = []
-    if (hasBounds && bounds) {
-      filters.push(
-        `lat >= ${bounds.south} && lat <= ${bounds.north} && lon >= ${bounds.west} && lon <= ${bounds.east}`
-      )
-    }
-    if (activeFilters.includes('critical')) {
-      filters.push(`health_status = "CRITICAL"`)
-    }
-    if (activeFilters.includes('defective')) {
-      filters.push(`has_defects = true`)
-    }
-    if (advanced.type) {
-      filters.push(`type = "${advanced.type}"`)
-    }
-    if (advanced.healthStatus) {
-      filters.push(`health_status = "${advanced.healthStatus}"`)
-    }
-    if (advanced.material) {
-      const value = advanced.material.replace(/"/g, '\\"')
-      filters.push(`material = "${value}"`)
-    }
-    if (advanced.yearFrom) {
-      filters.push(`year >= ${advanced.yearFrom}`)
-    }
-    if (advanced.yearTo) {
-      filters.push(`year <= ${advanced.yearTo}`)
-    }
-    if (advanced.pipeline) {
-      const value = advanced.pipeline.replace(/"/g, '\\"')
-      filters.push(`pipeline = "${value}"`)
-    }
-    if (debouncedSearchQuery) {
-      filters.push(`name ~ "${debouncedSearchQuery}"`)
-    }
-    return filters.join(' && ')
-  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters, hasBounds, bounds])
+  const filter = useMemo(
+    () =>
+      hasFilters
+        ? buildObjectsFilter({
+            activeFilters,
+            advanced,
+            searchQuery: debouncedSearchQuery,
+            bounds,
+          })
+        : undefined,
+    [activeFilters, advanced, bounds, debouncedSearchQuery, hasFilters]
+  )
 
   return useInfiniteQuery<GetObjectsResult>({
     queryKey: [

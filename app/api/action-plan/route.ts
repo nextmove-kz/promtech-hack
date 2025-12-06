@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { GoogleGenAI } from '@google/genai'
 import { pocketbase } from '../pocketbase'
+import { handleApiError } from '@/lib/utils/errorHandling'
+import { OBJECT_TYPE_LABELS } from '@/lib/constants'
 import type {
   ObjectsResponse,
   DiagnosticsResponse,
@@ -216,14 +218,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         throw new Error('Invalid response structure')
       }
     } catch (parseError) {
-      console.error('Failed to parse AI response:', aiText, parseError)
-      throw new Error('Failed to parse AI response')
-    }
-
-    const objectTypeLabels: Record<string, string> = {
-      crane: 'Кран',
-      compressor: 'Компрессор',
-      pipeline_section: 'Участок трубопровода',
+      throw handleApiError(parseError, 'Failed to parse AI response')
     }
 
     return NextResponse.json({
@@ -233,7 +228,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         id: object.id,
         name: object.name || 'Объект без имени',
         type:
-          objectTypeLabels[object.type || ''] ||
+          OBJECT_TYPE_LABELS[object.type as keyof typeof OBJECT_TYPE_LABELS] ||
           object.type ||
           'Неизвестный тип',
         pipeline_name: pipeline?.name || 'Неизвестный трубопровод',
@@ -242,11 +237,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     } as ActionPlanResponse)
   } catch (error) {
-    console.error('Action plan generation error:', error)
+    const apiError = handleApiError(error, 'Action plan generation error')
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
+        error: apiError.message,
       },
       { status: 500 }
     )

@@ -457,16 +457,11 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const idsToProcess = object_ids.slice(0, BATCH_SIZE);
     const pb = await pocketbase();
 
-    // Fetch all objects
-    const objects: ObjectsResponse[] = [];
-    for (const id of idsToProcess) {
-      try {
-        const obj = await pb.collection("objects").getOne(id);
-        objects.push(obj);
-      } catch {
-        // Skip objects that don't exist
-      }
-    }
+    // Fetch all objects in a single query
+    const objectFilter = idsToProcess.map((id) => `id="${id}"`).join(" || ");
+    const objects = await pb.collection("objects").getFullList({
+      filter: objectFilter,
+    });
 
     if (objects.length === 0) {
       return NextResponse.json({
@@ -476,9 +471,15 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       });
     }
 
-    // Fetch all diagnostics for these objects in one query
-    const allDiagnostics = await pb.collection("diagnostics").getFullList();
+    // Fetch diagnostics only for these objects in one query
     const objectIds = new Set(objects.map((o) => o.id));
+    const diagFilter =
+      objects.length > 0
+        ? objects.map((o) => `object="${o.id}"`).join(" || ")
+        : "";
+    const allDiagnostics = await pb.collection("diagnostics").getFullList({
+      filter: diagFilter,
+    });
     const diagnosticsMap = new Map<string, DiagnosticsResponse[]>();
 
     for (const d of allDiagnostics) {
@@ -693,7 +694,15 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const targetSet = object_ids && object_ids.length > 0 ? new Set(object_ids) : null;
     const objects = targetSet ? allObjects.filter((o) => targetSet.has(o.id)) : allObjects;
 
-    const diagnostics = await pb.collection("diagnostics").getFullList();
+    const objectIdsForDiagnostics = objects.map((o) => o.id);
+    const diagFilter =
+      objectIdsForDiagnostics.length > 0
+        ? objectIdsForDiagnostics.map((id) => `object="${id}"`).join(" || ")
+        : "";
+    const diagnostics =
+      objectIdsForDiagnostics.length > 0
+        ? await pb.collection("diagnostics").getFullList({ filter: diagFilter })
+        : [];
     const diagnosticsMap = new Map<string, DiagnosticsResponse[]>();
 
     for (const d of diagnostics) {

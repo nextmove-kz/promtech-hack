@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Download, AlertTriangle, Loader2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getHealthLabel } from "@/lib/constants";
 import { getHealthStyles } from "@/lib/objectHealthStyles";
 import { generateActionPlanPdf } from "@/lib/pdf-generator";
 import clientPocketBase from "@/app/api/client_pb";
@@ -62,20 +63,6 @@ function ActionPlanField({
   );
 }
 
-const healthStatusConfig = {
-  OK: {
-    label: "Норма",
-  },
-  WARNING: {
-    label: "Предупреждение",
-  },
-  CRITICAL: {
-    label: "Критический",
-  },
-  UNKNOWN: {
-    label: "Неизвестно",
-  },
-};
 const PLAN_FIELDS = [
   {
     id: "problem_summary",
@@ -117,9 +104,13 @@ export function ActionPlanModal({
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const generateActionPlan = useCallback(async () => {
     if (!diagnosticId) return;
+
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
 
     setIsGenerating(true);
     setGenerationError(null);
@@ -130,6 +121,7 @@ export function ActionPlanModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ diagnostic_id: diagnosticId }),
+        signal: abortControllerRef.current.signal,
       });
 
       const data: ActionPlanResponse = await response.json();
@@ -140,6 +132,9 @@ export function ActionPlanModal({
 
       setActionPlanData(data);
     } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") {
+        return;
+      }
       setGenerationError(
         err instanceof Error ? err.message : "Неизвестная ошибка"
       );
@@ -153,28 +148,31 @@ export function ActionPlanModal({
     if (isOpen && diagnosticId && !actionPlanData && !isGenerating) {
       generateActionPlan();
     }
+
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [isOpen, diagnosticId, actionPlanData, isGenerating, generateActionPlan]);
 
   const savePlanToPocketBase = useCallback(
     async (planData: ActionPlanResult, objectId: string) => {
-      try {
-        const actionItems = (planData.action_plan || [])
-          .map((item) => item.trim())
-          .filter((item) => item.length > 0);
+      const actionItems = (planData.action_plan || [])
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
 
-        // Create action records for each parsed action
-        const actionIds: string[] = [];
+      const actionIds: string[] = [];
+
+      try {
         for (const actionDescription of actionItems) {
           const actionRecord = await clientPocketBase
             .collection("action")
             .create({
               description: actionDescription,
-              status: false, // Not completed yet
+              status: false,
             });
           actionIds.push(actionRecord.id);
         }
 
-        // Create the plan record with linked actions
         const planRecord = await clientPocketBase.collection("plan").create({
           object: objectId,
           problem: planData.problem_summary,
@@ -185,7 +183,12 @@ export function ActionPlanModal({
         setPlanId(planRecord.id);
         return planRecord.id;
       } catch (error) {
-        console.error("Failed to save plan to PocketBase:", error);
+        // Cleanup any created actions to avoid orphaned records
+        await Promise.all(
+          actionIds.map((id) =>
+            clientPocketBase.collection("action").delete(id).catch(() => {})
+          )
+        );
         throw error;
       }
     },
@@ -310,10 +313,7 @@ export function ActionPlanModal({
                         ).badgeClass
                       )}
                     >
-                      {healthStatusConfig[
-                        actionPlanData.object_data
-                          .health_status as keyof typeof healthStatusConfig
-                      ]?.label || actionPlanData.object_data.health_status}
+                      {getHealthLabel(actionPlanData.object_data.health_status)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       ({actionPlanData.object_data.urgency_score}/100)
