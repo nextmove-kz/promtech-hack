@@ -1,16 +1,16 @@
-import pb from "./client_pb";
+import pb from './client_pb';
 import type {
   ObjectsRecord,
   DiagnosticsRecord,
   PipelinesResponse,
   ObjectsResponse,
-} from "./api_types";
+} from './api_types';
 
 // Pipeline names mapping
 export const PIPELINE_NAMES: Record<string, string> = {
-  "MT-01": "Магистраль Атырау-Самара",
-  "MT-02": "Магистраль Актау-Актобе",
-  "MT-03": "Магистраль Павлодар-Шымкент",
+  'MT-01': 'Магистраль Атырау-Самара',
+  'MT-02': 'Магистраль Актау-Актобе',
+  'MT-03': 'Магистраль Павлодар-Шымкент',
 };
 
 // === Pipeline Operations ===
@@ -19,7 +19,7 @@ export async function fetchAllPipelines(): Promise<Map<string, string>> {
   const map = new Map<string, string>();
   try {
     const items = await pb
-      .collection("pipelines")
+      .collection('pipelines')
       .getFullList<PipelinesResponse>();
     for (const item of items) {
       map.set(item.name, item.id);
@@ -32,7 +32,7 @@ export async function fetchAllPipelines(): Promise<Map<string, string>> {
 
 export async function createPipeline(name: string): Promise<string | null> {
   try {
-    const record = await pb.collection("pipelines").create({ name });
+    const record = await pb.collection('pipelines').create({ name });
     return record.id;
   } catch {
     return null;
@@ -40,7 +40,7 @@ export async function createPipeline(name: string): Promise<string | null> {
 }
 
 export async function ensurePipelines(
-  pipelineIds: string[]
+  pipelineIds: string[],
 ): Promise<Map<string, string>> {
   const needed = new Set(pipelineIds.filter(Boolean));
   const map = await fetchAllPipelines();
@@ -54,7 +54,10 @@ export async function ensurePipelines(
         map.set(pid, id);
       }
     } else {
-      map.set(pid, map.get(name)!);
+      const existingId = map.get(name);
+      if (existingId) {
+        map.set(pid, existingId);
+      }
     }
   }
   return map;
@@ -65,12 +68,12 @@ export async function ensurePipelines(
 export async function fetchAllObjects(): Promise<Map<number, string>> {
   const map = new Map<number, string>();
   try {
-    const items = await pb.collection("objects").getFullList<ObjectsResponse>({
-      fields: "id,object_id",
+    const items = await pb.collection('objects').getFullList<ObjectsResponse>({
+      fields: 'id,object_id',
     });
     for (const item of items) {
       const num = Number(item.id);
-      if (!isNaN(num)) {
+      if (!Number.isNaN(num)) {
         map.set(num, item.id);
       }
     }
@@ -85,25 +88,44 @@ export interface BatchResult {
   ids: Map<number, string>;
 }
 
+interface BatchResponse {
+  status: number;
+  body?: { id?: string };
+}
+
+const isBatchResponse = (value: unknown): value is BatchResponse => {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'status' in value &&
+    typeof (value as { status?: unknown }).status === 'number' &&
+    'body' in value
+  );
+};
+
 export async function createObjectsBatch(
-  records: Partial<ObjectsRecord>[]
+  records: Partial<ObjectsRecord>[],
 ): Promise<BatchResult> {
   const ids = new Map<number, string>();
   let errors = 0;
 
   const requests = records.map((body) => ({
-    method: "POST" as const,
-    url: "/api/collections/objects/records",
+    method: 'POST' as const,
+    url: '/api/collections/objects/records',
     body,
   }));
 
   try {
-    const results = await pb.send("/api/batch", {
-      method: "POST",
+    const rawResults = await pb.send('/api/batch', {
+      method: 'POST',
       body: { requests },
     });
 
-    (results as { status: number; body: { id?: string } }[]).forEach((r, i) => {
+    const results = Array.isArray(rawResults)
+      ? rawResults.filter(isBatchResponse)
+      : [];
+
+    results.forEach((r, i) => {
       if (r.status >= 400) {
         errors++;
       } else if (r.body?.id) {
@@ -120,24 +142,28 @@ export async function createObjectsBatch(
 // === Diagnostic Operations ===
 
 export async function createDiagnosticsBatch(
-  records: Partial<DiagnosticsRecord>[]
+  records: Partial<DiagnosticsRecord>[],
 ): Promise<BatchResult> {
   const ids = new Map<number, string>();
   let errors = 0;
 
   const requests = records.map((body) => ({
-    method: "POST" as const,
-    url: "/api/collections/diagnostics/records",
+    method: 'POST' as const,
+    url: '/api/collections/diagnostics/records',
     body,
   }));
 
   try {
-    const results = await pb.send("/api/batch", {
-      method: "POST",
+    const rawResults = await pb.send('/api/batch', {
+      method: 'POST',
       body: { requests },
     });
 
-    (results as { status: number; body: { id?: string } }[]).forEach((r, i) => {
+    const results = Array.isArray(rawResults)
+      ? rawResults.filter(isBatchResponse)
+      : [];
+
+    results.forEach((r, i) => {
       if (r.status >= 400) {
         errors++;
       } else if (r.body?.id) {

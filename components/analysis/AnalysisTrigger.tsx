@@ -1,12 +1,18 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { toast } from "sonner";
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 import {
   Brain,
   Play,
@@ -18,8 +24,8 @@ import {
   Sparkles,
   BarChart3,
   Zap,
-} from "lucide-react";
-import type { AnalysisResponse, AnalysisResult } from "@/app/api/analyze/route";
+} from 'lucide-react';
+import type { AnalysisResponse, AnalysisResult } from '@/app/api/analyze/route';
 
 const createInitialSummary = () => ({
   total: 0,
@@ -36,7 +42,7 @@ interface LogEntry {
   timestamp: Date;
   objectName: string;
   objectId: string;
-  status: "pending" | "analyzing" | "success" | "error";
+  status: 'pending' | 'analyzing' | 'success' | 'error';
   result?: AnalysisResult;
   error?: string;
 }
@@ -56,7 +62,10 @@ interface AnalysisTriggerProps {
   onComplete?: () => void;
 }
 
-export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps) {
+export function AnalysisTrigger({
+  objectIds,
+  onComplete,
+}: AnalysisTriggerProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -70,13 +79,16 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
   const isPausedRef = useRef(false);
   const summaryRef = useRef<AnalysisSummary>(createInitialSummary());
 
-  const syncSummaryRef = useCallback((updater: (prev: AnalysisSummary) => AnalysisSummary) => {
-    setSummary((prev) => {
-      const next = updater(prev);
-      summaryRef.current = next;
-      return next;
-    });
-  }, []);
+  const syncSummaryRef = useCallback(
+    (updater: (prev: AnalysisSummary) => AnalysisSummary) => {
+      setSummary((prev) => {
+        const next = updater(prev);
+        summaryRef.current = next;
+        return next;
+      });
+    },
+    [],
+  );
 
   const resetSummary = useCallback(() => {
     const initial = createInitialSummary();
@@ -86,10 +98,9 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
 
   // Auto-scroll to latest log entry
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [logs]);
+    if (!logs.length || !scrollRef.current) return;
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [logs.length]);
 
   useEffect(() => {
     isPausedRef.current = isPaused;
@@ -99,20 +110,27 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
     summaryRef.current = summary;
   }, [summary]);
 
+  // Abort any in-flight analysis when component unmounts
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
   const fetchObjectsToAnalyze = useCallback(async (): Promise<string[]> => {
     if (objectIds && objectIds.length > 0) {
       return objectIds;
     }
 
     // Fetch objects prioritized by risk
-    const response = await fetch("/api/analyze", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    const response = await fetch('/api/analyze', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prioritize_high_risk: true }),
     });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch objects");
+      throw new Error('Failed to fetch objects');
     }
 
     const data = await response.json();
@@ -121,15 +139,15 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
 
   const analyzeObject = useCallback(
     async (objectId: string): Promise<AnalysisResponse> => {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ object_id: objectId }),
       });
 
       return response.json();
     },
-    []
+    [],
   );
 
   const startAnalysis = useCallback(async () => {
@@ -150,8 +168,8 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
       syncSummaryRef((prev) => ({ ...prev, total: objects.length }));
 
       if (objects.length === 0) {
-        toast.info("Нет объектов для анализа", {
-          description: "Загрузите данные перед запуском анализа",
+        toast.info('Нет объектов для анализа', {
+          description: 'Загрузите данные перед запуском анализа',
         });
         setIsRunning(false);
         return;
@@ -185,7 +203,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
             timestamp: new Date(),
             objectName: `Объект ${objectId.slice(0, 8)}...`,
             objectId,
-            status: "analyzing",
+            status: 'analyzing',
           },
         ]);
         setCurrentIndex(i + 1);
@@ -199,15 +217,15 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
               log.id === logId
                 ? {
                     ...log,
-                    status: result.success ? "success" : "error",
+                    status: result.success ? 'success' : 'error',
                     result: result.result,
                     error: result.error,
                     objectName: result.result
                       ? `${log.objectName}`
                       : log.objectName,
                   }
-                : log
-            )
+                : log,
+            ),
           );
 
           // Update summary
@@ -217,11 +235,11 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
               completed: prev.completed + 1,
               critical:
                 prev.critical +
-                (result.result?.health_status === "CRITICAL" ? 1 : 0),
+                (result.result?.health_status === 'CRITICAL' ? 1 : 0),
               warning:
                 prev.warning +
-                (result.result?.health_status === "WARNING" ? 1 : 0),
-              ok: prev.ok + (result.result?.health_status === "OK" ? 1 : 0),
+                (result.result?.health_status === 'WARNING' ? 1 : 0),
+              ok: prev.ok + (result.result?.health_status === 'OK' ? 1 : 0),
               defects: prev.defects + (result.result?.has_defects ? 1 : 0),
             }));
           } else {
@@ -240,12 +258,12 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
               log.id === logId
                 ? {
                     ...log,
-                    status: "error",
+                    status: 'error',
                     error:
-                      error instanceof Error ? error.message : "Unknown error",
+                      error instanceof Error ? error.message : 'Unknown error',
                   }
-                : log
-            )
+                : log,
+            ),
           );
 
           syncSummaryRef((prev) => ({
@@ -259,40 +277,46 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
       // Analysis complete
       const finalSummary = summaryRef.current;
       if (!abortControllerRef.current?.signal.aborted) {
-        toast.success("Анализ завершён", {
+        toast.success('Анализ завершён', {
           description: `Обработано ${finalSummary.completed} объектов. Критических: ${finalSummary.critical}`,
         });
         onComplete?.();
       }
     } catch (error) {
-      console.error("Analysis failed:", error);
-      toast.error("Ошибка анализа", {
+      console.error('Analysis failed:', error);
+      toast.error('Ошибка анализа', {
         description:
-          error instanceof Error ? error.message : "Неизвестная ошибка",
+          error instanceof Error ? error.message : 'Неизвестная ошибка',
       });
     } finally {
       setIsRunning(false);
       abortControllerRef.current = null;
     }
-  }, [fetchObjectsToAnalyze, analyzeObject, resetSummary, syncSummaryRef, onComplete]);
+  }, [
+    fetchObjectsToAnalyze,
+    analyzeObject,
+    resetSummary,
+    syncSummaryRef,
+    onComplete,
+  ]);
 
   const stopAnalysis = useCallback(() => {
     abortControllerRef.current?.abort();
     setIsRunning(false);
-    toast.info("Анализ остановлен");
+    toast.info('Анализ остановлен');
   }, []);
 
   const togglePause = useCallback(() => {
     setIsPaused((prev) => !prev);
   }, []);
 
-  const getStatusIcon = (status: LogEntry["status"]) => {
+  const getStatusIcon = (status: LogEntry['status']) => {
     switch (status) {
-      case "analyzing":
+      case 'analyzing':
         return <Loader2 className="size-4 animate-spin text-primary" />;
-      case "success":
+      case 'success':
         return <CheckCircle2 className="size-4 text-green-500" />;
-      case "error":
+      case 'error':
         return <AlertCircle className="size-4 text-destructive" />;
       default:
         return <div className="size-4 rounded-full bg-muted" />;
@@ -304,15 +328,15 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
 
     const variants: Record<string, { color: string; icon: React.ReactNode }> = {
       CRITICAL: {
-        color: "bg-red-500/20 text-red-600 border-red-500/30",
+        color: 'bg-red-500/20 text-red-600 border-red-500/30',
         icon: <AlertTriangle className="size-3" />,
       },
       WARNING: {
-        color: "bg-amber-500/20 text-amber-600 border-amber-500/30",
+        color: 'bg-amber-500/20 text-amber-600 border-amber-500/30',
         icon: <AlertCircle className="size-3" />,
       },
       OK: {
-        color: "bg-emerald-500/20 text-emerald-600 border-emerald-500/30",
+        color: 'bg-emerald-500/20 text-emerald-600 border-emerald-500/30',
         icon: <CheckCircle2 className="size-3" />,
       },
     };
@@ -397,9 +421,9 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
               <span className="text-muted-foreground">
                 {isRunning
                   ? isPaused
-                    ? "Приостановлено"
-                    : "Анализ объектов..."
-                  : "Анализ завершён"}
+                    ? 'Приостановлено'
+                    : 'Анализ объектов...'
+                  : 'Анализ завершён'}
               </span>
               <span className="font-mono font-medium">
                 {currentIndex} / {totalObjects}
@@ -416,7 +440,9 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
               <BarChart3 className="size-4 text-muted-foreground" />
               <div>
                 <div className="text-xs text-muted-foreground">Обработано</div>
-                <div className="font-mono font-semibold">{summary.completed}</div>
+                <div className="font-mono font-semibold">
+                  {summary.completed}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-lg bg-red-500/10 px-3 py-2">
@@ -480,11 +506,11 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
                   <div
                     key={log.id}
                     className={`flex items-start gap-3 rounded-md px-3 py-2 text-sm transition-colors ${
-                      log.status === "analyzing"
-                        ? "bg-primary/10"
-                        : log.status === "error"
-                          ? "bg-destructive/10"
-                          : "bg-transparent hover:bg-muted/50"
+                      log.status === 'analyzing'
+                        ? 'bg-primary/10'
+                        : log.status === 'error'
+                          ? 'bg-destructive/10'
+                          : 'bg-transparent hover:bg-muted/50'
                     }`}
                   >
                     <div className="mt-0.5">{getStatusIcon(log.status)}</div>
@@ -499,7 +525,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
                         {log.result &&
                           getHealthBadge(
                             log.result.health_status,
-                            log.result.urgency_score
+                            log.result.urgency_score,
                           )}
                         {log.result?.has_defects && (
                           <Badge
@@ -534,9 +560,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
             <div className="flex size-16 items-center justify-center rounded-2xl bg-primary/10 mb-4">
               <Brain className="size-8 text-primary" />
             </div>
-            <h3 className="text-lg font-semibold">
-              Готов к анализу
-            </h3>
+            <h3 className="text-lg font-semibold">Готов к анализу</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               Нажмите «Запустить анализ» для оценки состояния всех объектов
               трубопровода с помощью ИИ
@@ -554,4 +578,3 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
     </Card>
   );
 }
-

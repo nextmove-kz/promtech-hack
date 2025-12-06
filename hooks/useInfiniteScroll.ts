@@ -1,12 +1,12 @@
-'use client'
+'use client';
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react';
 
 interface UseInfiniteScrollOptions {
-  onIntersect: () => void
-  enabled?: boolean
-  rootMargin?: string
-  threshold?: number | number[]
+  onIntersect: () => void;
+  enabled?: boolean;
+  rootMargin?: string;
+  threshold?: number | number[];
 }
 
 /**
@@ -19,34 +19,34 @@ export function useInfiniteScroll({
   rootMargin = '100px',
   threshold = 0,
 }: UseInfiniteScrollOptions) {
-  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
-  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement | null>(null);
 
   const handleObserver = useCallback(
     (entries: IntersectionObserverEntry[]) => {
-      const [entry] = entries
+      const [entry] = entries;
       if (entry?.isIntersecting && enabled) {
-        onIntersect()
+        onIntersect();
       }
     },
-    [onIntersect, enabled]
-  )
+    [onIntersect, enabled],
+  );
 
   useEffect(() => {
-    const sentinel = loadMoreRef.current
-    const root = scrollContainerRef.current
-    if (!sentinel || !root || !enabled) return
+    const sentinel = loadMoreRef.current;
+    const root = scrollContainerRef.current;
+    if (!sentinel || !root || !enabled) return;
 
     const observer = new IntersectionObserver(handleObserver, {
       root,
       rootMargin,
       threshold,
-    })
+    });
 
-    observer.observe(sentinel)
+    observer.observe(sentinel);
 
-    return () => observer.disconnect()
-  }, [enabled, handleObserver, rootMargin, threshold])
+    return () => observer.disconnect();
+  }, [enabled, handleObserver, rootMargin, threshold]);
 
-  return { scrollContainerRef, loadMoreRef }
+  return { scrollContainerRef, loadMoreRef };
 }

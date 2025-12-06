@@ -1,30 +1,30 @@
-import { useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { useAtomValue } from 'jotai'
-import { getObjects, type GetObjectsResult } from '@/app/api/objects'
-import { filterAtom } from '@/store/filterStore'
-import { useDebounce } from './useDebounce'
-import { buildObjectsFilter } from '@/lib/utils/filters'
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAtomValue } from 'jotai';
+import { getObjects, type GetObjectsResult } from '@/app/api/objects';
+import { filterAtom } from '@/store/filterStore';
+import { useDebounce } from './useDebounce';
+import { buildObjectsFilter } from '@/lib/utils/filters';
 
 interface UseObjectsParams {
-  page?: number
-  perPage?: number
+  page?: number;
+  perPage?: number;
 }
 
 export function useObjects(params: UseObjectsParams = {}) {
-  const page = params.page ?? 1
-  const perPage = params.perPage ?? 20
-  const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom)
-  const debouncedSearchQuery = useDebounce(searchQuery, 300)
+  const page = params.page ?? 1;
+  const perPage = params.perPage ?? 20;
+  const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const recentSince = useMemo(() => {
     if (!activeFilters.includes('recent') || typeof window === 'undefined') {
-      return undefined
+      return undefined;
     }
-    const threshold = new Date()
-    threshold.setDate(threshold.getDate() - 30)
-    return threshold.toISOString().split('T')[0]
-  }, [activeFilters])
+    const threshold = new Date();
+    threshold.setDate(threshold.getDate() - 30);
+    return threshold.toISOString().split('T')[0];
+  }, [activeFilters]);
 
   const hasAdvancedFilters = useMemo(
     () =>
@@ -35,12 +35,15 @@ export function useObjects(params: UseObjectsParams = {}) {
           advanced.material ||
           advanced.pipeline ||
           advanced.yearFrom ||
-          advanced.yearTo
+          advanced.yearTo,
       ),
-    [advanced]
-  )
+    [advanced],
+  );
 
-  const hasFilters = activeFilters.length > 0 || hasAdvancedFilters || debouncedSearchQuery.length > 0
+  const hasFilters =
+    activeFilters.length > 0 ||
+    hasAdvancedFilters ||
+    debouncedSearchQuery.length > 0;
 
   const filter = useMemo(
     () =>
@@ -51,10 +54,10 @@ export function useObjects(params: UseObjectsParams = {}) {
             searchQuery: debouncedSearchQuery,
           })
         : undefined,
-    [activeFilters, advanced, debouncedSearchQuery, hasFilters]
-  )
+    [activeFilters, advanced, debouncedSearchQuery, hasFilters],
+  );
 
-  const pageToUse = page
+  const pageToUse = page;
 
   const query = useQuery<GetObjectsResult>({
     queryKey: [
@@ -75,7 +78,7 @@ export function useObjects(params: UseObjectsParams = {}) {
       }),
     staleTime: 60000, // 1 minute cache for better performance
     refetchOnWindowFocus: false,
-  })
+  });
 
-  return query
+  return query;
 }

@@ -1,42 +1,53 @@
-"use client"
+'use client';
 
-import { useEffect } from "react"
-import { MapContainer, TileLayer, useMap } from "react-leaflet"
-import type { PipelineObject } from "@/app/types/pipeline"
-import { PipelineMarker } from "./PipelineMarker"
-import { calculateBounds, toBounds, DEFAULT_CENTER, DEFAULT_ZOOM } from "./map-utils"
+import { useEffect } from 'react';
+import { MapContainer, TileLayer, useMap } from 'react-leaflet';
+import type { PipelineObject } from '@/app/types/pipeline';
+import { PipelineMarker } from './PipelineMarker';
+import {
+  calculateBounds,
+  toBounds,
+  DEFAULT_CENTER,
+  DEFAULT_ZOOM,
+} from './map-utils';
 
 interface PipelineMapProps {
-  objects: PipelineObject[]
-  onMarkerClick?: (object: PipelineObject) => void
-  height?: string
-  className?: string
-  fitBounds?: boolean
+  objects: PipelineObject[];
+  onMarkerClick?: (object: PipelineObject) => void;
+  height?: string;
+  className?: string;
+  fitBounds?: boolean;
 }
 
 /**
  * Component to handle map bounds fitting
  */
-function MapBoundsHandler({ objects, fitBounds }: { objects: PipelineObject[]; fitBounds: boolean }) {
-  const map = useMap()
+function MapBoundsHandler({
+  objects,
+  fitBounds,
+}: {
+  objects: PipelineObject[];
+  fitBounds: boolean;
+}) {
+  const map = useMap();
 
   useEffect(() => {
     if (fitBounds && objects.length > 0) {
-      const bounds = calculateBounds(objects)
+      const bounds = calculateBounds(objects);
       if (bounds) {
-        map.fitBounds(toBounds(bounds), { padding: [50, 50] })
+        map.fitBounds(toBounds(bounds), { padding: [50, 50] });
       }
     }
-  }, [objects, fitBounds, map])
+  }, [objects, fitBounds, map]);
 
-  return null
+  return null;
 }
 
 export function PipelineMap({
   objects,
   onMarkerClick,
-  height = "500px",
-  className = "",
+  height = '500px',
+  className = '',
   fitBounds = true,
 }: PipelineMapProps) {
   return (
@@ -44,7 +55,7 @@ export function PipelineMap({
       <MapContainer
         center={DEFAULT_CENTER}
         zoom={DEFAULT_ZOOM}
-        style={{ height, width: "100%", borderRadius: "0.5rem" }}
+        style={{ height, width: '100%', borderRadius: '0.5rem' }}
         scrollWheelZoom={true}
       >
         <TileLayer
@@ -63,5 +74,5 @@ export function PipelineMap({
         ))}
       </MapContainer>
     </div>
-  )
+  );
 }

@@ -1,4 +1,4 @@
-import { DataImporter } from "@/components/data-importer";
+import { DataImporter } from '@/components/data-importer';
 
 export default function ImportPage() {
   return (
@@ -13,4 +13,3 @@ export default function ImportPage() {
     </div>
   );
 }
-

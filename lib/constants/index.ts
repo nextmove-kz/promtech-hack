@@ -1,4 +1,3 @@
-export * from "./healthStatus";
-export * from "./objectTypes";
-export * from "./time";
-
+export * from './healthStatus';
+export * from './objectTypes';
+export * from './time';

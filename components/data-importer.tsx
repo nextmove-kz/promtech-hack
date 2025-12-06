@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useDropzone } from "react-dropzone";
-import { Upload, Brain, Loader2, X } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
+import { Upload, Brain, Loader2, X } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
   DialogContent,
@@ -11,17 +11,20 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { useDataImport } from "@/app/hooks/use-data-import";
-import { toast } from "sonner";
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { useDataImport } from '@/app/hooks/use-data-import';
+import { toast } from 'sonner';
 
 export function DataImporter({ className }: { className?: string }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [analysisProgress, setAnalysisProgress] = useState({ current: 0, total: 0 });
+  const [analysisProgress, setAnalysisProgress] = useState({
+    current: 0,
+    total: 0,
+  });
   const [analysisCounts, setAnalysisCounts] = useState({
     critical: 0,
     warning: 0,
@@ -37,7 +40,7 @@ export function DataImporter({ className }: { className?: string }) {
   const BATCH_SIZE = 10; // Process 10 objects per AI call
 
   const refreshObjects = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["objects"] });
+    queryClient.invalidateQueries({ queryKey: ['objects'] });
   }, [queryClient]);
 
   const runAnalysis = async () => {
@@ -48,58 +51,61 @@ export function DataImporter({ className }: { className?: string }) {
 
     try {
       // First, get the prioritized list of objects
-      const prepRes = await fetch("/api/analyze", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const prepRes = await fetch('/api/analyze', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prioritize_high_risk: true }),
       });
 
-      if (!prepRes.ok) throw new Error("Failed to prepare analysis");
+      if (!prepRes.ok) throw new Error('Failed to prepare analysis');
 
       const { object_ids } = await prepRes.json();
-      
+
       if (!object_ids || object_ids.length === 0) {
-        toast.info("Нет объектов для анализа");
+        toast.info('Нет объектов для анализа');
         setIsAnalyzing(false);
         return;
       }
 
       setAnalysisProgress({ current: 0, total: object_ids.length });
 
-      let critical = 0, warning = 0, ok = 0, errors = 0;
+      let critical = 0,
+        warning = 0,
+        ok = 0,
+        errors = 0;
 
       // Process in batches of BATCH_SIZE objects per AI call
       const totalBatches = Math.ceil(object_ids.length / BATCH_SIZE);
-      
+
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
         if (analysisAbortRef.current) break;
 
         const batchStart = batchIndex * BATCH_SIZE;
         const batchIds = object_ids.slice(batchStart, batchStart + BATCH_SIZE);
-        
-        setAnalysisProgress({ 
-          current: Math.min(batchStart + BATCH_SIZE, object_ids.length), 
-          total: object_ids.length 
+
+        setAnalysisProgress({
+          current: Math.min(batchStart + BATCH_SIZE, object_ids.length),
+          total: object_ids.length,
         });
 
         try {
           // Use PATCH for batch analysis (multiple objects in one AI call)
-          const res = await fetch("/api/analyze", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+          const res = await fetch('/api/analyze', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ object_ids: batchIds }),
           });
 
           const data = await res.json();
-          
+
           if (data.success && data.results) {
             for (const result of data.results) {
-              if (result.health_status === "CRITICAL") critical++;
-              else if (result.health_status === "WARNING") warning++;
+              if (result.health_status === 'CRITICAL') critical++;
+              else if (result.health_status === 'WARNING') warning++;
               else ok++;
             }
           }
-          
+
           if (data.errors && data.errors.length > 0) {
             errors += data.errors.length;
           }
@@ -118,17 +124,17 @@ export function DataImporter({ className }: { className?: string }) {
       }
 
       if (analysisAbortRef.current) {
-        toast.info("Анализ остановлен");
+        toast.info('Анализ остановлен');
         return;
       }
 
-      toast.success("Анализ завершён", {
+      toast.success('Анализ завершён', {
         description: `Критических: ${critical}, Внимание: ${warning}, OK: ${ok}, Ошибок: ${errors}`,
       });
       setOpen(false); // Close dialog after successful analysis
     } catch (error) {
-      toast.error("Ошибка анализа", {
-        description: error instanceof Error ? error.message : "Unknown error",
+      toast.error('Ошибка анализа', {
+        description: error instanceof Error ? error.message : 'Unknown error',
       });
     } finally {
       setIsAnalyzing(false);
@@ -149,7 +155,7 @@ export function DataImporter({ className }: { className?: string }) {
       shouldAutoAnalyzeRef.current = true;
       onDrop(files);
     },
-    [onDrop]
+    [onDrop],
   );
 
   const handleAbort = useCallback(() => {
@@ -160,7 +166,7 @@ export function DataImporter({ className }: { className?: string }) {
   useEffect(() => {
     if (isWorking) {
       setOpen(false);
-      const id = importToastId.current ?? "import-progress";
+      const id = importToastId.current ?? 'import-progress';
       importToastId.current = id;
 
       toast.custom(
@@ -168,14 +174,20 @@ export function DataImporter({ className }: { className?: string }) {
           <div className="w-80 rounded-md border bg-white p-3 shadow-md">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
-                <p className="text-sm font-medium text-zinc-900">Импорт данных</p>
+                <p className="text-sm font-medium text-zinc-900">
+                  Импорт данных
+                </p>
                 <p className="text-xs text-zinc-500">
-                  {state.phase === "parsing" ? "Чтение файлов..." : "Загрузка..."} • {state.processed}/{state.total} ({state.errors} ошибок)
+                  {state.phase === 'parsing'
+                    ? 'Чтение файлов...'
+                    : 'Загрузка...'}{' '}
+                  • {state.processed}/{state.total} ({state.errors} ошибок)
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
-                  if (window.confirm("Отменить импорт?")) {
+                  if (window.confirm('Отменить импорт?')) {
                     handleAbort();
                     toast.dismiss(id);
                   }
@@ -188,18 +200,26 @@ export function DataImporter({ className }: { className?: string }) {
             <Progress value={progress} className="mt-2 h-2" />
           </div>
         ),
-        { id, duration: Infinity, position: "bottom-left" }
+        { id, duration: Infinity, position: 'bottom-left' },
       );
     } else if (importToastId.current) {
       toast.dismiss(importToastId.current);
       importToastId.current = null;
     }
-  }, [handleAbort, isWorking, progress, state.errors, state.phase, state.processed, state.total]);
+  }, [
+    handleAbort,
+    isWorking,
+    progress,
+    state.errors,
+    state.phase,
+    state.processed,
+    state.total,
+  ]);
 
   useEffect(() => {
     if (isAnalyzing) {
       setOpen(false);
-      const id = analysisToastId.current ?? "analysis-progress";
+      const id = analysisToastId.current ?? 'analysis-progress';
       analysisToastId.current = id;
       const percent =
         analysisProgress.total > 0
@@ -214,16 +234,18 @@ export function DataImporter({ className }: { className?: string }) {
                 <p className="text-sm font-medium text-zinc-900">ИИ-анализ</p>
                 <p className="text-xs text-zinc-500">
                   {analysisProgress.total === 0
-                    ? "Подготовка..."
+                    ? 'Подготовка...'
                     : `${analysisProgress.current}/${analysisProgress.total} объектов`}
                 </p>
                 <p className="text-[11px] text-zinc-500">
-                  CRIT {analysisCounts.critical} • WARN {analysisCounts.warning} • OK {analysisCounts.ok} • ERR {analysisCounts.errors}
+                  CRIT {analysisCounts.critical} • WARN {analysisCounts.warning}{' '}
+                  • OK {analysisCounts.ok} • ERR {analysisCounts.errors}
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
-                  if (window.confirm("Остановить анализ?")) {
+                  if (window.confirm('Остановить анализ?')) {
                     analysisAbortRef.current = true;
                     setIsAnalyzing(false);
                     toast.dismiss(id);
@@ -237,7 +259,7 @@ export function DataImporter({ className }: { className?: string }) {
             <Progress value={percent} className="mt-2 h-2" />
           </div>
         ),
-        { id, duration: Infinity, position: "bottom-left" }
+        { id, duration: Infinity, position: 'bottom-left' },
       );
     } else if (analysisToastId.current) {
       toast.dismiss(analysisToastId.current);
@@ -247,7 +269,7 @@ export function DataImporter({ className }: { className?: string }) {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleDrop,
-    accept: { "text/csv": [".csv"] },
+    accept: { 'text/csv': ['.csv'] },
     maxFiles: 2,
     disabled: isWorking,
   });
@@ -255,7 +277,7 @@ export function DataImporter({ className }: { className?: string }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="sm" className={`gap-2 ${className ?? ""}`}>
+        <Button size="sm" className={`gap-2 ${className ?? ''}`}>
           <Upload className="h-4 w-4" />
           Импорт
         </Button>
@@ -274,8 +296,8 @@ export function DataImporter({ className }: { className?: string }) {
           {...getRootProps()}
           className={`
             border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all
-            ${isDragActive ? "border-blue-500 bg-blue-50" : "border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50"}
-            ${isWorking ? "opacity-50 cursor-not-allowed pointer-events-none" : ""}
+            ${isDragActive ? 'border-blue-500 bg-blue-50' : 'border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}
+            ${isWorking ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}
           `}
         >
           <input {...getInputProps()} />
@@ -284,9 +306,13 @@ export function DataImporter({ className }: { className?: string }) {
               <Upload className="h-5 w-5 text-zinc-400" />
             </div>
             <p className="text-sm text-zinc-600">
-              {isDragActive ? "Отпустите файлы..." : "Перетащите CSV-файлы сюда"}
+              {isDragActive
+                ? 'Отпустите файлы...'
+                : 'Перетащите CSV-файлы сюда'}
             </p>
-            <p className="text-xs text-zinc-400">или нажмите для выбора (макс. 2 файла)</p>
+            <p className="text-xs text-zinc-400">
+              или нажмите для выбора (макс. 2 файла)
+            </p>
           </div>
         </div>
 
@@ -295,7 +321,7 @@ export function DataImporter({ className }: { className?: string }) {
           <div className="space-y-2">
             <div className="flex justify-between text-sm">
               <span className="text-zinc-600">
-                {state.phase === "parsing" ? "Чтение файлов..." : "Загрузка..."}
+                {state.phase === 'parsing' ? 'Чтение файлов...' : 'Загрузка...'}
               </span>
               <span className="text-zinc-500">
                 {state.processed} / {state.total}
@@ -310,7 +336,12 @@ export function DataImporter({ className }: { className?: string }) {
 
         {/* Cancel button */}
         {isWorking && (
-          <Button variant="outline" size="sm" className="w-full" onClick={handleAbort}>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full"
+            onClick={handleAbort}
+          >
             Отменить
           </Button>
         )}

@@ -1,18 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { GoogleGenAI } from '@google/genai'
-import { pocketbase } from '../pocketbase'
-import { handleApiError } from '@/lib/utils/errorHandling'
-import { OBJECT_TYPE_LABELS } from '@/lib/constants'
+import { type NextRequest, NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
+import { pocketbase } from '../pocketbase';
+import { handleApiError } from '@/lib/utils/errorHandling';
+import { OBJECT_TYPE_LABELS } from '@/lib/constants';
 import type {
   ObjectsResponse,
   DiagnosticsResponse,
   PipelinesResponse,
-} from '../api_types'
+} from '../api_types';
 
 // Initialize Gemini AI
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY environment variable is required');
+}
+
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
-})
+  apiKey,
+});
 
 const SYSTEM_INSTRUCTION = `
 РОЛЬ: Ты — Старший руководитель полевых операций (Senior Field Operations Manager) в нефтегазовой отрасли.
@@ -58,68 +63,68 @@ const SYSTEM_INSTRUCTION = `
 `;
 
 export interface ActionPlanRequest {
-  diagnostic_id: string
+  diagnostic_id: string;
 }
 
 export interface ActionPlanResult {
-  problem_summary: string
-  action_plan: string[]
-  required_resources: string
-  safety_requirements: string
-  expected_outcome: string
+  problem_summary: string;
+  action_plan: string[];
+  required_resources: string;
+  safety_requirements: string;
+  expected_outcome: string;
 }
 
 export interface ActionPlanResponse {
-  success: boolean
-  result?: ActionPlanResult
+  success: boolean;
+  result?: ActionPlanResult;
   object_data?: {
-    id: string
-    name: string
-    type: string
-    pipeline_name: string
-    health_status: string
-    urgency_score: number
-  }
-  error?: string
+    id: string;
+    name: string;
+    type: string;
+    pipeline_name: string;
+    health_status: string;
+    urgency_score: number;
+  };
+  error?: string;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    const body: ActionPlanRequest = await request.json()
-    const { diagnostic_id } = body
+    const body: ActionPlanRequest = await request.json();
+    const { diagnostic_id } = body;
 
     if (!diagnostic_id) {
       return NextResponse.json(
         { success: false, error: 'diagnostic_id is required' },
-        { status: 400 }
-      )
+        { status: 400 },
+      );
     }
 
-    const pb = await pocketbase()
+    const pb = await pocketbase();
 
     // Fetch the diagnostic with expanded object and pipeline
     let diagnostic: DiagnosticsResponse<{
-      object: ObjectsResponse<{ pipeline: PipelinesResponse }>
-    }>
+      object: ObjectsResponse<{ pipeline: PipelinesResponse }>;
+    }>;
     try {
       diagnostic = await pb.collection('diagnostics').getOne(diagnostic_id, {
         expand: 'object.pipeline',
-      })
+      });
     } catch {
       return NextResponse.json(
         { success: false, error: 'Diagnostic not found' },
-        { status: 404 }
-      )
+        { status: 404 },
+      );
     }
 
-    const object = diagnostic.expand?.object
-    const pipeline = object?.expand?.pipeline
+    const object = diagnostic.expand?.object;
+    const pipeline = object?.expand?.pipeline;
 
     if (!object) {
       return NextResponse.json(
         { success: false, error: 'Object not found for this diagnostic' },
-        { status: 404 }
-      )
+        { status: 404 },
+      );
     }
 
     // Prepare data for AI analysis
@@ -152,7 +157,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         humidity: diagnostic.humidity,
         illumination: diagnostic.illumination,
       },
-    }
+    };
 
     // Call Gemini for action plan generation
     const response = await ai.models.generateContent({
@@ -165,7 +170,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               text: `На основе данных диагностики сгенерируй план действий:\n\n${JSON.stringify(
                 analysisData,
                 null,
-                2
+                2,
               )}`,
             },
           ],
@@ -177,36 +182,36 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         temperature: 0.5,
         maxOutputTokens: 2048,
       },
-    })
+    });
 
     // Parse AI response
-    const aiText = response.text
+    const aiText = response.text;
     if (!aiText) {
-      throw new Error('Empty response from AI')
+      throw new Error('Empty response from AI');
     }
 
-    let actionPlan: ActionPlanResult
+    let actionPlan: ActionPlanResult;
     try {
       // Clean the response - remove markdown code blocks if present
-      let cleanedText = aiText.trim()
+      let cleanedText = aiText.trim();
       if (cleanedText.startsWith('```json')) {
-        cleanedText = cleanedText.slice(7)
+        cleanedText = cleanedText.slice(7);
       }
       if (cleanedText.startsWith('```')) {
-        cleanedText = cleanedText.slice(3)
+        cleanedText = cleanedText.slice(3);
       }
       if (cleanedText.endsWith('```')) {
-        cleanedText = cleanedText.slice(0, -3)
+        cleanedText = cleanedText.slice(0, -3);
       }
-      cleanedText = cleanedText.trim()
+      cleanedText = cleanedText.trim();
 
-      actionPlan = JSON.parse(cleanedText)
+      actionPlan = JSON.parse(cleanedText);
 
       // Validate the response structure
       const hasValidActions =
         Array.isArray(actionPlan.action_plan) &&
         actionPlan.action_plan.length > 0 &&
-        actionPlan.action_plan.every((item) => typeof item === 'string')
+        actionPlan.action_plan.every((item) => typeof item === 'string');
 
       if (
         !actionPlan.problem_summary ||
@@ -215,10 +220,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         !actionPlan.safety_requirements ||
         !actionPlan.expected_outcome
       ) {
-        throw new Error('Invalid response structure')
+        throw new Error('Invalid response structure');
       }
     } catch (parseError) {
-      throw handleApiError(parseError, 'Failed to parse AI response')
+      throw handleApiError(parseError, 'Failed to parse AI response');
     }
 
     return NextResponse.json({
@@ -235,15 +240,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         health_status: object.health_status || 'UNKNOWN',
         urgency_score: object.urgency_score ?? 0,
       },
-    } as ActionPlanResponse)
+    } as ActionPlanResponse);
   } catch (error) {
-    const apiError = handleApiError(error, 'Action plan generation error')
+    const apiError = handleApiError(error, 'Action plan generation error');
     return NextResponse.json(
       {
         success: false,
         error: apiError.message,
       },
-      { status: 500 }
-    )
+      { status: 500 },
+    );
   }
 }

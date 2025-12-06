@@ -1,2 +1,1 @@
-export { AnalysisTrigger } from "./AnalysisTrigger";
-
+export { AnalysisTrigger } from './AnalysisTrigger';

@@ -1,33 +1,33 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Download, AlertTriangle, Loader2, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { getHealthLabel } from "@/lib/constants";
-import { getHealthStyles } from "@/lib/objectHealthStyles";
-import { generateActionPlanPdf } from "@/lib/pdf-generator";
-import clientPocketBase from "@/app/api/client_pb";
+} from '@/components/ui/dialog';
+import { Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getHealthLabel } from '@/lib/constants';
+import { getHealthStyles } from '@/lib/objectHealthStyles';
+import { generateActionPlanPdf } from '@/lib/pdf-generator';
+import clientPocketBase from '@/app/api/client_pb';
 import type {
   ObjectsHealthStatusOptions,
   DiagnosticsResponse,
   PlanStatusOptions,
-} from "@/app/api/api_types";
+} from '@/app/api/api_types';
 import type {
   ActionPlanResponse,
   ActionPlanResult,
-} from "@/app/api/action-plan/route";
+} from '@/app/api/action-plan/route';
 
 interface ActionPlanModalProps {
   diagnosticId: string | null;
@@ -47,7 +47,7 @@ function ActionPlanField({
   id,
   label,
   value,
-  minHeight = "min-h-[80px]",
+  minHeight = 'min-h-[80px]',
   onChange,
 }: ActionPlanFieldProps) {
   return (
@@ -65,30 +65,30 @@ function ActionPlanField({
 
 const PLAN_FIELDS = [
   {
-    id: "problem_summary",
-    label: "Краткое заключение",
-    minHeight: "min-h-[120px]",
+    id: 'problem_summary',
+    label: 'Краткое заключение',
+    minHeight: 'min-h-[120px]',
   },
   {
-    id: "action_plan",
-    label: "План действий (каждый пункт с новой строки)",
-    minHeight: "min-h-[150px]",
+    id: 'action_plan',
+    label: 'План действий (каждый пункт с новой строки)',
+    minHeight: 'min-h-[150px]',
     isList: true,
   },
   {
-    id: "required_resources",
-    label: "Необходимые ресурсы",
-    minHeight: "min-h-[100px]",
+    id: 'required_resources',
+    label: 'Необходимые ресурсы',
+    minHeight: 'min-h-[100px]',
   },
   {
-    id: "safety_requirements",
-    label: "Требования по безопасности",
-    minHeight: "min-h-[100px]",
+    id: 'safety_requirements',
+    label: 'Требования по безопасности',
+    minHeight: 'min-h-[100px]',
   },
   {
-    id: "expected_outcome",
-    label: "Ожидаемый результат",
-    minHeight: "min-h-[100px]",
+    id: 'expected_outcome',
+    label: 'Ожидаемый результат',
+    minHeight: 'min-h-[100px]',
   },
 ] as const;
 
@@ -117,9 +117,9 @@ export function ActionPlanModal({
     setActionPlanData(null);
 
     try {
-      const response = await fetch("/api/action-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/action-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ diagnostic_id: diagnosticId }),
         signal: abortControllerRef.current.signal,
       });
@@ -127,16 +127,16 @@ export function ActionPlanModal({
       const data: ActionPlanResponse = await response.json();
 
       if (!data.success) {
-        throw new Error(data.error || "Ошибка генерации плана");
+        throw new Error(data.error || 'Ошибка генерации плана');
       }
 
       setActionPlanData(data);
     } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") {
+      if (err instanceof DOMException && err.name === 'AbortError') {
         return;
       }
       setGenerationError(
-        err instanceof Error ? err.message : "Неизвестная ошибка"
+        err instanceof Error ? err.message : 'Неизвестная ошибка',
       );
     } finally {
       setIsGenerating(false);
@@ -165,7 +165,7 @@ export function ActionPlanModal({
       try {
         for (const actionDescription of actionItems) {
           const actionRecord = await clientPocketBase
-            .collection("action")
+            .collection('action')
             .create({
               description: actionDescription,
               status: false,
@@ -173,10 +173,10 @@ export function ActionPlanModal({
           actionIds.push(actionRecord.id);
         }
 
-        const planRecord = await clientPocketBase.collection("plan").create({
+        const planRecord = await clientPocketBase.collection('plan').create({
           object: objectId,
           problem: planData.problem_summary,
-          status: "created" as PlanStatusOptions,
+          status: 'created' as PlanStatusOptions,
           actions: actionIds,
         });
 
@@ -186,13 +186,16 @@ export function ActionPlanModal({
         // Cleanup any created actions to avoid orphaned records
         await Promise.all(
           actionIds.map((id) =>
-            clientPocketBase.collection("action").delete(id).catch(() => {})
-          )
+            clientPocketBase
+              .collection('action')
+              .delete(id)
+              .catch(() => {}),
+          ),
         );
         throw error;
       }
     },
-    []
+    [],
   );
 
   const router = useRouter();
@@ -214,8 +217,8 @@ export function ActionPlanModal({
         object_data: {
           ...actionPlanData.object_data,
           last_diagnostic: {
-            date: diagnostic.date || "",
-            method: diagnostic.method || "",
+            date: diagnostic.date || '',
+            method: diagnostic.method || '',
             params: {
               param1: diagnostic.param1,
               param2: diagnostic.param2,
@@ -232,10 +235,10 @@ export function ActionPlanModal({
       };
 
       await generateActionPlanPdf(pdfData);
-      router.push("/plans");
+      router.push('/plans');
     } catch (error) {
-      console.error("Failed to save plan or generate PDF:", error);
-      alert("Ошибка при сохранении плана. Попробуйте еще раз.");
+      console.error('Failed to save plan or generate PDF:', error);
+      alert('Ошибка при сохранении плана. Попробуйте еще раз.');
     } finally {
       setIsSaving(false);
     }
@@ -306,11 +309,11 @@ export function ActionPlanModal({
                     <Badge
                       variant="outline"
                       className={cn(
-                        "text-xs",
+                        'text-xs',
                         getHealthStyles(
                           actionPlanData.object_data
-                            .health_status as ObjectsHealthStatusOptions
-                        ).badgeClass
+                            .health_status as ObjectsHealthStatusOptions,
+                        ).badgeClass,
                       )}
                     >
                       {getHealthLabel(actionPlanData.object_data.health_status)}
@@ -334,9 +337,9 @@ export function ActionPlanModal({
                       <div className="font-medium">
                         {diagnostic.date
                           ? new Date(diagnostic.date).toLocaleDateString(
-                              "ru-RU"
+                              'ru-RU',
                             )
-                          : "-"}
+                          : '-'}
                       </div>
                     </div>
                     <div>
@@ -344,7 +347,7 @@ export function ActionPlanModal({
                         Метод:
                       </span>
                       <div className="font-medium">
-                        {diagnostic.method || "-"}
+                        {diagnostic.method || '-'}
                       </div>
                     </div>
                     {diagnostic.ml_label && (
@@ -353,11 +356,11 @@ export function ActionPlanModal({
                           AI Анализ:
                         </span>
                         <div className="font-medium">
-                          {diagnostic.ml_label === "normal"
-                            ? "Норма"
-                            : diagnostic.ml_label === "medium"
-                            ? "Средний риск"
-                            : "Высокий риск"}
+                          {diagnostic.ml_label === 'normal'
+                            ? 'Норма'
+                            : diagnostic.ml_label === 'medium'
+                              ? 'Средний риск'
+                              : 'Высокий риск'}
                         </div>
                       </div>
                     )}
@@ -398,15 +401,15 @@ export function ActionPlanModal({
                         </span>
                         <div
                           className={cn(
-                            "font-medium",
+                            'font-medium',
                             diagnostic.defect_found
-                              ? "text-destructive"
-                              : "text-emerald-600"
+                              ? 'text-destructive'
+                              : 'text-emerald-600',
                           )}
                         >
                           {diagnostic.defect_found
-                            ? "Обнаружен дефект"
-                            : "Дефектов не обнаружено"}
+                            ? 'Обнаружен дефект'
+                            : 'Дефектов не обнаружено'}
                         </div>
                       </div>
                     )}
@@ -416,11 +419,11 @@ export function ActionPlanModal({
             </div>
             {PLAN_FIELDS.map((field) => {
               const value =
-                field.id === "action_plan"
-                  ? (actionPlanData.result?.action_plan || []).join("\n")
+                field.id === 'action_plan'
+                  ? (actionPlanData.result?.action_plan || []).join('\n')
                   : (actionPlanData.result?.[
                       field.id as keyof ActionPlanResult
-                    ] as string) || "";
+                    ] as string) || '';
 
               return (
                 <ActionPlanField
@@ -430,24 +433,32 @@ export function ActionPlanModal({
                   value={value}
                   minHeight={field.minHeight}
                   onChange={(updatedValue) =>
-                    setActionPlanData((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            result: {
-                              ...prev.result!,
-                              ...(field.id === "action_plan"
-                                ? {
-                                    action_plan: updatedValue
-                                      .split(/\n+/)
-                                      .map((line) => line.trim())
-                                      .filter((line) => line.length > 0),
-                                  }
-                                : { [field.id]: updatedValue }),
-                            },
-                          }
-                        : null
-                    )
+                    setActionPlanData((prev) => {
+                      if (!prev) return prev;
+
+                      const currentResult: ActionPlanResult = prev.result ?? {
+                        action_plan: [],
+                        problem_summary: '',
+                        required_resources: '',
+                        safety_requirements: '',
+                        expected_outcome: '',
+                      };
+
+                      return {
+                        ...prev,
+                        result: {
+                          ...currentResult,
+                          ...(field.id === 'action_plan'
+                            ? {
+                                action_plan: updatedValue
+                                  .split(/\n+/)
+                                  .map((line) => line.trim())
+                                  .filter((line) => line.length > 0),
+                              }
+                            : { [field.id]: updatedValue }),
+                        },
+                      };
+                    })
                   }
                 />
               );

@@ -1,4 +1,4 @@
-import type { AdvancedFilterState, FilterOptionId } from "@/store/filterStore";
+import type { AdvancedFilterState, FilterOptionId } from '@/store/filterStore';
 
 export interface Bounds {
   north: number;
@@ -24,15 +24,15 @@ export function buildObjectsFilter({
 
   if (bounds) {
     filters.push(
-      `lat >= ${bounds.south} && lat <= ${bounds.north} && lon >= ${bounds.west} && lon <= ${bounds.east}`
+      `lat >= ${bounds.south} && lat <= ${bounds.north} && lon >= ${bounds.west} && lon <= ${bounds.east}`,
     );
   }
 
-  if (activeFilters.includes("critical")) {
+  if (activeFilters.includes('critical')) {
     filters.push(`health_status = "CRITICAL"`);
   }
 
-  if (activeFilters.includes("defective")) {
+  if (activeFilters.includes('defective')) {
     filters.push(`has_defects = true`);
   }
 
@@ -66,6 +66,5 @@ export function buildObjectsFilter({
     filters.push(`name ~ "${searchQuery}"`);
   }
 
-  return filters.length > 0 ? filters.join(" && ") : undefined;
+  return filters.length > 0 ? filters.join(' && ') : undefined;
 }
-
