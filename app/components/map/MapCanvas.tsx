@@ -1,27 +1,27 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import dynamic from "next/dynamic"
-import { useObjects } from "@/hooks/useObjects"
-import type { PipelineId } from "@/lib/generator-utils"
+import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+import { useObjects } from '@/hooks/useObjects'
+import type { PipelineId } from '@/lib/generator-utils'
 
 // Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
+  () => import('react-leaflet').then(mod => mod.MapContainer),
   { ssr: false }
 )
 const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
+  () => import('react-leaflet').then(mod => mod.TileLayer),
   { ssr: false }
 )
 
 // Dynamic imports for our layers
 const PipelinesLayer = dynamic(
-  () => import("./layers/PipelinesLayer").then((mod) => mod.PipelinesLayer),
+  () => import('./layers/PipelinesLayer').then(mod => mod.PipelinesLayer),
   { ssr: false }
 )
 const ObjectsLayer = dynamic(
-  () => import("./layers/ObjectsLayer").then((mod) => mod.ObjectsLayer),
+  () => import('./layers/ObjectsLayer').then(mod => mod.ObjectsLayer),
   { ssr: false }
 )
 
@@ -36,17 +36,19 @@ const KAZAKHSTAN_CENTER: [number, number] = [48.0, 67.0]
 const DEFAULT_ZOOM = 5
 
 // CartoDB Positron (Light) tile layer
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+const TILE_URL =
+  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+const TILE_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
 export function MapCanvas({
   onObjectSelect,
   activePipelineId,
-  height = "100%",
-  className = "",
+  height = '100%',
+  className = '',
 }: MapCanvasProps) {
   const [mounted, setMounted] = useState(false)
-  const { data: objectsData, isLoading } = useObjects({ perPage: 100 })
+  const { data: objectsData, isLoading } = useObjects({ perPage: 500 })
 
   useEffect(() => {
     setMounted(true)
@@ -58,7 +60,7 @@ export function MapCanvas({
         className={`bg-slate-100 animate-pulse rounded-lg flex items-center justify-center ${className}`}
         style={{ height }}
       >
-        <div className="text-slate-500 text-sm">Загрузка карты...</div>
+        <div className='text-slate-500 text-sm'>Загрузка карты...</div>
       </div>
     )
   }
@@ -70,54 +72,53 @@ export function MapCanvas({
       <MapContainer
         center={KAZAKHSTAN_CENTER}
         zoom={DEFAULT_ZOOM}
-        style={{ height: "100%", width: "100%", background: "#f8fafc", zIndex: 0 }}
+        style={{
+          height: '100%',
+          width: '100%',
+          background: '#f8fafc',
+          zIndex: 0,
+        }}
         scrollWheelZoom={true}
       >
-        <TileLayer
-          attribution={TILE_ATTRIBUTION}
-          url={TILE_URL}
-        />
-        
+        <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
+
         {/* Pipeline routes (bottom layer) */}
         <PipelinesLayer activePipelineId={activePipelineId} />
-        
+
         {/* Object markers (top layer) */}
         {!isLoading && (
-          <ObjectsLayer
-            items={objects}
-            onObjectSelect={onObjectSelect}
-          />
+          <ObjectsLayer items={objects} onObjectSelect={onObjectSelect} />
         )}
       </MapContainer>
-      
+
       {/* Loading overlay */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none z-[1000]">
-          <div className="bg-white text-slate-700 px-4 py-2 rounded-lg text-sm shadow-md border border-slate-200">
+        <div className='absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none z-[1000]'>
+          <div className='bg-white text-slate-700 px-4 py-2 rounded-lg text-sm shadow-md border border-slate-200'>
             Загрузка объектов...
           </div>
         </div>
       )}
-      
+
       {/* Legend */}
-      <div className="absolute bottom-6 left-4 z-[1000] rounded-md border border-slate-200 bg-white/95 p-3 backdrop-blur-sm shadow-sm">
-        <div className="space-y-2 text-xs">
-          <div className="text-slate-600 font-medium mb-2">Легенда</div>
-          <div className="flex items-center gap-2">
-            <div className="h-1.5 w-6 rounded-full bg-blue-500 opacity-70" />
-            <span className="text-slate-600">Трубопровод</span>
+      <div className='absolute bottom-6 left-4 z-[1000] rounded-md border border-slate-200 bg-white/95 p-3 backdrop-blur-sm shadow-sm'>
+        <div className='space-y-2 text-xs'>
+          <div className='text-slate-600 font-medium mb-2'>Легенда</div>
+          <div className='flex items-center gap-2'>
+            <div className='h-1.5 w-6 rounded-full bg-blue-500 opacity-70' />
+            <span className='text-slate-600'>Трубопровод</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[#ef4444]" />
-            <span className="text-slate-600">Критический</span>
+          <div className='flex items-center gap-2'>
+            <div className='h-3 w-3 rounded-full bg-[#ef4444]' />
+            <span className='text-slate-600'>Критический</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[#f97316]" />
-            <span className="text-slate-600">Предупреждение</span>
+          <div className='flex items-center gap-2'>
+            <div className='h-3 w-3 rounded-full bg-[#f97316]' />
+            <span className='text-slate-600'>Предупреждение</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="h-3 w-3 rounded-full bg-[#10b981]" />
-            <span className="text-slate-600">Норма</span>
+          <div className='flex items-center gap-2'>
+            <div className='h-3 w-3 rounded-full bg-[#10b981]' />
+            <span className='text-slate-600'>Норма</span>
           </div>
         </div>
       </div>

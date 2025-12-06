@@ -19,8 +19,6 @@ export function Header() {
 
         <DataImporter />
       </div>
-
-      {/* Filter Bar */}
       <FilterBar />
     </header>
   )
