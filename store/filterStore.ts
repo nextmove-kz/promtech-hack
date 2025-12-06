@@ -3,6 +3,10 @@ export type FilterOptionId = 'defective' | 'critical' | 'recent'
 
 export interface FilterState {
   activeFilters: FilterOptionId[]
+  searchQuery: string
 }
 
-export const filterAtom = atom<FilterState>({ activeFilters: [] })
+export const filterAtom = atom<FilterState>({
+  activeFilters: [],
+  searchQuery: ''
+})
