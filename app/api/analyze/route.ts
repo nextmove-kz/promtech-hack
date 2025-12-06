@@ -51,10 +51,16 @@ RECOMMENDED ACTIONS:
 - "Произвести замену участка" (Replace section) - for severe metal loss
 - "Выполнить очистку и переизоляцию" (Clean and re-insulate) - for external corrosion`;
 
+const PARAMETER_CONTEXT = `PARAMETER CONTEXT:
+- If method is "VIBRO": param1 = Vibration Velocity (mm/s, critical if > 7.1), param2 = Vibration Acceleration (m/s²), param3 = Frequency (Hz) or bearing temperature.
+- If method is "MFL" or "UTWM": param1 = Corrosion Depth (mm or % metal loss; higher is worse), param2 = Remaining Wall Thickness (mm; lower is worse), param3 = Defect length (mm).
+- If method is "VIK": param1 = Length (mm), param2 = Width (mm), param3 = Depth (mm if measured).`;
+
 // System instruction for single object analysis
 const SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer with 20+ years of experience. Analyze the provided diagnostic history for a pipeline object and assess its health status.
 
 ${ANALYSIS_RULES}
+${PARAMETER_CONTEXT}
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object with this exact structure:
@@ -70,6 +76,7 @@ Return ONLY a valid JSON object with this exact structure:
 const BATCH_SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer with 20+ years of experience. You will analyze MULTIPLE pipeline objects in a single batch. Analyze each object's diagnostic history independently and assess their health status.
 
 ${ANALYSIS_RULES}
+${PARAMETER_CONTEXT}
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON array where each element corresponds to an object in the input (same order).
@@ -96,6 +103,40 @@ const getLatestDiagnosticTimestamp = (diagnostics: DiagnosticsResponse[]): numbe
     ).getTime();
     return Number.isFinite(ts) ? Math.max(latest, ts) : latest;
   }, 0);
+};
+
+const formatParam = (value?: number | string | null): string =>
+  value === undefined || value === null ? "n/a" : `${value}`;
+
+const buildParamContext = (
+  method?: string,
+  p1?: number | string | null,
+  p2?: number | string | null,
+  p3?: number | string | null
+): string => {
+  switch (method) {
+    case "VIBRO":
+      return `VIBRO params -> vibration velocity=${formatParam(
+        p1
+      )} mm/s (critical if >7.1), acceleration=${formatParam(
+        p2
+      )} m/s², frequency/temperature=${formatParam(p3)}.`;
+    case "MFL":
+    case "UTWM":
+      return `MFL/UTWM params -> corrosion depth=${formatParam(
+        p1
+      )} mm (or % metal loss), remaining wall=${formatParam(
+        p2
+      )} mm, defect length=${formatParam(p3)} mm.`;
+    case "VIK":
+      return `VIK params -> size LxW=${formatParam(p1)}x${formatParam(
+        p2
+      )} mm, depth=${formatParam(p3)} mm (if available).`;
+    default:
+      return `Params -> param1=${formatParam(p1)}, param2=${formatParam(
+        p2
+      )}, param3=${formatParam(p3)}.`;
+  }
 };
 
 export interface AnalysisRequest {
@@ -202,6 +243,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         param1: d.param1,
         param2: d.param2,
         param3: d.param3,
+        param_context: buildParamContext(d.method, d.param1, d.param2, d.param3),
         temperature: d.temperature,
         humidity: d.humidity,
         illumination: d.illumination,
@@ -216,7 +258,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           role: "user",
           parts: [
             {
-              text: `Analyze this pipeline object diagnostic data and provide a health assessment:\n\n${JSON.stringify(analysisData, null, 2)}`,
+              text: `Context for parameters (method-specific meaning):\n${PARAMETER_CONTEXT}\n\nAnalyze this pipeline object diagnostic data and provide a health assessment. Use the param_context fields to understand numeric values.\n\n${JSON.stringify(
+                analysisData,
+                null,
+                2
+              )}`,
             },
           ],
         },
@@ -406,6 +452,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         param1: d.param1,
         param2: d.param2,
         param3: d.param3,
+        param_context: buildParamContext(d.method, d.param1, d.param2, d.param3),
         updated: (d as { updated?: string }).updated,
         created: (d as { created?: string }).created,
       })),
@@ -452,7 +499,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
             role: "user",
             parts: [
               {
-                text: `Analyze these ${objectsToAnalyze.length} pipeline objects and provide health assessments for each:\n\n${JSON.stringify(
+              text: `Context for parameters (method-specific meaning):\n${PARAMETER_CONTEXT}\n\nAnalyze these ${objectsToAnalyze.length} pipeline objects and provide health assessments for each. Use the param_context fields to interpret param1-3.\n\n${JSON.stringify(
                   objectsToAnalyze.map(({ object, diagnostics }) => ({
                     object: {
                       id: object.id,
