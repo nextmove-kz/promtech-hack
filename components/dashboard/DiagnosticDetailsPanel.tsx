@@ -16,8 +16,8 @@ import { cn } from '@/lib/utils'
 import { useDiagnostic } from '@/hooks/useDiagnostic'
 import type { DiagnosticsMlLabelOptions } from '@/app/api/api_types'
 
-interface DefectDetailsPanelProps {
-  defectId: string | null
+interface DiagnosticDetailsPanelProps {
+  objectId: string | null
   onClose: () => void
 }
 
@@ -54,13 +54,13 @@ const severityConfig = {
   low: { label: 'Низкий', variant: 'outline' as const, color: 'text-risk-low' },
 }
 
-export function DefectDetailsPanel({
-  defectId,
+export function DiagnosticDetailsPanel({
+  objectId,
   onClose,
-}: DefectDetailsPanelProps) {
-  const { data: diagnostic, isLoading, error } = useDiagnostic(defectId)
+}: DiagnosticDetailsPanelProps) {
+  const { data: diagnostic, isLoading, error } = useDiagnostic(objectId)
 
-  if (!defectId) return null
+  if (!objectId) return null
 
   if (isLoading) {
     return (
@@ -86,7 +86,7 @@ export function DefectDetailsPanel({
 
   const severityKey = mapMlLabelToSeverity(diagnostic.ml_label)
   const severity = severityConfig[severityKey]
-  const hasDefect = diagnostic.defect_found ?? false
+  const hasDiagnosticIssue = diagnostic.defect_found ?? false
   const corrosionDepth = diagnostic.param1 ?? 0
 
   return (
@@ -124,14 +124,14 @@ export function DefectDetailsPanel({
         {/* Content */}
         <div className='flex-1 overflow-auto p-4'>
           <div className='space-y-6'>
-            {/* Defect Name & Description */}
+            {/* Diagnostic Name & Description */}
             <div>
               <h3 className='text-lg font-medium text-foreground'>
                 {diagnostic.method || 'Диагностика'}
               </h3>
               <p className='mt-1 text-sm text-muted-foreground'>
                 {diagnostic.defect_description ||
-                  (hasDefect ? 'Обнаружен дефект' : 'Дефекты не обнаружены')}
+                  (hasDiagnosticIssue ? 'Обнаружен дефект' : 'Дефекты не обнаружены')}
               </p>
             </div>
 
@@ -229,10 +229,10 @@ export function DefectDetailsPanel({
                     Дефект обнаружен
                   </span>
                   <Badge
-                    variant={hasDefect ? 'destructive' : 'outline'}
+                    variant={hasDiagnosticIssue ? 'destructive' : 'outline'}
                     className='text-xs'
                   >
-                    {hasDefect ? 'Да' : 'Нет'}
+                    {hasDiagnosticIssue ? 'Да' : 'Нет'}
                   </Badge>
                 </div>
               )}

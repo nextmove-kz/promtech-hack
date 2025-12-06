@@ -6,22 +6,22 @@ import { useState } from "react";
 const filterPills = [
   { label: "Дефекты > 30%", active: true },
   { label: "Только критические", active: false },
-  { label: "Последние сканирования", active: true },
+  { label: "Последние диагностики", active: true },
   { label: "Высокое давление", active: false },
 ];
 
-const defectPoints = [
-  { id: "DEF-001", x: 400, y: 180, severity: "critical" },
-  { id: "DEF-002", x: 600, y: 280, severity: "medium" },
-  { id: "DEF-003", x: 300, y: 200, severity: "low" },
-  { id: "DEF-004", x: 750, y: 220, severity: "medium" },
+const diagnosticPoints = [
+  { id: "DIAG-001", x: 400, y: 180, severity: "critical" },
+  { id: "DIAG-002", x: 600, y: 280, severity: "medium" },
+  { id: "DIAG-003", x: 300, y: 200, severity: "low" },
+  { id: "DIAG-004", x: 750, y: 220, severity: "medium" },
 ];
 
 interface MapPlaceholderProps {
-  onDefectSelect?: (defectId: string) => void;
+  onObjectSelect?: (objectId: string) => void;
 }
 
-export function MapPlaceholder({ onDefectSelect }: MapPlaceholderProps) {
+export function MapPlaceholder({ onObjectSelect }: MapPlaceholderProps) {
   const [activeFilters, setActiveFilters] = useState(
     filterPills.map((p) => p.active)
   );
@@ -114,12 +114,12 @@ export function MapPlaceholder({ onDefectSelect }: MapPlaceholderProps) {
           className="opacity-30"
         />
 
-        {/* Defect Points (clickable) */}
-        {defectPoints.map((point) => (
+        {/* Diagnostic Points (clickable) */}
+        {diagnosticPoints.map((point) => (
           <g
             key={point.id}
             className="cursor-pointer"
-            onClick={() => onDefectSelect?.(point.id)}
+            onClick={() => onObjectSelect?.(point.id)}
           >
             {point.severity === "critical" && (
               <circle

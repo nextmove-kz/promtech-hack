@@ -1,13 +1,21 @@
 import clientPocketBase from './client_pb'
-import type { DiagnosticsResponse } from './api_types'
+import type { DiagnosticsResponse, ObjectsResponse, PipelinesResponse } from './api_types'
+
+export type DiagnosticWithObject = DiagnosticsResponse<{
+  object?: ObjectsResponse<{
+    pipeline?: PipelinesResponse
+  }>
+}>
 
 export async function getDiagnosticByObjectId(
   objectId: string
-): Promise<DiagnosticsResponse | null> {
+): Promise<DiagnosticWithObject | null> {
   try {
     const record = await clientPocketBase
       .collection('diagnostics')
-      .getFirstListItem<DiagnosticsResponse>(`object="${objectId}"`)
+      .getFirstListItem<DiagnosticWithObject>(`object="${objectId}"`, {
+        expand: 'object,object.pipeline'
+      })
     return record
   } catch {
     return null

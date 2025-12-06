@@ -10,10 +10,10 @@ type ViewMode = "map" | "table";
 
 const Index = () => {
   const [viewMode, setViewMode] = useState<ViewMode>("map");
-  const [selectedDefect, setSelectedDefect] = useState<string | null>(null);
+  const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
 
-  const handleDefectSelect = (defectId: string) => setSelectedDefect(defectId);
-  const handleClosePanel = () => setSelectedDefect(null);
+  const handleObjectSelect = (objectId: string) => setSelectedObjectId(objectId);
+  const handleClosePanel = () => setSelectedObjectId(null);
   const handleExpandTable = () => setViewMode("table");
   const handleBackToMap = () => setViewMode("map");
 
@@ -23,17 +23,17 @@ const Index = () => {
       <main className="flex h-full overflow-hidden pt-[120px]">
         <div className="flex min-w-0 flex-1">
           {viewMode === "map" ? (
-            <MapView onDefectSelect={handleDefectSelect} />
+            <MapView onObjectSelect={handleObjectSelect} />
           ) : (
             <TableView
-              onDefectSelect={handleDefectSelect}
+              onObjectSelect={handleObjectSelect}
               onBackToMap={handleBackToMap}
             />
           )}
           <Sidebar
-            selectedDefect={selectedDefect}
+            selectedObjectId={selectedObjectId}
             viewMode={viewMode}
-            onDefectSelect={handleDefectSelect}
+            onObjectSelect={handleObjectSelect}
             onClosePanel={handleClosePanel}
             onExpandTable={handleExpandTable}
           />

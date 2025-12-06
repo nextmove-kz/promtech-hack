@@ -17,7 +17,7 @@ import { useObjects } from '@/hooks/useObjects'
 import { Pagination } from '@/components/ui/pagination'
 
 interface RecentScansTableProps {
-  onRowClick?: (defectId: string) => void
+  onRowClick?: (objectId: string) => void
 }
 
 export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
@@ -55,7 +55,7 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
         <CardTitle className='flex items-center justify-between'>
           <span className='flex items-center gap-2 text-sm font-medium text-muted-foreground'>
             <Activity className='h-4 w-4' />
-            Последние сканирования
+            Объекты
           </span>
           <Button variant='ghost' size='sm' className='text-xs'>
             Показать все
@@ -90,11 +90,11 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
                 className='cursor-pointer border-border/50 transition-colors hover:bg-secondary/50'
               >
                 <TableCell className='text-sm font-medium'>
-                  {object.name || '-'}
+                  {object.object_name || '-'}
                 </TableCell>
                 <TableCell>
                   <Badge variant='outline' className='text-xs'>
-                    {object.type || '-'}
+                    {object.object_type || '-'}
                   </Badge>
                 </TableCell>
                 <TableCell className='text-sm text-muted-foreground'>

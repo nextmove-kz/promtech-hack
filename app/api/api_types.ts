@@ -145,16 +145,28 @@ export enum ObjectsTypeOptions {
 	"compressor" = "compressor",
 	"pipeline_section" = "pipeline_section",
 }
+
+export enum ObjectsHealthStatusOptions {
+	"OK" = "OK",
+	"WARNING" = "WARNING",
+	"CRITICAL" = "CRITICAL",
+}
 export type ObjectsRecord = {
+	ai_summary?: string
+	conflict_detected?: boolean
 	created: IsoAutoDateString
+	health_status?: ObjectsHealthStatusOptions
 	id: string
+	last_analysis_at?: IsoAutoDateString
 	lat?: number
 	lon?: number
 	material?: string
 	name?: string
 	pipeline?: RecordIdString
+	recommended_action?: string
 	type?: ObjectsTypeOptions
 	updated: IsoAutoDateString
+	urgency_score?: number
 	year?: number
 }
 

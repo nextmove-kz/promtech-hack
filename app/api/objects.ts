@@ -1,17 +1,21 @@
 import clientPocketBase from './client_pb'
-import type { ObjectsResponse } from './api_types'
+import type { ObjectsResponse, PipelinesResponse } from './api_types'
 
 export interface GetObjectsParams {
   page?: number
   perPage?: number
 }
 
+export type ObjectWithPipeline = ObjectsResponse<{
+  pipeline?: PipelinesResponse
+}>
+
 export interface GetObjectsResult {
   page: number
   perPage: number
   totalItems: number
   totalPages: number
-  items: ObjectsResponse[]
+  items: ObjectWithPipeline[]
 }
 
 export async function getObjects(
@@ -22,7 +26,9 @@ export async function getObjects(
 
   const result = await clientPocketBase
     .collection('objects')
-    .getList<ObjectsResponse>(page, perPage)
+    .getList<ObjectWithPipeline>(page, perPage, {
+      expand: 'pipeline',
+    })
 
   return {
     page: result.page,
