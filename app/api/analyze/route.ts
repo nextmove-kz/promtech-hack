@@ -91,6 +91,13 @@ const SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer with 20
 ${ANALYSIS_RULES}
 ${PARAMETER_CONTEXT}
 
+CRITICAL RULE - CONSISTENCY REQUIRED:
+The health_status MUST match the urgency_score range:
+- urgency_score 0-25 → health_status MUST be "OK"
+- urgency_score 26-65 → health_status MUST be "WARNING"
+- urgency_score 66-100 → health_status MUST be "CRITICAL"
+NEVER return a high score (66+) with "WARNING" or "OK" status. They must be consistent.
+
 OUTPUT FORMAT:
 Return ONLY a valid JSON object with this exact structure:
 {
@@ -105,6 +112,13 @@ const BATCH_SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer w
 
 ${ANALYSIS_RULES}
 ${PARAMETER_CONTEXT}
+
+CRITICAL RULE - CONSISTENCY REQUIRED:
+The health_status MUST match the urgency_score range:
+- urgency_score 0-25 → health_status MUST be "OK"
+- urgency_score 26-65 → health_status MUST be "WARNING"
+- urgency_score 66-100 → health_status MUST be "CRITICAL"
+NEVER return a high score (66+) with "WARNING" or "OK" status. They must be consistent.
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON array where each element corresponds to an object in the input (same order).
@@ -358,17 +372,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         throw new Error("Invalid response structure");
       }
 
-      // Ensure health_status is valid
-      const validStatuses = ["OK", "WARNING", "CRITICAL"];
-      if (!validStatuses.includes(aiResult.health_status)) {
-        aiResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
-      }
-
       // Clamp urgency_score to 0-100
       aiResult.urgency_score = Math.max(
         0,
         Math.min(100, Math.round(aiResult.urgency_score))
       );
+
+      // Enforce consistency between health_status and urgency_score
+      // Score determines status, not the other way around
+      if (aiResult.urgency_score <= 25) {
+        aiResult.health_status = "OK" as ObjectsHealthStatusOptions;
+      } else if (aiResult.urgency_score <= 65) {
+        aiResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
+      } else {
+        aiResult.health_status = "CRITICAL" as ObjectsHealthStatusOptions;
+      }
     } catch (parseError) {
       console.error("Failed to parse AI response:", aiText, parseError);
       throw new Error("Failed to parse AI response");
@@ -597,15 +615,22 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       // Process each result
       for (const rawResult of batchResults) {
         const resultFromAi = { ...rawResult };
-        // Validate and sanitize
-        const validStatuses = ["OK", "WARNING", "CRITICAL"];
-        if (!validStatuses.includes(resultFromAi.health_status)) {
-          resultFromAi.health_status = "WARNING" as ObjectsHealthStatusOptions;
-        }
+        
+        // Clamp urgency_score to 0-100
         resultFromAi.urgency_score = Math.max(
           0,
           Math.min(100, Math.round(resultFromAi.urgency_score))
         );
+
+        // Enforce consistency between health_status and urgency_score
+        // Score determines status, not the other way around
+        if (resultFromAi.urgency_score <= 25) {
+          resultFromAi.health_status = "OK" as ObjectsHealthStatusOptions;
+        } else if (resultFromAi.urgency_score <= 65) {
+          resultFromAi.health_status = "WARNING" as ObjectsHealthStatusOptions;
+        } else {
+          resultFromAi.health_status = "CRITICAL" as ObjectsHealthStatusOptions;
+        }
 
         const diagList = diagnosticsMap.get(resultFromAi.object_id) || [];
         const latestDiagnostic = getLatestDiagnostic(diagList);
