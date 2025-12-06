@@ -4,6 +4,7 @@ import type { ObjectsResponse, PipelinesResponse } from './api_types'
 export interface GetObjectsParams {
   page?: number
   perPage?: number
+  filter?: string
 }
 
 export type ObjectWithPipeline = ObjectsResponse<{
@@ -23,11 +24,13 @@ export async function getObjects(
 ): Promise<GetObjectsResult> {
   const page = params.page ?? 1
   const perPage = params.perPage ?? 20
+  const filter = params.filter
 
   const result = await clientPocketBase
     .collection('objects')
     .getList<ObjectWithPipeline>(page, perPage, {
       expand: 'pipeline',
+      filter,
     })
 
   return {
