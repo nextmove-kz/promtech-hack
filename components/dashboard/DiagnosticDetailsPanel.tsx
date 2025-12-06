@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Progress } from '@/components/ui/progress'
+import { useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import {
   Accordion,
   AccordionContent,
@@ -17,48 +17,48 @@ import {
   Calendar,
   Loader2,
   ClipboardList,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
-import { useDiagnostic } from '@/hooks/useDiagnostic'
-import { ActionPlanModal } from './ActionPlanModal'
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useDiagnostic } from "@/hooks/useDiagnostic";
+import { ActionPlanModal } from "./ActionPlanModal";
 
 interface DiagnosticDetailsPanelProps {
-  objectId: string | null
-  onClose: () => void
+  objectId: string | null;
+  onClose: () => void;
 }
 
 const healthStatusConfig = {
   OK: {
-    label: 'Норма',
-    variant: 'outline' as const,
-    iconColor: 'text-emerald-600',
-    iconBg: 'bg-emerald-100',
+    label: "Норма",
+    variant: "outline" as const,
+    iconColor: "text-emerald-600",
+    iconBg: "bg-emerald-100",
   },
   WARNING: {
-    label: 'Предупреждение',
-    variant: 'secondary' as const,
-    iconColor: 'text-amber-600',
-    iconBg: 'bg-amber-100',
+    label: "Предупреждение",
+    variant: "secondary" as const,
+    iconColor: "text-amber-600",
+    iconBg: "bg-amber-100",
   },
   CRITICAL: {
-    label: 'Критический',
-    variant: 'destructive' as const,
-    iconColor: 'text-red-600',
-    iconBg: 'bg-red-100',
+    label: "Критический",
+    variant: "destructive" as const,
+    iconColor: "text-red-600",
+    iconBg: "bg-red-100",
   },
   UNKNOWN: {
-    label: 'Неизвестно',
-    variant: 'outline' as const,
-    iconColor: 'text-gray-600',
-    iconBg: 'bg-gray-100',
+    label: "Неизвестно",
+    variant: "outline" as const,
+    iconColor: "text-gray-600",
+    iconBg: "bg-gray-100",
   },
-}
+};
 
 const objectTypeLabels: Record<string, string> = {
-  crane: 'Кран',
-  compressor: 'Компрессор',
-  pipeline_section: 'Участок трубопровода',
-}
+  crane: "Кран",
+  compressor: "Компрессор",
+  pipeline_section: "Участок трубопровода",
+};
 
 const renderParams = (
   method?: string,
@@ -67,21 +67,21 @@ const renderParams = (
   p3?: number | string
 ) => {
   const hasValue = (v?: number | string | null) => {
-    if (v === undefined || v === null) return false
-    if (typeof v === 'number') return v !== 0 && !Number.isNaN(v)
-    if (typeof v === 'string') return v.trim() !== '' && v.trim() !== '0'
-    return true
-  }
+    if (v === undefined || v === null) return false;
+    if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
+    if (typeof v === "string") return v.trim() !== "" && v.trim() !== "0";
+    return true;
+  };
 
-  const v1 = hasValue(p1)
-  const v2 = hasValue(p2)
-  const v3 = hasValue(p3)
-  const hasAny = v1 || v2 || v3
+  const v1 = hasValue(p1);
+  const v2 = hasValue(p2);
+  const v3 = hasValue(p3);
+  const hasAny = v1 || v2 || v3;
 
-  if (!hasAny) return null
+  if (!hasAny) return null;
 
   switch (method) {
-    case 'VIBRO':
+    case "VIBRO":
       return (
         <>
           {v1 && (
@@ -92,23 +92,23 @@ const renderParams = (
           {v2 && <div>Ускорение: {p2} м/с²</div>}
           {v3 && <div>Частота/Температура: {p3}</div>}
         </>
-      )
-    case 'MFL':
-    case 'UTWM':
+      );
+    case "MFL":
+    case "UTWM":
       return (
         <>
           {v1 && (
             <div>
-              Глубина коррозии: <b className='text-red-500'>{p1} мм</b>
+              Глубина коррозии: <b className="text-red-500">{p1} мм</b>
             </div>
           )}
           {v2 && <div>Остаток стенки: {p2} мм</div>}
           {v3 && <div>Длина дефекта: {p3} мм</div>}
         </>
-      )
-    case 'TVK':
+      );
+    case "TVK":
       // TVK параметры без названий не показываем
-      return null
+      return null;
     default:
       if (v1 && v2) {
         return (
@@ -117,92 +117,92 @@ const renderParams = (
               Размеры (ДхШ): {p1} x {p2} мм
             </div>
           </>
-        )
+        );
       }
 
-      return null
+      return null;
   }
-}
+};
 
 export function DiagnosticDetailsPanel({
   objectId,
   onClose,
 }: DiagnosticDetailsPanelProps) {
-  const { data: diagnostics, isLoading, error } = useDiagnostic(objectId)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const { data: diagnostics, isLoading, error } = useDiagnostic(objectId);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  if (!objectId) return null
+  if (!objectId) return null;
 
   if (isLoading) {
     return (
-      <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
-        <div className='flex h-full items-center justify-center'>
-          <Loader2 className='h-6 w-6 animate-spin text-muted-foreground' />
+      <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
+        <div className="flex h-full items-center justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </div>
-    )
+    );
   }
 
   if (error || !diagnostics || diagnostics.length === 0) {
     return (
-      <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
-        <div className='flex h-full items-center justify-center p-4'>
-          <div className='text-center text-sm text-destructive'>
+      <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
+        <div className="flex h-full items-center justify-center p-4">
+          <div className="text-center text-sm text-destructive">
             {diagnostics?.length === 0
-              ? 'Диагностики не найдены'
-              : 'Ошибка загрузки данных диагностики'}
+              ? "Диагностики не найдены"
+              : "Ошибка загрузки данных диагностики"}
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // Extract expanded object and pipeline data from first diagnostic (all have same object)
-  const firstDiagnostic = diagnostics[0]
-  const object = firstDiagnostic.expand?.object
-  const pipeline = object?.expand?.pipeline
-  const objectType = object?.type
-  const objectName = object?.name
-  const pipelineName = pipeline?.name
-  const healthStatus = object?.health_status
-  const urgencyScore = object?.urgency_score
-  const aiSummary = object?.ai_summary
+  const firstDiagnostic = diagnostics[0];
+  const object = firstDiagnostic.expand?.object;
+  const pipeline = object?.expand?.pipeline;
+  const objectType = object?.type;
+  const objectName = object?.name;
+  const pipelineName = pipeline?.name;
+  const healthStatus = object?.health_status;
+  const urgencyScore = object?.urgency_score;
+  const aiSummary = object?.ai_summary;
 
   const statusKey = (healthStatus ??
-    'UNKNOWN') as keyof typeof healthStatusConfig
+    "UNKNOWN") as keyof typeof healthStatusConfig;
   const statusConfig =
-    healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN
+    healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN;
 
   return (
-    <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
-      <div className='flex h-full flex-col'>
-        <div className='border-b border-border p-3'>
+    <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
+      <div className="flex h-full flex-col">
+        <div className="border-b border-border p-3">
           <Button
-            variant='ghost'
-            size='sm'
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className='mb-2 gap-1.5 -ml-2 text-muted-foreground cursor-pointer hover:text-foreground'
+            className="mb-2 gap-1.5 -ml-2 text-muted-foreground cursor-pointer hover:text-foreground"
           >
-            <ArrowLeft className='h-4 w-4' />
+            <ArrowLeft className="h-4 w-4" />
             Назад к списку
           </Button>
-          <div className='flex items-start gap-2.5'>
-            <div className={cn('rounded p-1.5 mt-0.5', statusConfig.iconBg)}>
+          <div className="flex items-start gap-2.5">
+            <div className={cn("rounded p-1.5 mt-0.5", statusConfig.iconBg)}>
               <AlertTriangle
-                className={cn('h-4 w-4', statusConfig.iconColor)}
+                className={cn("h-4 w-4", statusConfig.iconColor)}
               />
             </div>
-            <div className='flex-1 min-w-0'>
-              <div className='flex items-center gap-2'>
-                <h2 className='font-semibold text-xl text-foreground truncate'>
-                  {objectName || 'Объект без имени'}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h2 className="font-semibold text-xl text-foreground truncate">
+                  {objectName || "Объект без имени"}
                 </h2>
               </div>
-              <div className='mt-1 text-xs text-muted-foreground/70'>
+              <div className="mt-1 text-xs text-muted-foreground/70">
                 ID: {object?.id || firstDiagnostic.id}
               </div>
               {(objectType || pipelineName) && (
-                <div className='mt-1.5 space-y-0.5 text-xs text-muted-foreground'>
+                <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
                   {objectType && (
                     <div>{objectTypeLabels[objectType] || objectType}</div>
                   )}
@@ -213,45 +213,45 @@ export function DiagnosticDetailsPanel({
           </div>
         </div>
 
-        <div className='flex-1 overflow-auto p-4'>
-          <div className='space-y-6'>
+        <div className="flex-1 overflow-auto p-4">
+          <div className="space-y-6">
             {(urgencyScore !== undefined || aiSummary) && (
-              <div className='space-y-4'>
+              <div className="space-y-4">
                 <div>
-                  <h3 className='text-sm font-medium text-foreground mb-3'>
+                  <h3 className="text-sm font-medium text-foreground mb-3">
                     AI-анализ
                   </h3>
-                  <div className='space-y-3'>
+                  <div className="space-y-3">
                     {urgencyScore !== undefined && (
                       <div>
-                        <div className='text-xs text-muted-foreground mb-2'>
+                        <div className="text-xs text-muted-foreground mb-2">
                           Оценка срочности
                         </div>
-                        <div className='flex items-end gap-2'>
+                        <div className="flex items-end gap-2">
                           <span
                             className={cn(
-                              'text-2xl font-bold tabular-nums',
+                              "text-2xl font-bold tabular-nums",
                               statusConfig.iconColor
                             )}
                           >
                             {urgencyScore}
                           </span>
-                          <span className='text-muted-foreground text-sm mb-0.5'>
+                          <span className="text-muted-foreground text-sm mb-0.5">
                             /100
                           </span>
                         </div>
-                        <Progress value={urgencyScore} className='mt-2 h-1.5' />
+                        <Progress value={urgencyScore} className="mt-2 h-1.5" />
                       </div>
                     )}
                     {aiSummary && (
                       <div
                         className={
                           urgencyScore !== undefined
-                            ? 'pt-3 border-t border-border/50'
-                            : ''
+                            ? "pt-3 border-t border-border/50"
+                            : ""
                         }
                       >
-                        <p className='text-sm text-foreground leading-relaxed'>
+                        <p className="text-sm text-foreground leading-relaxed">
                           {aiSummary}
                         </p>
                       </div>
@@ -263,107 +263,111 @@ export function DiagnosticDetailsPanel({
 
             <Separator />
             {/* Diagnostic History Accordion */}
-            <h3 className='text-sm font-medium text-foreground mb-5'>
+            <h3 className="text-sm font-medium text-foreground mb-5">
               История диагностик
             </h3>
-            <Accordion
-              type='single'
-              collapsible
-              className='w-full'
-            >
+            <Accordion type="single" collapsible className="w-full">
               {diagnostics.map((diagnostic) => {
-                const hasDiagnosticIssue = diagnostic.defect_found ?? false
+                const hasDiagnosticIssue = diagnostic.defect_found ?? false;
                 const diagnosticDate = diagnostic.date
-                  ? new Date(diagnostic.date).toLocaleDateString('ru-RU')
-                  : '-'
+                  ? new Date(diagnostic.date).toLocaleDateString("ru-RU")
+                  : "-";
 
                 return (
                   <AccordionItem key={diagnostic.id} value={diagnostic.id}>
-                    <AccordionTrigger className='hover:no-underline'>
-                      <div className='flex items-center gap-3 flex-1 text-left'>
-                        <div className='flex items-center gap-1.5 text-muted-foreground min-w-0'>
-                          <Calendar className='h-3.5 w-3.5 shrink-0' />
-                          <span className='text-xs truncate'>{diagnosticDate}</span>
+                    <AccordionTrigger className="hover:no-underline">
+                      <div className="flex items-center gap-3 flex-1 text-left">
+                        <div className="flex items-center gap-1.5 text-muted-foreground min-w-0">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          <span className="text-xs truncate">
+                            {diagnosticDate}
+                          </span>
                         </div>
-                        <span className='text-xs text-muted-foreground'>
-                          {diagnostic.method || '-'}
+                        <span className="text-xs text-muted-foreground">
+                          {diagnostic.method || "-"}
                         </span>
                         <Badge
-                          variant={hasDiagnosticIssue ? 'destructive' : 'outline'}
-                          className='text-xs shrink-0'
+                          variant={
+                            hasDiagnosticIssue ? "destructive" : "outline"
+                          }
+                          className="text-xs shrink-0"
                         >
-                          {hasDiagnosticIssue ? 'Дефект' : 'Норма'}
+                          {hasDiagnosticIssue ? "Дефект" : "Норма"}
                         </Badge>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent>
-                      <div className='space-y-4 pt-2'>
-                        <div className='grid grid-cols-2 gap-4'>
-                          <div className='space-y-1'>
-                            <div className='flex items-center gap-1.5 text-muted-foreground'>
-                              <Calendar className='h-3.5 w-3.5' />
-                              <span className='text-xs'>Дата диагностики</span>
+                      <div className="space-y-4 pt-2">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 text-muted-foreground">
+                              <Calendar className="h-3.5 w-3.5" />
+                              <span className="text-xs">Дата диагностики</span>
                             </div>
-                            <p className='font-medium text-foreground'>
+                            <p className="font-medium text-foreground">
                               {diagnosticDate}
                             </p>
                           </div>
-                          <div className='space-y-1'>
-                            <span className='text-xs text-muted-foreground'>Метод</span>
-                            <p className='font-medium text-foreground'>
-                              {diagnostic.method || '-'}
+                          <div className="space-y-1">
+                            <span className="text-xs text-muted-foreground">
+                              Метод
+                            </span>
+                            <p className="font-medium text-foreground">
+                              {diagnostic.method || "-"}
                             </p>
                           </div>
                           {diagnostic.temperature !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
                                 Температура
                               </span>
-                              <p className='font-medium text-foreground'>
+                              <p className="font-medium text-foreground">
                                 {diagnostic.temperature}°C
                               </p>
                             </div>
                           )}
                           {diagnostic.humidity !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
                                 Влажность
                               </span>
-                              <p className='font-medium text-foreground'>
+                              <p className="font-medium text-foreground">
                                 {diagnostic.humidity}%
                               </p>
                             </div>
                           )}
                           {diagnostic.illumination !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
                                 Освещенность
                               </span>
-                              <p className='font-medium text-foreground'>
+                              <p className="font-medium text-foreground">
                                 {diagnostic.illumination}
                               </p>
                             </div>
                           )}
                           {diagnostic.quality_grade && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
                                 Оценка качества
                               </span>
-                              <p className='font-medium text-foreground'>
+                              <p className="font-medium text-foreground">
                                 {diagnostic.quality_grade}
                               </p>
                             </div>
                           )}
                           {diagnostic.defect_found !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
+                            <div className="space-y-1">
+                              <span className="text-xs text-muted-foreground">
                                 Дефект обнаружен
                               </span>
                               <Badge
-                                variant={hasDiagnosticIssue ? 'destructive' : 'outline'}
-                                className='text-xs'
+                                variant={
+                                  hasDiagnosticIssue ? "destructive" : "outline"
+                                }
+                                className="text-xs"
                               >
-                                {hasDiagnosticIssue ? 'Да' : 'Нет'}
+                                {hasDiagnosticIssue ? "Да" : "Нет"}
                               </Badge>
                             </div>
                           )}
@@ -375,32 +379,32 @@ export function DiagnosticDetailsPanel({
                             diagnostic.param1,
                             diagnostic.param2,
                             diagnostic.param3
-                          )
-                          if (!paramsContent) return null
+                          );
+                          if (!paramsContent) return null;
 
                           return (
-                            <div className='space-y-2'>
-                              <h4 className='text-xs font-medium text-foreground'>
+                            <div className="space-y-2">
+                              <h4 className="text-xs font-medium text-foreground">
                                 Параметры диагностики
                               </h4>
-                              <div className='space-y-1 rounded-md border border-border/70 bg-muted/30 p-3 text-sm leading-relaxed text-foreground'>
+                              <div className="space-y-1 rounded-md border border-border/70 bg-muted/30 p-3 text-sm leading-relaxed text-foreground">
                                 {paramsContent}
                               </div>
                             </div>
-                          )
+                          );
                         })()}
                       </div>
                     </AccordionContent>
                   </AccordionItem>
-                )
+                );
               })}
             </Accordion>
           </div>
         </div>
 
-        <div className='border-t border-border p-4'>
-          <Button className='w-full gap-2' onClick={() => setIsModalOpen(true)}>
-            <ClipboardList className='h-4 w-4' />
+        <div className="border-t border-border p-4">
+          <Button className="w-full gap-2" onClick={() => setIsModalOpen(true)}>
+            <ClipboardList className="h-4 w-4" />
             Сгенерировать план действий
           </Button>
         </div>
@@ -413,5 +417,5 @@ export function DiagnosticDetailsPanel({
         onOpenChange={setIsModalOpen}
       />
     </div>
-  )
+  );
 }
