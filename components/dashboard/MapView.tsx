@@ -17,12 +17,16 @@ const MapCanvas = dynamic(
 
 interface MapViewProps {
   onObjectSelect: (objectId: string) => void
+  selectedObjectId: string | null
 }
 
-export function MapView({ onObjectSelect }: MapViewProps) {
+export function MapView({ onObjectSelect, selectedObjectId }: MapViewProps) {
   return (
     <div className='relative min-w-0 flex-1 h-full'>
-      <MapCanvas onObjectSelect={onObjectSelect} />
+      <MapCanvas
+        onObjectSelect={onObjectSelect}
+        selectedObjectId={selectedObjectId}
+      />
     </div>
   )
 }

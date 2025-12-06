@@ -24,16 +24,29 @@ const ObjectsLayer = dynamic(
   () => import("./layers/ObjectsLayer").then((mod) => mod.ObjectsLayer),
   { ssr: false }
 )
+const MapCenterController = dynamic(
+  () => import("./MapCenterController").then((mod) => mod.MapCenterController),
+  { ssr: false }
+)
 
 interface MapCanvasProps {
   onObjectSelect: (id: string) => void
+  selectedObjectId?: string | null
   activePipelineId?: PipelineId | null
   height?: string
   className?: string
 }
 
-const KAZAKHSTAN_CENTER: [number, number] = [48.0, 67.0]
-const DEFAULT_ZOOM = 5
+const KAZAKHSTAN_CENTER: [number, number] = [48.0, 66.5]
+const DEFAULT_ZOOM = 6
+const MIN_ZOOM = 5
+const MAX_ZOOM = 18
+
+// Kazakhstan approximate bounds: [southwest, northeast]
+const KAZAKHSTAN_BOUNDS: [[number, number], [number, number]] = [
+  [40.0, 46.0], // Southwest corner
+  [55.5, 87.5], // Northeast corner
+]
 
 // CartoDB Positron (Light) tile layer
 const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
@@ -41,6 +54,7 @@ const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyrigh
 
 export function MapCanvas({
   onObjectSelect,
+  selectedObjectId,
   activePipelineId,
   height = "100%",
   className = "",
@@ -70,6 +84,10 @@ export function MapCanvas({
       <MapContainer
         center={KAZAKHSTAN_CENTER}
         zoom={DEFAULT_ZOOM}
+        minZoom={MIN_ZOOM}
+        maxZoom={MAX_ZOOM}
+        maxBounds={KAZAKHSTAN_BOUNDS}
+        maxBoundsViscosity={1.0}
         style={{ height: "100%", width: "100%", background: "#f8fafc", zIndex: 0 }}
         scrollWheelZoom={true}
       >
@@ -77,15 +95,22 @@ export function MapCanvas({
           attribution={TILE_ATTRIBUTION}
           url={TILE_URL}
         />
-        
+
+        {/* Map center controller for auto-zoom */}
+        <MapCenterController
+          selectedObjectId={selectedObjectId || null}
+          objects={objects}
+        />
+
         {/* Pipeline routes (bottom layer) */}
         <PipelinesLayer activePipelineId={activePipelineId} />
-        
+
         {/* Object markers (top layer) */}
         {!isLoading && (
           <ObjectsLayer
             items={objects}
             onObjectSelect={onObjectSelect}
+            selectedObjectId={selectedObjectId}
           />
         )}
       </MapContainer>
@@ -118,6 +143,10 @@ export function MapCanvas({
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full bg-[#10b981]" />
             <span className="text-slate-600">Норма</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-3 w-3 rounded-full bg-[#9ca3af]" />
+            <span className="text-slate-600">Неизвестно</span>
           </div>
         </div>
       </div>
