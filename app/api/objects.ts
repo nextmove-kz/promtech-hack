@@ -1,10 +1,16 @@
 import clientPocketBase from './client_pb'
-import type { ObjectsResponse, PipelinesResponse } from './api_types'
+import type {
+  DiagnosticsMethodOptions,
+  ObjectsResponse,
+  PipelinesResponse,
+} from './api_types'
 
 export interface GetObjectsParams {
   page?: number
   perPage?: number
   filter?: string
+  diagnosticMethod?: DiagnosticsMethodOptions
+  recentSince?: string
 }
 
 export type ObjectWithPipeline = ObjectsResponse<{
@@ -25,12 +31,56 @@ export async function getObjects(
   const page = params.page ?? 1
   const perPage = params.perPage ?? 20
   const filter = params.filter
+  const diagnosticMethod = params.diagnosticMethod
+  const recentSince = params.recentSince
+
+  let combinedFilter = filter
+
+  if (diagnosticMethod || recentSince) {
+    const diagFilters: string[] = []
+    if (diagnosticMethod) {
+      diagFilters.push(`method = "${diagnosticMethod}"`)
+    }
+    if (recentSince) {
+      diagFilters.push(`date >= "${recentSince}"`)
+    }
+
+    const diagnostics = await clientPocketBase
+      .collection('diagnostics')
+      .getFullList<{ object?: string }>({
+        fields: 'object',
+        filter: diagFilters.join(' && '),
+      })
+
+    const objectIds = Array.from(
+      new Set(
+        diagnostics
+          .map(d => d.object)
+          .filter((id): id is string => Boolean(id))
+      )
+    )
+
+    if (objectIds.length === 0) {
+      return {
+        page,
+        perPage,
+        totalItems: 0,
+        totalPages: 0,
+        items: [],
+      }
+    }
+
+    const diagClause = objectIds.map(id => `id = "${id}"`).join(' || ')
+    combinedFilter = combinedFilter
+      ? `(${combinedFilter}) && (${diagClause})`
+      : diagClause
+  }
 
   const result = await clientPocketBase
     .collection('objects')
     .getList<ObjectWithPipeline>(page, perPage, {
       expand: 'pipeline',
-      filter,
+      filter: combinedFilter,
     })
 
   return {

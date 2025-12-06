@@ -10,8 +10,27 @@ interface UseInfiniteObjectsParams {
 
 export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const perPage = params.perPage ?? 20
-  const { activeFilters } = useAtomValue(filterAtom)
-  const hasFilters = activeFilters.length > 0
+  const { activeFilters, advanced } = useAtomValue(filterAtom)
+  const recentSince =
+    activeFilters.includes('recent') && typeof window !== 'undefined'
+      ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0]
+      : undefined
+  const hasAdvancedFilters = useMemo(
+    () =>
+      Boolean(
+        advanced.type ||
+          advanced.diagnosticMethod ||
+          advanced.healthStatus ||
+          advanced.material ||
+          advanced.pipeline ||
+          advanced.yearFrom ||
+          advanced.yearTo
+      ),
+    [advanced]
+  )
+  const hasFilters = activeFilters.length > 0 || hasAdvancedFilters
 
   const filter = useMemo(() => {
     if (!hasFilters) return undefined
@@ -22,16 +41,46 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
     if (activeFilters.includes('defective')) {
       filters.push(`has_defects = true`)
     }
-    if (activeFilters.includes('recent')) {
-      filters.push(`last_analysis_at > "2022-01-01"`)
+    if (advanced.type) {
+      filters.push(`type = "${advanced.type}"`)
+    }
+    if (advanced.healthStatus) {
+      filters.push(`health_status = "${advanced.healthStatus}"`)
+    }
+    if (advanced.material) {
+      const value = advanced.material.replace(/"/g, '\\"')
+      filters.push(`material = "${value}"`)
+    }
+    if (advanced.yearFrom) {
+      filters.push(`year >= ${advanced.yearFrom}`)
+    }
+    if (advanced.yearTo) {
+      filters.push(`year <= ${advanced.yearTo}`)
+    }
+    if (advanced.pipeline) {
+      const value = advanced.pipeline.replace(/"/g, '\\"')
+      filters.push(`pipeline = "${value}"`)
     }
     return filters.join(' && ')
-  }, [activeFilters, hasFilters])
+  }, [activeFilters, advanced, hasFilters])
 
   return useInfiniteQuery<GetObjectsResult>({
-    queryKey: ['objects', 'infinite', perPage, filter],
+    queryKey: [
+      'objects',
+      'infinite',
+      perPage,
+      filter,
+      advanced.diagnosticMethod ?? '',
+      recentSince ?? '',
+    ],
     queryFn: ({ pageParam }) =>
-      getObjects({ page: pageParam as number, perPage, filter }),
+      getObjects({
+        page: pageParam as number,
+        perPage,
+        filter,
+        diagnosticMethod: advanced.diagnosticMethod || undefined,
+        recentSince,
+      }),
     initialPageParam: 1,
     getNextPageParam: lastPage => {
       if (lastPage.page < lastPage.totalPages) {

@@ -23,7 +23,7 @@ export function ObjectCard({ object, isSelected, onSelect }: ObjectCardProps) {
   return (
     <button
       onClick={() => onSelect(object.id)}
-      className={`w-full rounded-lg border p-3 text-left transition-colors ${
+      className={`w-full rounded-lg border p-3 text-left transition-colors cursor-pointer ${
         statusStyles.borderClass
       } ${
         isSelected
