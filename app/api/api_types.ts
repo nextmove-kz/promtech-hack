@@ -11,9 +11,11 @@ export enum Collections {
 	Mfas = "_mfas",
 	Otps = "_otps",
 	Superusers = "_superusers",
+	Action = "action",
 	Diagnostics = "diagnostics",
 	Objects = "objects",
 	Pipelines = "pipelines",
+	Plan = "plan",
 	Users = "users",
 }
 
@@ -93,6 +95,14 @@ export type SuperusersRecord = {
 	tokenKey: string
 	updated: IsoAutoDateString
 	verified?: boolean
+}
+
+export type ActionRecord = {
+	created: IsoAutoDateString
+	description?: string
+	id: string
+	status?: boolean
+	updated: IsoAutoDateString
 }
 
 export enum DiagnosticsMethodOptions {
@@ -177,6 +187,22 @@ export type PipelinesRecord = {
 	updated: IsoAutoDateString
 }
 
+export enum PlanStatusOptions {
+	"done" = "done",
+	"archive" = "archive",
+	"created" = "created",
+	"pending" = "pending",
+}
+export type PlanRecord = {
+	actions?: RecordIdString[]
+	created: IsoAutoDateString
+	id: string
+	object?: RecordIdString
+	problem?: string
+	status?: PlanStatusOptions
+	updated: IsoAutoDateString
+}
+
 export type UsersRecord = {
 	avatar?: FileNameString
 	created: IsoAutoDateString
@@ -196,9 +222,11 @@ export type ExternalauthsResponse<Texpand = unknown> = Required<ExternalauthsRec
 export type MfasResponse<Texpand = unknown> = Required<MfasRecord> & BaseSystemFields<Texpand>
 export type OtpsResponse<Texpand = unknown> = Required<OtpsRecord> & BaseSystemFields<Texpand>
 export type SuperusersResponse<Texpand = unknown> = Required<SuperusersRecord> & AuthSystemFields<Texpand>
+export type ActionResponse<Texpand = unknown> = Required<ActionRecord> & BaseSystemFields<Texpand>
 export type DiagnosticsResponse<Texpand = unknown> = Required<DiagnosticsRecord> & BaseSystemFields<Texpand>
 export type ObjectsResponse<Texpand = unknown> = Required<ObjectsRecord> & BaseSystemFields<Texpand>
 export type PipelinesResponse<Texpand = unknown> = Required<PipelinesRecord> & BaseSystemFields<Texpand>
+export type PlanResponse<Texpand = unknown> = Required<PlanRecord> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 
 // Types containing all Records and Responses, useful for creating typing helper functions
@@ -209,9 +237,11 @@ export type CollectionRecords = {
 	_mfas: MfasRecord
 	_otps: OtpsRecord
 	_superusers: SuperusersRecord
+	action: ActionRecord
 	diagnostics: DiagnosticsRecord
 	objects: ObjectsRecord
 	pipelines: PipelinesRecord
+	plan: PlanRecord
 	users: UsersRecord
 }
 
@@ -221,9 +251,11 @@ export type CollectionResponses = {
 	_mfas: MfasResponse
 	_otps: OtpsResponse
 	_superusers: SuperusersResponse
+	action: ActionResponse
 	diagnostics: DiagnosticsResponse
 	objects: ObjectsResponse
 	pipelines: PipelinesResponse
+	plan: PlanResponse
 	users: UsersResponse
 }
 
