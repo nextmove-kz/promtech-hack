@@ -7,18 +7,23 @@ import { useDebounce } from './useDebounce'
 
 interface UseInfiniteObjectsParams {
   perPage?: number
+  sort?: string
 }
 
 export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const perPage = params.perPage ?? 20
+  const sort = params.sort
   const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom)
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
-  const recentSince =
-    activeFilters.includes('recent') && typeof window !== 'undefined'
-      ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split('T')[0]
-      : undefined
+  const recentSince = useMemo(() => {
+    if (activeFilters.includes('recent') && typeof window !== 'undefined') {
+      const now = new Date()
+      return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+    }
+    return undefined
+  }, [activeFilters])
   const hasAdvancedFilters = useMemo(
     () =>
       Boolean(
@@ -32,7 +37,10 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       ),
     [advanced]
   )
-  const hasFilters = activeFilters.length > 0 || hasAdvancedFilters || debouncedSearchQuery.length > 0
+  const hasFilters =
+    activeFilters.length > 0 ||
+    hasAdvancedFilters ||
+    debouncedSearchQuery.length > 0
 
   const filter = useMemo(() => {
     if (!hasFilters) return undefined
@@ -75,6 +83,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       'infinite',
       perPage,
       filter,
+      sort ?? '',
       advanced.diagnosticMethod ?? '',
       recentSince ?? '',
     ],
@@ -83,6 +92,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
         page: pageParam as number,
         perPage,
         filter,
+        sort,
         diagnosticMethod: advanced.diagnosticMethod || undefined,
         recentSince,
       }),

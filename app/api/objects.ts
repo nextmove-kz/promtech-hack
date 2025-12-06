@@ -9,6 +9,7 @@ export interface GetObjectsParams {
   page?: number
   perPage?: number
   filter?: string
+  sort?: string
   diagnosticMethod?: DiagnosticsMethodOptions
   recentSince?: string
 }
@@ -31,6 +32,7 @@ export async function getObjects(
   const page = params.page ?? 1
   const perPage = params.perPage ?? 20
   const filter = params.filter
+  const sort = params.sort
   const diagnosticMethod = params.diagnosticMethod
   const recentSince = params.recentSince
 
@@ -54,9 +56,7 @@ export async function getObjects(
 
     const objectIds = Array.from(
       new Set(
-        diagnostics
-          .map(d => d.object)
-          .filter((id): id is string => Boolean(id))
+        diagnostics.map(d => d.object).filter((id): id is string => Boolean(id))
       )
     )
 
@@ -81,6 +81,7 @@ export async function getObjects(
     .getList<ObjectWithPipeline>(page, perPage, {
       expand: 'pipeline',
       filter: combinedFilter,
+      sort,
     })
 
   return {
