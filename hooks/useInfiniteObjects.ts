@@ -8,11 +8,18 @@ import { useDebounce } from './useDebounce'
 interface UseInfiniteObjectsParams {
   perPage?: number
   sort?: string
+  bounds?: {
+    north: number
+    south: number
+    east: number
+    west: number
+  }
 }
 
 export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const perPage = params.perPage ?? 20
   const sort = params.sort
+  const bounds = params.bounds
   const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom)
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
   const recentSince = useMemo(() => {
@@ -37,14 +44,18 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       ),
     [advanced]
   )
+  const hasBounds = Boolean(bounds)
   const hasFilters =
-    activeFilters.length > 0 ||
-    hasAdvancedFilters ||
-    debouncedSearchQuery.length > 0
+    activeFilters.length > 0 || hasAdvancedFilters || debouncedSearchQuery.length > 0 || hasBounds
 
   const filter = useMemo(() => {
     if (!hasFilters) return undefined
     const filters: string[] = []
+    if (hasBounds && bounds) {
+      filters.push(
+        `lat >= ${bounds.south} && lat <= ${bounds.north} && lon >= ${bounds.west} && lon <= ${bounds.east}`
+      )
+    }
     if (activeFilters.includes('critical')) {
       filters.push(`health_status = "CRITICAL"`)
     }
@@ -75,7 +86,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       filters.push(`name ~ "${debouncedSearchQuery}"`)
     }
     return filters.join(' && ')
-  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters])
+  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters, hasBounds, bounds])
 
   return useInfiniteQuery<GetObjectsResult>({
     queryKey: [
@@ -86,6 +97,10 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       sort ?? '',
       advanced.diagnosticMethod ?? '',
       recentSince ?? '',
+      bounds?.south ?? '',
+      bounds?.west ?? '',
+      bounds?.north ?? '',
+      bounds?.east ?? '',
     ],
     queryFn: ({ pageParam }) =>
       getObjects({

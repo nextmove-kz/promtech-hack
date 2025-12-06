@@ -84,6 +84,9 @@ const renderParams = (
           {v3 && <div>Длина дефекта: {p3} мм</div>}
         </>
       );
+    case "TVK":
+      // TVK параметры без названий не показываем
+      return null;
     default:
       if (v1 && v2) {
         return (
@@ -91,18 +94,11 @@ const renderParams = (
             <div>
               Размеры (ДхШ): {p1} x {p2} мм
             </div>
-            {v3 && <div>Параметр 3: {p3}</div>}
           </>
         );
       }
 
-      return (
-        <>
-          {v1 && <div>Параметр 1: {p1}</div>}
-          {v2 && <div>Параметр 2: {p2}</div>}
-          {v3 && <div>Параметр 3: {p3}</div>}
-        </>
-      );
+      return null;
   }
 };
 

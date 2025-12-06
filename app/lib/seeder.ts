@@ -15,12 +15,6 @@ const OBJECT_TYPE_WEIGHTS = [0.3, 0.15, 0.55]; // 30% cranes, 15% compressors, 5
 // Diagnostic methods
 const METHODS: Method[] = ["VIK", "PVK", "MPK", "UZK", "RGK", "TVK", "VIBRO", "MFL", "TFI", "GEO", "UTWM"];
 
-// Quality grades
-const QUALITY_GRADES: QualityGrade[] = ["удовлетворительно", "допустимо", "требует_мер", "недопустимо"];
-
-// ML labels
-const ML_LABELS: MlLabel[] = ["normal", "medium", "high"];
-
 // Materials
 const MATERIALS = ["Ст3", "09Г2С", "17Г1С", "13ХФА", "20А", "10Г2"];
 

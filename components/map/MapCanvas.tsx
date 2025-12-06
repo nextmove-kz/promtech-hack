@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useObjects } from "@/hooks/useObjects";
 import type { PipelineId } from "@/lib/generator-utils";
@@ -26,6 +25,11 @@ const ObjectsLayer = dynamic(
 );
 const MapCenterController = dynamic(
   () => import("./MapCenterController").then((mod) => mod.MapCenterController),
+  { ssr: false }
+);
+const MapViewportController = dynamic(
+  () =>
+    import("./MapViewportController").then((mod) => mod.MapViewportController),
   { ssr: false }
 );
 
@@ -61,23 +65,7 @@ export function MapCanvas({
   height = "100%",
   className = "",
 }: MapCanvasProps) {
-  const [mounted, setMounted] = useState(false);
   const { data: objectsData, isLoading } = useObjects({ perPage: 500 });
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div
-        className={`bg-slate-100 animate-pulse rounded-lg flex items-center justify-center ${className}`}
-        style={{ height }}
-      >
-        <div className="text-slate-500 text-sm">Загрузка карты...</div>
-      </div>
-    );
-  }
 
   const objects = objectsData?.items ?? [];
 
@@ -105,6 +93,8 @@ export function MapCanvas({
           selectedObjectId={selectedObjectId || null}
           objects={objects}
         />
+        {/* Track viewport bounds for sidebar filtering */}
+        <MapViewportController />
 
         {/* Pipeline routes (bottom layer) */}
         <PipelinesLayer activePipelineId={activePipelineId} />
@@ -121,7 +111,7 @@ export function MapCanvas({
 
       {/* Loading overlay */}
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none z-[1000]">
+        <div className="absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none z-1000">
           <div className="bg-white text-slate-700 px-4 py-2 rounded-lg text-sm shadow-md border border-slate-200">
             Загрузка объектов...
           </div>
@@ -129,7 +119,7 @@ export function MapCanvas({
       )}
 
       {/* Legend */}
-      <div className="absolute bottom-6 left-4 z-[1000] rounded-md border border-slate-200 bg-white/95 p-3 backdrop-blur-sm shadow-sm">
+      <div className="absolute bottom-6 left-4 z-1000 rounded-md border border-slate-200 bg-white/95 p-3 backdrop-blur-sm shadow-sm">
         <div className="space-y-2 text-xs">
           <div className="text-slate-600 font-medium mb-2">Легенда</div>
           <div className="flex items-center gap-2">

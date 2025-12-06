@@ -649,7 +649,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     }
 
     // Filter to objects that actually need analysis
-    let idsToAnalyze = objects
+    const idsToAnalyze = objects
       .filter((obj) => {
         const diagList = diagnosticsMap.get(obj.id) || [];
         if (diagList.length === 0) return false; // no diagnostics -> skip

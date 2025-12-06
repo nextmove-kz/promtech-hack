@@ -16,12 +16,14 @@ export function useObjects(params: UseObjectsParams = {}) {
   const { activeFilters, advanced, searchQuery } = useAtomValue(filterAtom)
   const debouncedSearchQuery = useDebounce(searchQuery, 300)
 
-  const recentSince =
-    activeFilters.includes('recent') && typeof window !== 'undefined'
-      ? new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-          .toISOString()
-          .split('T')[0]
-      : undefined
+  const recentSince = useMemo(() => {
+    if (!activeFilters.includes('recent') || typeof window === 'undefined') {
+      return undefined
+    }
+    const threshold = new Date()
+    threshold.setDate(threshold.getDate() - 30)
+    return threshold.toISOString().split('T')[0]
+  }, [activeFilters])
 
   const hasAdvancedFilters = useMemo(
     () =>

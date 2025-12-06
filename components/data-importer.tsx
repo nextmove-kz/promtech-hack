@@ -164,7 +164,7 @@ export function DataImporter({ className }: { className?: string }) {
       importToastId.current = id;
 
       toast.custom(
-        (t) => (
+        () => (
           <div className="w-80 rounded-md border bg-white p-3 shadow-md">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
@@ -207,7 +207,7 @@ export function DataImporter({ className }: { className?: string }) {
           : 0;
 
       toast.custom(
-        (t) => (
+        () => (
           <div className="w-80 rounded-md border bg-white p-3 shadow-md">
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">

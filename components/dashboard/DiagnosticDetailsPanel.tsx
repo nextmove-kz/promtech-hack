@@ -20,7 +20,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useDiagnostic } from '@/hooks/useDiagnostic'
-import { getHealthStyles } from '@/lib/objectHealthStyles'
 import { ActionPlanModal } from './ActionPlanModal'
 
 interface DiagnosticDetailsPanelProps {
@@ -107,6 +106,9 @@ const renderParams = (
           {v3 && <div>Длина дефекта: {p3} мм</div>}
         </>
       )
+    case 'TVK':
+      // TVK параметры без названий не показываем
+      return null
     default:
       if (v1 && v2) {
         return (
@@ -114,18 +116,11 @@ const renderParams = (
             <div>
               Размеры (ДхШ): {p1} x {p2} мм
             </div>
-            {v3 && <div>Параметр 3: {p3}</div>}
           </>
         )
       }
 
-      return (
-        <>
-          {v1 && <div>Параметр 1: {p1}</div>}
-          {v2 && <div>Параметр 2: {p2}</div>}
-          {v3 && <div>Параметр 3: {p3}</div>}
-        </>
-      )
+      return null
   }
 }
 
@@ -177,7 +172,6 @@ export function DiagnosticDetailsPanel({
     'UNKNOWN') as keyof typeof healthStatusConfig
   const statusConfig =
     healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN
-  const healthStyles = getHealthStyles(healthStatus)
 
   return (
     <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>

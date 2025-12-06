@@ -50,19 +50,6 @@ const healthStatusLabels: Record<string, string> = {
   UNKNOWN: 'Неизвестно',
 }
 
-const getHealthColor = (status: string): [number, number, number] => {
-  switch (status) {
-    case 'OK':
-      return COLORS.success
-    case 'WARNING':
-      return COLORS.warning
-    case 'CRITICAL':
-      return COLORS.critical
-    default:
-      return COLORS.muted
-  }
-}
-
 // Helper to split text into lines that fit within maxWidth
 const splitTextToLines = (
   doc: jsPDF,
