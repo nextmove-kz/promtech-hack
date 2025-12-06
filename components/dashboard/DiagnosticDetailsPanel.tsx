@@ -20,6 +20,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useDiagnostic } from '@/hooks/useDiagnostic'
+import { useObject } from '@/hooks/useObject'
 import { ActionPlanModal } from './ActionPlanModal'
 
 interface DiagnosticDetailsPanelProps {
@@ -129,11 +130,14 @@ export function DiagnosticDetailsPanel({
   onClose,
 }: DiagnosticDetailsPanelProps) {
   const { data: diagnostics, isLoading, error } = useDiagnostic(objectId)
+  const { data: objectData, isLoading: isObjectLoading } = useObject(objectId)
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   if (!objectId) return null
 
-  if (isLoading) {
+  const isLoadingState = isLoading || isObjectLoading
+
+  if (isLoadingState) {
     return (
       <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
         <div className='flex h-full items-center justify-center'>
@@ -143,23 +147,11 @@ export function DiagnosticDetailsPanel({
     )
   }
 
-  if (error || !diagnostics || diagnostics.length === 0) {
-    return (
-      <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
-        <div className='flex h-full items-center justify-center p-4'>
-          <div className='text-center text-sm text-destructive'>
-            {diagnostics?.length === 0
-              ? 'Диагностики не найдены'
-              : 'Ошибка загрузки данных диагностики'}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Extract expanded object and pipeline data from first diagnostic (all have same object)
-  const firstDiagnostic = diagnostics[0]
-  const object = firstDiagnostic.expand?.object
+  const hasDiagnostics = !!diagnostics && diagnostics.length > 0 && !error
+  const diagnosticsList = hasDiagnostics && diagnostics ? diagnostics : []
+  const firstDiagnostic = diagnosticsList[0] ?? null
+  // Prefer expanded object from diagnostics, otherwise fall back to direct fetch
+  const object = firstDiagnostic?.expand?.object ?? objectData ?? null
   const pipeline = object?.expand?.pipeline
   const objectType = object?.type
   const objectName = object?.name
@@ -167,11 +159,18 @@ export function DiagnosticDetailsPanel({
   const healthStatus = object?.health_status
   const urgencyScore = object?.urgency_score
   const aiSummary = object?.ai_summary
+  const displayId = object?.id || firstDiagnostic?.id || objectId
 
   const statusKey = (healthStatus ??
     'UNKNOWN') as keyof typeof healthStatusConfig
   const statusConfig =
     healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN
+
+  const contentState = error
+    ? 'error'
+    : hasDiagnostics
+      ? 'data'
+      : 'empty'
 
   return (
     <div className='h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden'>
@@ -199,7 +198,7 @@ export function DiagnosticDetailsPanel({
                 </h2>
               </div>
               <div className='mt-1 text-xs text-muted-foreground/70'>
-                ID: {object?.id || firstDiagnostic.id}
+                ID: {displayId}
               </div>
               {(objectType || pipelineName) && (
                 <div className='mt-1.5 space-y-0.5 text-xs text-muted-foreground'>
@@ -214,204 +213,228 @@ export function DiagnosticDetailsPanel({
         </div>
 
         <div className='flex-1 overflow-auto p-4'>
-          <div className='space-y-6'>
-            {(urgencyScore !== undefined || aiSummary) && (
-              <div className='space-y-4'>
-                <div>
-                  <h3 className='text-sm font-medium text-foreground mb-3'>
-                    AI-анализ
-                  </h3>
-                  <div className='space-y-3'>
-                    {urgencyScore !== undefined && (
-                      <div>
-                        <div className='text-xs text-muted-foreground mb-2'>
-                          Оценка срочности
+          {contentState === 'data' && firstDiagnostic ? (
+            <div className='space-y-6'>
+              {(urgencyScore !== undefined || aiSummary) && (
+                <div className='space-y-4'>
+                  <div>
+                    <h3 className='text-sm font-medium text-foreground mb-3'>
+                      AI-анализ
+                    </h3>
+                    <div className='space-y-3'>
+                      {urgencyScore !== undefined && (
+                        <div>
+                          <div className='text-xs text-muted-foreground mb-2'>
+                            Оценка срочности
+                          </div>
+                          <div className='flex items-end gap-2'>
+                            <span
+                              className={cn(
+                                'text-2xl font-bold tabular-nums',
+                                statusConfig.iconColor
+                              )}
+                            >
+                              {urgencyScore}
+                            </span>
+                            <span className='text-muted-foreground text-sm mb-0.5'>
+                              /100
+                            </span>
+                          </div>
+                          <Progress value={urgencyScore} className='mt-2 h-1.5' />
                         </div>
-                        <div className='flex items-end gap-2'>
-                          <span
-                            className={cn(
-                              'text-2xl font-bold tabular-nums',
-                              statusConfig.iconColor
-                            )}
-                          >
-                            {urgencyScore}
-                          </span>
-                          <span className='text-muted-foreground text-sm mb-0.5'>
-                            /100
-                          </span>
+                      )}
+                      {aiSummary && (
+                        <div
+                          className={
+                            urgencyScore !== undefined
+                              ? 'pt-3 border-t border-border/50'
+                              : ''
+                          }
+                        >
+                          <p className='text-sm text-foreground leading-relaxed'>
+                            {aiSummary}
+                          </p>
                         </div>
-                        <Progress value={urgencyScore} className='mt-2 h-1.5' />
-                      </div>
-                    )}
-                    {aiSummary && (
-                      <div
-                        className={
-                          urgencyScore !== undefined
-                            ? 'pt-3 border-t border-border/50'
-                            : ''
-                        }
-                      >
-                        <p className='text-sm text-foreground leading-relaxed'>
-                          {aiSummary}
-                        </p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            <Separator />
-            {/* Diagnostic History Accordion */}
-            <h3 className='text-sm font-medium text-foreground mb-5'>
-              История диагностик
-            </h3>
-            <Accordion
-              type='single'
-              collapsible
-              className='w-full'
-            >
-              {diagnostics.map((diagnostic) => {
-                const hasDiagnosticIssue = diagnostic.defect_found ?? false
-                const diagnosticDate = diagnostic.date
-                  ? new Date(diagnostic.date).toLocaleDateString('ru-RU')
-                  : '-'
+              <Separator />
+              {/* Diagnostic History Accordion */}
+              <h3 className='text-sm font-medium text-foreground mb-5'>
+                История диагностик
+              </h3>
+              <Accordion
+                type='single'
+                collapsible
+                className='w-full'
+              >
+                {diagnosticsList.map((diagnostic) => {
+                  const hasDiagnosticIssue = diagnostic.defect_found ?? false
+                  const diagnosticDate = diagnostic.date
+                    ? new Date(diagnostic.date).toLocaleDateString('ru-RU')
+                    : '-'
 
-                return (
-                  <AccordionItem key={diagnostic.id} value={diagnostic.id}>
-                    <AccordionTrigger className='hover:no-underline'>
-                      <div className='flex items-center gap-3 flex-1 text-left'>
-                        <div className='flex items-center gap-1.5 text-muted-foreground min-w-0'>
-                          <Calendar className='h-3.5 w-3.5 shrink-0' />
-                          <span className='text-xs truncate'>{diagnosticDate}</span>
-                        </div>
-                        <span className='text-xs text-muted-foreground'>
-                          {diagnostic.method || '-'}
-                        </span>
-                        <Badge
-                          variant={hasDiagnosticIssue ? 'destructive' : 'outline'}
-                          className='text-xs shrink-0'
-                        >
-                          {hasDiagnosticIssue ? 'Дефект' : 'Норма'}
-                        </Badge>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className='space-y-4 pt-2'>
-                        <div className='grid grid-cols-2 gap-4'>
-                          <div className='space-y-1'>
-                            <div className='flex items-center gap-1.5 text-muted-foreground'>
-                              <Calendar className='h-3.5 w-3.5' />
-                              <span className='text-xs'>Дата диагностики</span>
-                            </div>
-                            <p className='font-medium text-foreground'>
-                              {diagnosticDate}
-                            </p>
+                  return (
+                    <AccordionItem key={diagnostic.id} value={diagnostic.id}>
+                      <AccordionTrigger className='hover:no-underline'>
+                        <div className='flex items-center gap-3 flex-1 text-left'>
+                          <div className='flex items-center gap-1.5 text-muted-foreground min-w-0'>
+                            <Calendar className='h-3.5 w-3.5 shrink-0' />
+                            <span className='text-xs truncate'>{diagnosticDate}</span>
                           </div>
-                          <div className='space-y-1'>
-                            <span className='text-xs text-muted-foreground'>Метод</span>
-                            <p className='font-medium text-foreground'>
-                              {diagnostic.method || '-'}
-                            </p>
-                          </div>
-                          {diagnostic.temperature !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
-                                Температура
-                              </span>
-                              <p className='font-medium text-foreground'>
-                                {diagnostic.temperature}°C
-                              </p>
-                            </div>
-                          )}
-                          {diagnostic.humidity !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
-                                Влажность
-                              </span>
-                              <p className='font-medium text-foreground'>
-                                {diagnostic.humidity}%
-                              </p>
-                            </div>
-                          )}
-                          {diagnostic.illumination !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
-                                Освещенность
-                              </span>
-                              <p className='font-medium text-foreground'>
-                                {diagnostic.illumination}
-                              </p>
-                            </div>
-                          )}
-                          {diagnostic.quality_grade && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
-                                Оценка качества
-                              </span>
-                              <p className='font-medium text-foreground'>
-                                {diagnostic.quality_grade}
-                              </p>
-                            </div>
-                          )}
-                          {diagnostic.defect_found !== undefined && (
-                            <div className='space-y-1'>
-                              <span className='text-xs text-muted-foreground'>
-                                Дефект обнаружен
-                              </span>
-                              <Badge
-                                variant={hasDiagnosticIssue ? 'destructive' : 'outline'}
-                                className='text-xs'
-                              >
-                                {hasDiagnosticIssue ? 'Да' : 'Нет'}
-                              </Badge>
-                            </div>
-                          )}
+                          <span className='text-xs text-muted-foreground'>
+                            {diagnostic.method || '-'}
+                          </span>
+                          <Badge
+                            variant={hasDiagnosticIssue ? 'destructive' : 'outline'}
+                            className='text-xs shrink-0'
+                          >
+                            {hasDiagnosticIssue ? 'Дефект' : 'Норма'}
+                          </Badge>
                         </div>
-
-                        {(() => {
-                          const paramsContent = renderParams(
-                            diagnostic.method,
-                            diagnostic.param1,
-                            diagnostic.param2,
-                            diagnostic.param3
-                          )
-                          if (!paramsContent) return null
-
-                          return (
-                            <div className='space-y-2'>
-                              <h4 className='text-xs font-medium text-foreground'>
-                                Параметры диагностики
-                              </h4>
-                              <div className='space-y-1 rounded-md border border-border/70 bg-muted/30 p-3 text-sm leading-relaxed text-foreground'>
-                                {paramsContent}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className='space-y-4 pt-2'>
+                          <div className='grid grid-cols-2 gap-4'>
+                            <div className='space-y-1'>
+                              <div className='flex items-center gap-1.5 text-muted-foreground'>
+                                <Calendar className='h-3.5 w-3.5' />
+                                <span className='text-xs'>Дата диагностики</span>
                               </div>
+                              <p className='font-medium text-foreground'>
+                                {diagnosticDate}
+                              </p>
                             </div>
-                          )
-                        })()}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                )
-              })}
-            </Accordion>
-          </div>
+                            <div className='space-y-1'>
+                              <span className='text-xs text-muted-foreground'>Метод</span>
+                              <p className='font-medium text-foreground'>
+                                {diagnostic.method || '-'}
+                              </p>
+                            </div>
+                            {diagnostic.temperature !== undefined && (
+                              <div className='space-y-1'>
+                                <span className='text-xs text-muted-foreground'>
+                                  Температура
+                                </span>
+                                <p className='font-medium text-foreground'>
+                                  {diagnostic.temperature}°C
+                                </p>
+                              </div>
+                            )}
+                            {diagnostic.humidity !== undefined && (
+                              <div className='space-y-1'>
+                                <span className='text-xs text-muted-foreground'>
+                                  Влажность
+                                </span>
+                                <p className='font-medium text-foreground'>
+                                  {diagnostic.humidity}%
+                                </p>
+                              </div>
+                            )}
+                            {diagnostic.illumination !== undefined && (
+                              <div className='space-y-1'>
+                                <span className='text-xs text-muted-foreground'>
+                                  Освещенность
+                                </span>
+                                <p className='font-medium text-foreground'>
+                                  {diagnostic.illumination}
+                                </p>
+                              </div>
+                            )}
+                            {diagnostic.quality_grade && (
+                              <div className='space-y-1'>
+                                <span className='text-xs text-muted-foreground'>
+                                  Оценка качества
+                                </span>
+                                <p className='font-medium text-foreground'>
+                                  {diagnostic.quality_grade}
+                                </p>
+                              </div>
+                            )}
+                            {diagnostic.defect_found !== undefined && (
+                              <div className='space-y-1'>
+                                <span className='text-xs text-muted-foreground'>
+                                  Дефект обнаружен
+                                </span>
+                                <Badge
+                                  variant={hasDiagnosticIssue ? 'destructive' : 'outline'}
+                                  className='text-xs'
+                                >
+                                  {hasDiagnosticIssue ? 'Да' : 'Нет'}
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+
+                          {(() => {
+                            const paramsContent = renderParams(
+                              diagnostic.method,
+                              diagnostic.param1,
+                              diagnostic.param2,
+                              diagnostic.param3
+                            )
+                            if (!paramsContent) return null
+
+                            return (
+                              <div className='space-y-2'>
+                                <h4 className='text-xs font-medium text-foreground'>
+                                  Параметры диагностики
+                                </h4>
+                                <div className='space-y-1 rounded-md border border-border/70 bg-muted/30 p-3 text-sm leading-relaxed text-foreground'>
+                                  {paramsContent}
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  )
+                })}
+              </Accordion>
+            </div>
+          ) : (
+            <div className='flex h-full items-center justify-center'>
+              <div className='space-y-3 text-center max-w-sm'>
+                <div className='mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-muted'>
+                  <AlertTriangle className='h-5 w-5 text-muted-foreground' />
+                </div>
+                <p className='text-sm font-medium text-foreground'>
+                  {contentState === 'error'
+                    ? 'Ошибка загрузки данных диагностики'
+                    : 'Диагностики не найдены'}
+                </p>
+                <p className='text-xs text-muted-foreground leading-relaxed'>
+                  {contentState === 'error'
+                    ? 'Попробуйте обновить страницу или выбрать другой объект.'
+                    : 'Для этого объекта нет диагностик, поэтому AI-анализ и история недоступны.'}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className='border-t border-border p-4'>
-          <Button className='w-full gap-2' onClick={() => setIsModalOpen(true)}>
-            <ClipboardList className='h-4 w-4' />
-            Сгенерировать план действий
-          </Button>
-        </div>
+        {contentState === 'data' && firstDiagnostic && (
+          <div className='border-t border-border p-4'>
+            <Button className='w-full gap-2' onClick={() => setIsModalOpen(true)}>
+              <ClipboardList className='h-4 w-4' />
+              Сгенерировать план действий
+            </Button>
+          </div>
+        )}
       </div>
 
-      <ActionPlanModal
-        diagnosticId={firstDiagnostic.id}
-        diagnostic={firstDiagnostic}
-        isOpen={isModalOpen}
-        onOpenChange={setIsModalOpen}
-      />
+      {contentState === 'data' && firstDiagnostic && (
+        <ActionPlanModal
+          diagnosticId={firstDiagnostic.id}
+          diagnostic={firstDiagnostic}
+          isOpen={isModalOpen}
+          onOpenChange={setIsModalOpen}
+        />
+      )}
     </div>
   )
 }
