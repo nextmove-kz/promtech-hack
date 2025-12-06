@@ -1,11 +1,12 @@
 import type { ObjectRow, DiagnosticRow, ObjectType, Method, QualityGrade, MlLabel } from "./schemas";
+import { PIPELINE_ROUTES, generateObjectsAlongPath, type PipelineId } from "@/lib/generator-utils";
 
-// Pipeline definitions
-const PIPELINES = [
-  { id: "MT-01", name: "Магистраль Атырау-Самара" },
-  { id: "MT-02", name: "Магистраль Актау-Актобе" },
-  { id: "MT-03", name: "Магистраль Павлодар-Шымкент" },
-] as const;
+// Pipeline definitions matching PIPELINE_ROUTES
+const PIPELINES: { id: PipelineId; name: string }[] = [
+  { id: "MT-01", name: "Магистраль Атырау-Актобе-Костанай" },
+  { id: "MT-02", name: "Магистраль Актау-Атырау-Астана" },
+  { id: "MT-03", name: "Магистраль Алматы-Караганда-Астана" },
+];
 
 // Object types distribution
 const OBJECT_TYPES: ObjectType[] = ["crane", "compressor", "pipeline_section"];
@@ -42,54 +43,6 @@ function seededRandom(seed: number): () => number {
 }
 
 /**
- * Generates snake-like coordinates for a pipeline route across Kazakhstan
- * @param startLat Starting latitude
- * @param startLon Starting longitude
- * @param endLat Ending latitude
- * @param endLon Ending longitude
- * @param numPoints Number of points to generate
- * @param seed Random seed for reproducibility
- */
-function generatePipelineRoute(
-  startLat: number,
-  startLon: number,
-  endLat: number,
-  endLon: number,
-  numPoints: number,
-  seed: number
-): { lat: number; lon: number }[] {
-  const random = seededRandom(seed);
-  const points: { lat: number; lon: number }[] = [];
-
-  // Create main path with some meandering
-  for (let i = 0; i < numPoints; i++) {
-    const t = i / (numPoints - 1);
-    
-    // Base linear interpolation
-    let lat = startLat + (endLat - startLat) * t;
-    let lon = startLon + (endLon - startLon) * t;
-    
-    // Add sinusoidal variation for snake-like path
-    const waveAmplitude = 0.5;
-    const waveFrequency = 4;
-    lat += Math.sin(t * Math.PI * waveFrequency) * waveAmplitude;
-    lon += Math.cos(t * Math.PI * waveFrequency * 0.7) * waveAmplitude * 0.5;
-    
-    // Add small random noise
-    lat += (random() - 0.5) * 0.1;
-    lon += (random() - 0.5) * 0.1;
-    
-    // Clamp to Kazakhstan bounds
-    lat = Math.max(43, Math.min(52, lat));
-    lon = Math.max(50, Math.min(80, lon));
-    
-    points.push({ lat: parseFloat(lat.toFixed(4)), lon: parseFloat(lon.toFixed(4)) });
-  }
-
-  return points;
-}
-
-/**
  * Selects an item based on weighted probabilities
  */
 function weightedSelect<T>(items: T[], weights: number[], random: () => number): T {
@@ -113,30 +66,22 @@ function randomDate(start: Date, end: Date, random: () => number): string {
 }
 
 /**
- * Generates synthetic objects data
- * @param count Number of objects to generate (default: ~1000)
+ * Generates synthetic objects data using PIPELINE_ROUTES for exact alignment
+ * @param countPerPipeline Number of objects per pipeline (default: ~100)
  * @param seed Random seed for reproducibility
  */
-export function generateObjects(count: number = 1000, seed: number = 42): ObjectRow[] {
+export function generateObjects(countPerPipeline: number = 100, seed: number = 42): ObjectRow[] {
   const random = seededRandom(seed);
   const objects: ObjectRow[] = [];
   
-  // Generate pipeline routes
-  const routes = [
-    // MT-01: Western Kazakhstan (Atyrau to Samara direction)
-    generatePipelineRoute(46.8, 51.8, 49.5, 56.0, Math.ceil(count / 3), seed + 1),
-    // MT-02: Western to Central (Aktau to Aktobe)
-    generatePipelineRoute(43.6, 51.2, 50.3, 57.2, Math.ceil(count / 3), seed + 2),
-    // MT-03: Eastern route (Pavlodar to Shymkent)
-    generatePipelineRoute(52.3, 76.9, 42.3, 69.6, Math.ceil(count / 3), seed + 3),
-  ];
-
   let objectId = 1;
 
-  routes.forEach((route, pipelineIdx) => {
-    const pipeline = PIPELINES[pipelineIdx];
+  // Generate objects for each pipeline using exact route coordinates
+  for (const pipeline of PIPELINES) {
+    const route = PIPELINE_ROUTES[pipeline.id];
+    const generatedPoints = generateObjectsAlongPath(route, countPerPipeline, pipeline.id);
     
-    route.forEach((point) => {
+    for (const point of generatedPoints) {
       const objectType = weightedSelect(OBJECT_TYPES, OBJECT_TYPE_WEIGHTS, random);
       const nameTemplates = OBJECT_NAMES[objectType];
       const baseName = nameTemplates[Math.floor(random() * nameTemplates.length)];
@@ -146,15 +91,15 @@ export function generateObjects(count: number = 1000, seed: number = 42): Object
         object_name: `${baseName} №${objectId}`,
         object_type: objectType,
         pipeline_id: pipeline.id,
-        lat: point.lat,
-        lon: point.lon,
+        lat: parseFloat(point.lat.toFixed(6)),
+        lon: parseFloat(point.lon.toFixed(6)),
         year: 1960 + Math.floor(random() * 64), // 1960-2024
         material: MATERIALS[Math.floor(random() * MATERIALS.length)],
       });
       
       objectId++;
-    });
-  });
+    }
+  }
 
   return objects;
 }
@@ -340,11 +285,11 @@ export function diagnosticsToCsv(diagnostics: DiagnosticRow[]): string {
  * Generates both objects and diagnostics CSVs as Blobs
  */
 export function generateSyntheticData(
-  objectCount: number = 1000,
+  objectCountPerPipeline: number = 100,
   avgDiagnosticsPerObject: number = 5,
   highRiskPercentage: number = 0.10
 ): { objectsBlob: Blob; diagnosticsBlob: Blob; objectsCsv: string; diagnosticsCsv: string } {
-  const objects = generateObjects(objectCount);
+  const objects = generateObjects(objectCountPerPipeline);
   const diagnostics = generateDiagnostics(objects, avgDiagnosticsPerObject, highRiskPercentage);
   
   const objectsCsv = objectsToCsv(objects);
@@ -376,14 +321,13 @@ export function downloadBlob(blob: Blob, filename: string): void {
  * Generates and downloads synthetic data files
  */
 export function downloadSyntheticData(
-  objectCount: number = 1000,
+  objectCountPerPipeline: number = 100,
   avgDiagnosticsPerObject: number = 5
 ): void {
-  const { objectsBlob, diagnosticsBlob } = generateSyntheticData(objectCount, avgDiagnosticsPerObject);
+  const { objectsBlob, diagnosticsBlob } = generateSyntheticData(objectCountPerPipeline, avgDiagnosticsPerObject);
   
   downloadBlob(objectsBlob, "Objects.csv");
   setTimeout(() => {
     downloadBlob(diagnosticsBlob, "Diagnostics.csv");
   }, 100);
 }
-
