@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -209,6 +210,8 @@ export function ActionPlanModal({
     []
   );
 
+  const router = useRouter();
+
   const handleDownloadPdf = async () => {
     if (!actionPlanData?.result || !actionPlanData.object_data || !diagnostic)
       return;
@@ -244,6 +247,7 @@ export function ActionPlanModal({
       };
 
       generateActionPlanPdf(pdfData);
+      router.push("/plans");
     } catch (error) {
       console.error("Failed to save plan or generate PDF:", error);
       alert("Ошибка при сохранении плана. Попробуйте еще раз.");
