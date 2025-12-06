@@ -1,32 +1,33 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Download, AlertTriangle, Loader2, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { getHealthStyles } from "@/lib/objectHealthStyles";
-import { generateActionPlanPdf } from "@/lib/pdf-generator";
-import clientPocketBase from "@/app/api/client_pb";
+} from '@/components/ui/dialog';
+import { Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getHealthLabel } from '@/lib/constants';
+import { getHealthStyles } from '@/lib/objectHealthStyles';
+import { generateActionPlanPdf } from '@/lib/pdf-generator';
+import clientPocketBase from '@/app/api/client_pb';
 import type {
   ObjectsHealthStatusOptions,
   DiagnosticsResponse,
   PlanStatusOptions,
-} from "@/app/api/api_types";
+} from '@/app/api/api_types';
 import type {
   ActionPlanResponse,
   ActionPlanResult,
-} from "@/app/api/action-plan/route";
+} from '@/app/api/action-plan/route';
 
 interface ActionPlanModalProps {
   diagnosticId: string | null;
@@ -46,7 +47,7 @@ function ActionPlanField({
   id,
   label,
   value,
-  minHeight = "min-h-[80px]",
+  minHeight = 'min-h-[80px]',
   onChange,
 }: ActionPlanFieldProps) {
   return (
@@ -62,35 +63,32 @@ function ActionPlanField({
   );
 }
 
-const healthStatusConfig = {
-  OK: {
-    label: "Норма",
-  },
-  WARNING: {
-    label: "Предупреждение",
-  },
-  CRITICAL: {
-    label: "Критический",
-  },
-  UNKNOWN: {
-    label: "Неизвестно",
-  },
-};
 const PLAN_FIELDS = [
   {
-    id: "problem_description",
-    label: "Описание проблемы",
-    minHeight: "min-h-[120px]",
+    id: 'problem_summary',
+    label: 'Краткое заключение',
+    minHeight: 'min-h-[120px]',
   },
   {
-    id: "suggested_actions",
-    label: "Предлагаемые действия",
-    minHeight: "min-h-[150px]",
+    id: 'action_plan',
+    label: 'План действий (каждый пункт с новой строки)',
+    minHeight: 'min-h-[150px]',
+    isList: true,
   },
   {
-    id: "expected_result",
-    label: "Планируемый результат",
-    minHeight: "min-h-[100px]",
+    id: 'required_resources',
+    label: 'Необходимые ресурсы',
+    minHeight: 'min-h-[100px]',
+  },
+  {
+    id: 'safety_requirements',
+    label: 'Требования по безопасности',
+    minHeight: 'min-h-[100px]',
+  },
+  {
+    id: 'expected_outcome',
+    label: 'Ожидаемый результат',
+    minHeight: 'min-h-[100px]',
   },
 ] as const;
 
@@ -106,31 +104,39 @@ export function ActionPlanModal({
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const generateActionPlan = useCallback(async () => {
     if (!diagnosticId) return;
+
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
 
     setIsGenerating(true);
     setGenerationError(null);
     setActionPlanData(null);
 
     try {
-      const response = await fetch("/api/action-plan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/action-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ diagnostic_id: diagnosticId }),
+        signal: abortControllerRef.current.signal,
       });
 
       const data: ActionPlanResponse = await response.json();
 
       if (!data.success) {
-        throw new Error(data.error || "Ошибка генерации плана");
+        throw new Error(data.error || 'Ошибка генерации плана');
       }
 
       setActionPlanData(data);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        return;
+      }
       setGenerationError(
-        err instanceof Error ? err.message : "Неизвестная ошибка"
+        err instanceof Error ? err.message : 'Неизвестная ошибка',
       );
     } finally {
       setIsGenerating(false);
@@ -142,72 +148,54 @@ export function ActionPlanModal({
     if (isOpen && diagnosticId && !actionPlanData && !isGenerating) {
       generateActionPlan();
     }
+
+    return () => {
+      abortControllerRef.current?.abort();
+    };
   }, [isOpen, diagnosticId, actionPlanData, isGenerating, generateActionPlan]);
 
   const savePlanToPocketBase = useCallback(
     async (planData: ActionPlanResult, objectId: string) => {
+      const actionItems = (planData.action_plan || [])
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+
+      const actionIds: string[] = [];
+
       try {
-        // Parse suggested actions into individual items
-        // Expected formats:
-        // - "1. Action one\n2. Action two\n3. Action three"
-        // - "1. Action one. 2. Action two. 3. Action three."
-
-        // First, try to split by pattern like ". 2." or ". 3." etc.
-        // This regex matches: (end of sentence/period) + (space) + (digit) + (dot)
-        let actionItems = planData.suggested_actions
-          .split(/\.\s+(?=\d+\.\s)/) // Split before "2. ", "3. ", etc.
-          .map((line) => line.trim())
-          .map((line) => {
-            // Remove leading number and dot (e.g., "1. " or "2. ")
-            return line.replace(/^\d+\.\s*/, "");
-          })
-          .map((line) => {
-            // Remove trailing period if it exists
-            return line.replace(/\.$/, "");
-          })
-          .filter((line) => line.length > 0);
-
-        // If we only got 1 item, try splitting by newlines instead
-        if (actionItems.length <= 1) {
-          actionItems = planData.suggested_actions
-            .split(/\n/)
-            .map((line) => line.trim())
-            .filter((line) => line.match(/^\d+\./)) // Only lines starting with number and dot
-            .map((line) => line.replace(/^\d+\.\s*/, "")) // Remove the number prefix
-            .filter((line) => line.length > 0);
-        }
-
-        console.log("Parsed action items:", actionItems);
-        console.log("Original suggested_actions:", planData.suggested_actions);
-
-        // Create action records for each parsed action
-        const actionIds: string[] = [];
         for (const actionDescription of actionItems) {
           const actionRecord = await clientPocketBase
-            .collection("action")
+            .collection('action')
             .create({
               description: actionDescription,
-              status: false, // Not completed yet
+              status: false,
             });
           actionIds.push(actionRecord.id);
         }
 
-        // Create the plan record with linked actions
-        const planRecord = await clientPocketBase.collection("plan").create({
+        const planRecord = await clientPocketBase.collection('plan').create({
           object: objectId,
-          problem: planData.problem_description,
-          status: "created" as PlanStatusOptions,
+          problem: planData.problem_summary,
+          status: 'created' as PlanStatusOptions,
           actions: actionIds,
         });
 
         setPlanId(planRecord.id);
         return planRecord.id;
       } catch (error) {
-        console.error("Failed to save plan to PocketBase:", error);
+        // Cleanup any created actions to avoid orphaned records
+        await Promise.all(
+          actionIds.map((id) =>
+            clientPocketBase
+              .collection('action')
+              .delete(id)
+              .catch(() => {}),
+          ),
+        );
         throw error;
       }
     },
-    []
+    [],
   );
 
   const router = useRouter();
@@ -229,8 +217,8 @@ export function ActionPlanModal({
         object_data: {
           ...actionPlanData.object_data,
           last_diagnostic: {
-            date: diagnostic.date || "",
-            method: diagnostic.method || "",
+            date: diagnostic.date || '',
+            method: diagnostic.method || '',
             params: {
               param1: diagnostic.param1,
               param2: diagnostic.param2,
@@ -246,11 +234,11 @@ export function ActionPlanModal({
         result: actionPlanData.result,
       };
 
-      generateActionPlanPdf(pdfData);
-      router.push("/plans");
+      await generateActionPlanPdf(pdfData);
+      router.push('/plans');
     } catch (error) {
-      console.error("Failed to save plan or generate PDF:", error);
-      alert("Ошибка при сохранении плана. Попробуйте еще раз.");
+      console.error('Failed to save plan or generate PDF:', error);
+      alert('Ошибка при сохранении плана. Попробуйте еще раз.');
     } finally {
       setIsSaving(false);
     }
@@ -321,17 +309,14 @@ export function ActionPlanModal({
                     <Badge
                       variant="outline"
                       className={cn(
-                        "text-xs",
+                        'text-xs',
                         getHealthStyles(
                           actionPlanData.object_data
-                            .health_status as ObjectsHealthStatusOptions
-                        ).badgeClass
+                            .health_status as ObjectsHealthStatusOptions,
+                        ).badgeClass,
                       )}
                     >
-                      {healthStatusConfig[
-                        actionPlanData.object_data
-                          .health_status as keyof typeof healthStatusConfig
-                      ]?.label || actionPlanData.object_data.health_status}
+                      {getHealthLabel(actionPlanData.object_data.health_status)}
                     </Badge>
                     <span className="text-xs text-muted-foreground">
                       ({actionPlanData.object_data.urgency_score}/100)
@@ -352,9 +337,9 @@ export function ActionPlanModal({
                       <div className="font-medium">
                         {diagnostic.date
                           ? new Date(diagnostic.date).toLocaleDateString(
-                              "ru-RU"
+                              'ru-RU',
                             )
-                          : "-"}
+                          : '-'}
                       </div>
                     </div>
                     <div>
@@ -362,7 +347,7 @@ export function ActionPlanModal({
                         Метод:
                       </span>
                       <div className="font-medium">
-                        {diagnostic.method || "-"}
+                        {diagnostic.method || '-'}
                       </div>
                     </div>
                     {diagnostic.ml_label && (
@@ -371,11 +356,11 @@ export function ActionPlanModal({
                           AI Анализ:
                         </span>
                         <div className="font-medium">
-                          {diagnostic.ml_label === "normal"
-                            ? "Норма"
-                            : diagnostic.ml_label === "medium"
-                            ? "Средний риск"
-                            : "Высокий риск"}
+                          {diagnostic.ml_label === 'normal'
+                            ? 'Норма'
+                            : diagnostic.ml_label === 'medium'
+                              ? 'Средний риск'
+                              : 'Высокий риск'}
                         </div>
                       </div>
                     )}
@@ -416,15 +401,15 @@ export function ActionPlanModal({
                         </span>
                         <div
                           className={cn(
-                            "font-medium",
+                            'font-medium',
                             diagnostic.defect_found
-                              ? "text-destructive"
-                              : "text-emerald-600"
+                              ? 'text-destructive'
+                              : 'text-emerald-600',
                           )}
                         >
                           {diagnostic.defect_found
-                            ? "Обнаружен дефект"
-                            : "Дефектов не обнаружено"}
+                            ? 'Обнаружен дефект'
+                            : 'Дефектов не обнаружено'}
                         </div>
                       </div>
                     )}
@@ -432,31 +417,52 @@ export function ActionPlanModal({
                 </div>
               )}
             </div>
-            {PLAN_FIELDS.map((field) => (
-              <ActionPlanField
-                key={field.id}
-                id={field.id}
-                label={field.label}
-                value={
-                  actionPlanData.result?.[field.id as keyof ActionPlanResult] ||
-                  ""
-                }
-                minHeight={field.minHeight}
-                onChange={(value) =>
-                  setActionPlanData((prev) =>
-                    prev
-                      ? {
-                          ...prev,
-                          result: {
-                            ...prev.result!,
-                            [field.id]: value,
-                          },
-                        }
-                      : null
-                  )
-                }
-              />
-            ))}
+            {PLAN_FIELDS.map((field) => {
+              const value =
+                field.id === 'action_plan'
+                  ? (actionPlanData.result?.action_plan || []).join('\n')
+                  : (actionPlanData.result?.[
+                      field.id as keyof ActionPlanResult
+                    ] as string) || '';
+
+              return (
+                <ActionPlanField
+                  key={field.id}
+                  id={field.id}
+                  label={field.label}
+                  value={value}
+                  minHeight={field.minHeight}
+                  onChange={(updatedValue) =>
+                    setActionPlanData((prev) => {
+                      if (!prev) return prev;
+
+                      const currentResult: ActionPlanResult = prev.result ?? {
+                        action_plan: [],
+                        problem_summary: '',
+                        required_resources: '',
+                        safety_requirements: '',
+                        expected_outcome: '',
+                      };
+
+                      return {
+                        ...prev,
+                        result: {
+                          ...currentResult,
+                          ...(field.id === 'action_plan'
+                            ? {
+                                action_plan: updatedValue
+                                  .split(/\n+/)
+                                  .map((line) => line.trim())
+                                  .filter((line) => line.length > 0),
+                              }
+                            : { [field.id]: updatedValue }),
+                        },
+                      };
+                    })
+                  }
+                />
+              );
+            })}
           </div>
         ) : null}
 

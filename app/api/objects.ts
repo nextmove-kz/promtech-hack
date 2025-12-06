@@ -1,50 +1,50 @@
-import clientPocketBase from './client_pb'
+import clientPocketBase from './client_pb';
 import type {
   DiagnosticsMethodOptions,
   ObjectsResponse,
   PipelinesResponse,
-} from './api_types'
+} from './api_types';
 
 export interface GetObjectsParams {
-  page?: number
-  perPage?: number
-  filter?: string
-  sort?: string
-  diagnosticMethod?: DiagnosticsMethodOptions
-  recentSince?: string
+  page?: number;
+  perPage?: number;
+  filter?: string;
+  sort?: string;
+  diagnosticMethod?: DiagnosticsMethodOptions;
+  recentSince?: string;
 }
 
 export type ObjectWithPipeline = ObjectsResponse<{
-  pipeline?: PipelinesResponse
-}>
+  pipeline?: PipelinesResponse;
+}>;
 
 export interface GetObjectsResult {
-  page: number
-  perPage: number
-  totalItems: number
-  totalPages: number
-  items: ObjectWithPipeline[]
+  page: number;
+  perPage: number;
+  totalItems: number;
+  totalPages: number;
+  items: ObjectWithPipeline[];
 }
 
 export async function getObjects(
-  params: GetObjectsParams = {}
+  params: GetObjectsParams = {},
 ): Promise<GetObjectsResult> {
-  const page = params.page ?? 1
-  const perPage = params.perPage ?? 20
-  const filter = params.filter
-  const sort = params.sort
-  const diagnosticMethod = params.diagnosticMethod
-  const recentSince = params.recentSince
+  const page = params.page ?? 1;
+  const perPage = params.perPage ?? 20;
+  const filter = params.filter;
+  const sort = params.sort;
+  const diagnosticMethod = params.diagnosticMethod;
+  const recentSince = params.recentSince;
 
-  let combinedFilter = filter
+  let combinedFilter = filter;
 
   if (diagnosticMethod || recentSince) {
-    const diagFilters: string[] = []
+    const diagFilters: string[] = [];
     if (diagnosticMethod) {
-      diagFilters.push(`method = "${diagnosticMethod}"`)
+      diagFilters.push(`method = "${diagnosticMethod}"`);
     }
     if (recentSince) {
-      diagFilters.push(`date >= "${recentSince}"`)
+      diagFilters.push(`date >= "${recentSince}"`);
     }
 
     const diagnostics = await clientPocketBase
@@ -52,13 +52,15 @@ export async function getObjects(
       .getFullList<{ object?: string }>({
         fields: 'object',
         filter: diagFilters.join(' && '),
-      })
+      });
 
     const objectIds = Array.from(
       new Set(
-        diagnostics.map(d => d.object).filter((id): id is string => Boolean(id))
-      )
-    )
+        diagnostics
+          .map((d) => d.object)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
 
     if (objectIds.length === 0) {
       return {
@@ -67,13 +69,13 @@ export async function getObjects(
         totalItems: 0,
         totalPages: 0,
         items: [],
-      }
+      };
     }
 
-    const diagClause = objectIds.map(id => `id = "${id}"`).join(' || ')
+    const diagClause = objectIds.map((id) => `id = "${id}"`).join(' || ');
     combinedFilter = combinedFilter
       ? `(${combinedFilter}) && (${diagClause})`
-      : diagClause
+      : diagClause;
   }
 
   const result = await clientPocketBase
@@ -82,7 +84,7 @@ export async function getObjects(
       expand: 'pipeline',
       filter: combinedFilter,
       sort,
-    })
+    });
 
   return {
     page: result.page,
@@ -90,21 +92,21 @@ export async function getObjects(
     totalItems: result.totalItems,
     totalPages: result.totalPages,
     items: result.items,
-  }
+  };
 }
 
 export async function getObjectById(
-  objectId: string
+  objectId: string,
 ): Promise<ObjectWithPipeline | null> {
   try {
     const record = await clientPocketBase
       .collection('objects')
       .getOne<ObjectWithPipeline>(objectId, {
         expand: 'pipeline',
-      })
+      });
 
-    return record
+    return record;
   } catch {
-    return null
+    return null;
   }
 }

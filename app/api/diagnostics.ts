@@ -1,29 +1,25 @@
-import clientPocketBase from './client_pb'
-import type { DiagnosticsResponse, ObjectsResponse, PipelinesResponse } from './api_types'
+import clientPocketBase from './client_pb';
+import type { DiagnosticWithObject } from '@/lib/types/api';
 
-export type DiagnosticWithObject = DiagnosticsResponse<{
-  object?: ObjectsResponse<{
-    pipeline?: PipelinesResponse
-  }>
-}>
+export type { DiagnosticWithObject } from '@/lib/types/api';
 
 export async function getDiagnosticByObjectId(
-  objectId: string
+  objectId: string,
 ): Promise<DiagnosticWithObject | null> {
   try {
     const record = await clientPocketBase
       .collection('diagnostics')
       .getFirstListItem<DiagnosticWithObject>(`object="${objectId}"`, {
-        expand: 'object,object.pipeline'
-      })
-    return record
+        expand: 'object,object.pipeline',
+      });
+    return record;
   } catch {
-    return null
+    return null;
   }
 }
 
 export async function getAllDiagnosticsByObjectId(
-  objectId: string
+  objectId: string,
 ): Promise<DiagnosticWithObject[]> {
   try {
     const records = await clientPocketBase
@@ -31,10 +27,10 @@ export async function getAllDiagnosticsByObjectId(
       .getFullList<DiagnosticWithObject>({
         filter: `object="${objectId}"`,
         sort: 'date',
-        expand: 'object,object.pipeline'
-      })
-    return records
+        expand: 'object,object.pipeline',
+      });
+    return records;
   } catch {
-    return []
+    return [];
   }
 }

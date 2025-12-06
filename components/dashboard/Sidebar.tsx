@@ -1,12 +1,12 @@
-import { DiagnosticDetailsPanel } from './DiagnosticDetailsPanel'
-import { ObjectCardList } from './ObjectCardList'
+import { DiagnosticDetailsPanel } from './DiagnosticDetailsPanel';
+import { ObjectCardList } from './ObjectCardList';
 
 interface SidebarProps {
-  selectedObjectId: string | null
-  viewMode: 'map' | 'table'
-  onObjectSelect: (objectId: string) => void
-  onClosePanel: () => void
-  onExpandTable: () => void
+  selectedObjectId: string | null;
+  viewMode: 'map' | 'table';
+  onObjectSelect: (objectId: string) => void;
+  onClosePanel: () => void;
+  onExpandTable: () => void;
 }
 
 export function Sidebar({
@@ -18,8 +18,11 @@ export function Sidebar({
 }: SidebarProps) {
   if (selectedObjectId) {
     return (
-      <DiagnosticDetailsPanel objectId={selectedObjectId} onClose={onClosePanel} />
-    )
+      <DiagnosticDetailsPanel
+        objectId={selectedObjectId}
+        onClose={onClosePanel}
+      />
+    );
   }
 
   if (viewMode === 'map') {
@@ -29,9 +32,8 @@ export function Sidebar({
         onExpandTable={onExpandTable}
         selectedId={selectedObjectId}
       />
-    )
+    );
   }
 
-  return null
+  return null;
 }
-

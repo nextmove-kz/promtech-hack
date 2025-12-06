@@ -1,17 +1,17 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
-import { PlanTrackerTable } from '@/components/dashboard/PlanTrackerTable'
-import { Button } from '@/components/ui/button'
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
+import { PlanTrackerTable } from '@/components/dashboard/PlanTrackerTable';
+import { Button } from '@/components/ui/button';
 
 export default function PlansPage() {
-  const router = useRouter()
+  const router = useRouter();
 
   const handleShowOnMap = (objectId: string) => {
-    router.push(`/?object=${objectId}`)
-  }
+    router.push(`/?object=${objectId}`);
+  };
 
   return (
     <div className="min-h-screen bg-background px-4 py-6">
@@ -24,13 +24,14 @@ export default function PlansPage() {
                 Назад к карте
               </Link>
             </Button>
-            <h1 className="text-xl font-semibold text-foreground">Трекер задач</h1>
+            <h1 className="text-xl font-semibold text-foreground">
+              Трекер задач
+            </h1>
           </div>
         </div>
 
         <PlanTrackerTable onShowOnMap={handleShowOnMap} />
       </div>
     </div>
-  )
+  );
 }
-

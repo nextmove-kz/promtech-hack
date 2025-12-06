@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { ChartNetwork, Gauge } from "lucide-react";
-import { FilterBar } from "@/components/dashboard/FilterBar";
-import { DataImporter } from "@/components/data-importer";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { Gauge } from 'lucide-react';
+import { FilterBar } from '@/components/dashboard/FilterBar';
+import { DataImporter } from '@/components/data-importer';
+import { Button } from '@/components/ui/button';
 
 export function Header() {
   return (

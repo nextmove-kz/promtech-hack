@@ -1,23 +1,23 @@
-"use client"
+'use client';
 
-import { Marker, Popup } from "react-leaflet"
-import type { PipelineObject } from "@/app/types/pipeline"
-import { getMarkerColorByType, createColoredIcon } from "./map-utils"
+import { Marker, Popup } from 'react-leaflet';
+import type { PipelineObject } from '@/lib/types/pipeline';
+import { getMarkerColorByType, createColoredIcon } from './map-utils';
 
 interface PipelineMarkerProps {
-  object: PipelineObject
-  onClick?: (object: PipelineObject) => void
+  object: PipelineObject;
+  onClick?: (object: PipelineObject) => void;
 }
 
 export function PipelineMarker({ object, onClick }: PipelineMarkerProps) {
-  const color = getMarkerColorByType(object.object_type)
-  const icon = createColoredIcon(color)
+  const color = getMarkerColorByType(object.object_type);
+  const icon = createColoredIcon(color);
 
   const handleClick = () => {
     if (onClick) {
-      onClick(object)
+      onClick(object);
     }
-  }
+  };
 
   return (
     <Marker
@@ -35,11 +35,14 @@ export function PipelineMarker({ object, onClick }: PipelineMarkerProps) {
               <span className="font-semibold">ID:</span> {object.object_id}
             </div>
             <div>
-              <span className="font-semibold">Type:</span>{" "}
-              <span className="capitalize">{object.object_type.replace("_", " ")}</span>
+              <span className="font-semibold">Type:</span>{' '}
+              <span className="capitalize">
+                {object.object_type.replace('_', ' ')}
+              </span>
             </div>
             <div>
-              <span className="font-semibold">Pipeline:</span> {object.pipeline_id}
+              <span className="font-semibold">Pipeline:</span>{' '}
+              {object.pipeline_id}
             </div>
             <div>
               <span className="font-semibold">Year:</span> {object.year}
@@ -54,5 +57,5 @@ export function PipelineMarker({ object, onClick }: PipelineMarkerProps) {
         </div>
       </Popup>
     </Marker>
-  )
+  );
 }

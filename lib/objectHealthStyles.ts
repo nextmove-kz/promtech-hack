@@ -1,6 +1,6 @@
-import type { ObjectsHealthStatusOptions } from '@/app/api/api_types'
+import type { ObjectsHealthStatusOptions } from '@/app/api/api_types';
 
-type HealthStatus = ObjectsHealthStatusOptions | 'UNKNOWN'
+type HealthStatus = ObjectsHealthStatusOptions | 'UNKNOWN';
 
 const healthStyles: Record<
   HealthStatus,
@@ -26,9 +26,9 @@ const healthStyles: Record<
     borderClass: 'border-l-4 border-l-border',
     hoverClass: 'hover:bg-muted/70',
   },
-}
+};
 
 export function getHealthStyles(status?: ObjectsHealthStatusOptions | null) {
-  const key = (status ?? 'UNKNOWN') as HealthStatus
-  return healthStyles[key] ?? healthStyles.UNKNOWN
+  const key = (status ?? 'UNKNOWN') as HealthStatus;
+  return healthStyles[key] ?? healthStyles.UNKNOWN;
 }

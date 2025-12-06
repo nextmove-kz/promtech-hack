@@ -7,7 +7,7 @@ import { MapView } from '@/components/dashboard/MapView';
 import { TableView } from '@/components/dashboard/TableView';
 import { Sidebar } from '@/components/dashboard/Sidebar';
 
-type ViewMode = "map" | "table";
+type ViewMode = 'map' | 'table';
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -15,7 +15,7 @@ function HomeContent() {
   const initialSelected = searchParams.get('object');
   const [viewMode, setViewMode] = useState<ViewMode>('map');
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(
-    initialSelected
+    initialSelected,
   );
 
   const handleObjectSelect = (objectId: string) => {
@@ -56,7 +56,7 @@ function HomeContent() {
       </main>
     </div>
   );
-};
+}
 
 export default function Index() {
   return (

@@ -4,7 +4,7 @@ import type {
   DiagnosticsMethodOptions,
   DiagnosticsQualityGradeOptions,
   DiagnosticsMlLabelOptions,
-} from "@/app/api/api_types";
+} from '@/app/api/api_types';
 
 /**
  * Risk scoring weights for prioritization
@@ -53,9 +53,9 @@ export function calculateRiskScore(diagnostics: DiagnosticsResponse[]): number {
   let hasConflict = false;
 
   // Track findings by method type
-  const mflFindings = diagnostics.filter((d) => d.method === "MFL");
+  const mflFindings = diagnostics.filter((d) => d.method === 'MFL');
   const visualFindings = diagnostics.filter(
-    (d) => d.method === "VIK" || d.method === "TVK"
+    (d) => d.method === 'VIK' || d.method === 'TVK',
   );
 
   // Check for MFL vs Visual conflict
@@ -70,10 +70,7 @@ export function calculateRiskScore(diagnostics: DiagnosticsResponse[]): number {
 
     // Quality grade score
     if (d.quality_grade) {
-      score = Math.max(
-        score,
-        RISK_WEIGHTS.qualityGrade[d.quality_grade] || 0
-      );
+      score = Math.max(score, RISK_WEIGHTS.qualityGrade[d.quality_grade] || 0);
     }
 
     // ML label score
@@ -113,13 +110,13 @@ export function calculateRiskScore(diagnostics: DiagnosticsResponse[]): number {
  * Categorize risk level based on score
  */
 export function getRiskLevel(
-  score: number
-): "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "NORMAL" {
-  if (score >= 80) return "CRITICAL";
-  if (score >= 60) return "HIGH";
-  if (score >= 40) return "MEDIUM";
-  if (score >= 20) return "LOW";
-  return "NORMAL";
+  score: number,
+): 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' | 'NORMAL' {
+  if (score >= 80) return 'CRITICAL';
+  if (score >= 60) return 'HIGH';
+  if (score >= 40) return 'MEDIUM';
+  if (score >= 20) return 'LOW';
+  return 'NORMAL';
 }
 
 /**
@@ -128,7 +125,7 @@ export function getRiskLevel(
  */
 export function sortByRiskPriority(
   objects: ObjectsResponse[],
-  diagnosticsMap: Map<string, DiagnosticsResponse[]>
+  diagnosticsMap: Map<string, DiagnosticsResponse[]>,
 ): ObjectsResponse[] {
   return [...objects].sort((a, b) => {
     const diagA = diagnosticsMap.get(a.id) || [];
@@ -146,7 +143,7 @@ export function sortByRiskPriority(
 export function filterHighRiskObjects(
   objects: ObjectsResponse[],
   diagnosticsMap: Map<string, DiagnosticsResponse[]>,
-  threshold: number = 40
+  threshold: number = 40,
 ): ObjectsResponse[] {
   return objects.filter((obj) => {
     const diagnostics = diagnosticsMap.get(obj.id) || [];
@@ -166,7 +163,7 @@ export async function getAnalysisPriorityQueue(
     highRiskOnly?: boolean;
     riskThreshold?: number;
     maxObjects?: number;
-  } = {}
+  } = {},
 ): Promise<string[]> {
   const { highRiskOnly = false, riskThreshold = 40, maxObjects } = options;
 
@@ -177,7 +174,7 @@ export async function getAnalysisPriorityQueue(
     filteredObjects = filterHighRiskObjects(
       objects,
       diagnosticsMap,
-      riskThreshold
+      riskThreshold,
     );
   }
 
@@ -199,13 +196,13 @@ export function hasDataConflict(diagnostics: DiagnosticsResponse[]): boolean {
   // Group by method type
   const internalMethods = diagnostics.filter(
     (d) =>
-      d.method === "MFL" ||
-      d.method === "UZK" ||
-      d.method === "RGK" ||
-      d.method === "TFI"
+      d.method === 'MFL' ||
+      d.method === 'UZK' ||
+      d.method === 'RGK' ||
+      d.method === 'TFI',
   );
   const surfaceMethods = diagnostics.filter(
-    (d) => d.method === "VIK" || d.method === "TVK" || d.method === "PVK"
+    (d) => d.method === 'VIK' || d.method === 'TVK' || d.method === 'PVK',
   );
 
   // Check for internal defect with clean surface
@@ -218,16 +215,16 @@ export function hasDataConflict(diagnostics: DiagnosticsResponse[]): boolean {
 
   // Check for contradicting quality grades in same timeframe
   const recentDiagnostics = diagnostics
-    .filter((d) => d.date)
-    .sort((a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime())
+    .filter((d): d is DiagnosticsResponse & { date: string } => Boolean(d.date))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5);
 
   const grades = recentDiagnostics.map((d) => d.quality_grade).filter(Boolean);
   const hasGoodGrade = grades.some(
-    (g) => g === "удовлетворительно" || g === "допустимо"
+    (g) => g === 'удовлетворительно' || g === 'допустимо',
   );
   const hasBadGrade = grades.some(
-    (g) => g === "недопустимо" || g === "требует_мер"
+    (g) => g === 'недопустимо' || g === 'требует_мер',
   );
 
   if (hasGoodGrade && hasBadGrade) {
@@ -250,8 +247,7 @@ export function summarizeDiagnostics(diagnostics: DiagnosticsResponse[]): {
   hasConflict: boolean;
 } {
   const sorted = [...diagnostics].sort(
-    (a, b) =>
-      new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
+    (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime(),
   );
 
   const methods = [
@@ -270,4 +266,3 @@ export function summarizeDiagnostics(diagnostics: DiagnosticsResponse[]): {
     hasConflict: hasDataConflict(diagnostics),
   };
 }
-
