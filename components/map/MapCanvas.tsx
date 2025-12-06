@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { useObjects } from "@/hooks/useObjects";
 import type { PipelineId } from "@/lib/generator-utils";
@@ -66,23 +65,7 @@ export function MapCanvas({
   height = "100%",
   className = "",
 }: MapCanvasProps) {
-  const [mounted, setMounted] = useState(false);
   const { data: objectsData, isLoading } = useObjects({ perPage: 500 });
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
-    return (
-      <div
-        className={`bg-slate-100 animate-pulse rounded-lg flex items-center justify-center ${className}`}
-        style={{ height }}
-      >
-        <div className="text-slate-500 text-sm">Загрузка карты...</div>
-      </div>
-    );
-  }
 
   const objects = objectsData?.items ?? [];
 

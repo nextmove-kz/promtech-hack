@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { MapContainer, TileLayer, useMap } from "react-leaflet"
 import type { PipelineObject } from "@/app/types/pipeline"
 import { PipelineMarker } from "./PipelineMarker"
@@ -39,25 +39,6 @@ export function PipelineMap({
   className = "",
   fitBounds = true,
 }: PipelineMapProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div
-        className={`bg-gray-100 animate-pulse rounded-lg ${className}`}
-        style={{ height }}
-      >
-        <div className="flex items-center justify-center h-full text-gray-500">
-          Loading map...
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className={className}>
       <MapContainer

@@ -267,7 +267,7 @@ type ProcessCreateAndUpdateFields<T> = Omit<{
 		// Convert FileNameString to File
 		T[K] extends infer U ? 
 			U extends (FileNameString | FileNameString[]) ? 
-				U extends any[] ? File[] : File 
+				U extends unknown[] ? File[] : File 
 			: U
 		: never
 }, 'id'>

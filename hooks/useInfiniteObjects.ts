@@ -86,7 +86,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       filters.push(`name ~ "${debouncedSearchQuery}"`)
     }
     return filters.join(' && ')
-  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters, bounds])
+  }, [activeFilters, advanced, debouncedSearchQuery, hasFilters, hasBounds, bounds])
 
   return useInfiniteQuery<GetObjectsResult>({
     queryKey: [

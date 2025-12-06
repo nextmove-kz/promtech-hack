@@ -82,7 +82,7 @@ export function useUpdateActionStatus() {
       actionId: string
       status: boolean
     }) => updateActionStatus(actionId, status),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       // Invalidate plan queries that might contain this action
       queryClient.invalidateQueries({ queryKey: ['plan'] })
     },
