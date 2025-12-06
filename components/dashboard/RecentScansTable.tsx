@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Activity, ExternalLink, ChevronRight } from 'lucide-react'
 import { useObjects } from '@/hooks/useObjects'
 import { Pagination } from '@/components/ui/pagination'
+import { getHealthStyles } from '@/lib/objectHealthStyles'
 
 interface RecentScansTableProps {
   onRowClick?: (defectId: string) => void
@@ -77,41 +78,56 @@ export function RecentScansTable({ onRowClick }: RecentScansTableProps) {
                 Материал
               </TableHead>
               <TableHead className='text-xs font-medium text-muted-foreground'>
+                Срочность
+              </TableHead>
+              <TableHead className='text-xs font-medium text-muted-foreground'>
                 Год
               </TableHead>
               <TableHead className='w-[40px]'></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data?.items?.map(object => (
-              <TableRow
-                key={object.id}
-                onClick={() => onRowClick?.(object.id)}
-                className='cursor-pointer border-border/50 transition-colors hover:bg-secondary/50'
-              >
-                <TableCell className='text-sm font-medium'>
-                  {object.name || '-'}
-                </TableCell>
-                <TableCell>
-                  <Badge variant='outline' className='text-xs'>
-                    {object.type || '-'}
-                  </Badge>
-                </TableCell>
-                <TableCell className='text-sm text-muted-foreground'>
-                  {object.material || '-'}
-                </TableCell>
-                <TableCell className='tabular-nums text-sm text-muted-foreground'>
-                  {object.year || '-'}
-                </TableCell>
-                <TableCell>
-                  <ChevronRight className='h-4 w-4 text-muted-foreground' />
-                </TableCell>
-              </TableRow>
-            ))}
+            {data?.items?.map(object => {
+              const styles = getHealthStyles(object.health_status)
+
+              return (
+                <TableRow
+                  key={object.id}
+                  onClick={() => onRowClick?.(object.id)}
+                  className='cursor-pointer border-border/50 transition-colors hover:bg-secondary/50'
+                >
+                  <TableCell className='text-sm font-medium'>
+                    {object.name || '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant='outline' className='text-xs'>
+                      {object.type || '-'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className='text-sm text-muted-foreground'>
+                    {object.material || '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant='outline'
+                      className={`text-xs ${styles.badgeClass}`}
+                    >
+                      {object.urgency_score ?? '—'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className='tabular-nums text-sm text-muted-foreground'>
+                    {object.year || '-'}
+                  </TableCell>
+                  <TableCell>
+                    <ChevronRight className='h-4 w-4 text-muted-foreground' />
+                  </TableCell>
+                </TableRow>
+              )
+            })}
             {data?.items?.length === 0 && (
               <TableRow>
                 <TableCell
-                  colSpan={5}
+                  colSpan={6}
                   className='text-center text-sm text-muted-foreground py-8'
                 >
                   Нет данных
