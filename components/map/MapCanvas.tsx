@@ -1,56 +1,58 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import dynamic from "next/dynamic"
-import { useObjects } from "@/hooks/useObjects"
-import type { PipelineId } from "@/lib/generator-utils"
+import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+import { useObjects } from "@/hooks/useObjects";
+import type { PipelineId } from "@/lib/generator-utils";
 
 // Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(
   () => import("react-leaflet").then((mod) => mod.MapContainer),
   { ssr: false }
-)
+);
 const TileLayer = dynamic(
   () => import("react-leaflet").then((mod) => mod.TileLayer),
   { ssr: false }
-)
+);
 
 // Dynamic imports for our layers
 const PipelinesLayer = dynamic(
   () => import("./layers/PipelinesLayer").then((mod) => mod.PipelinesLayer),
   { ssr: false }
-)
+);
 const ObjectsLayer = dynamic(
   () => import("./layers/ObjectsLayer").then((mod) => mod.ObjectsLayer),
   { ssr: false }
-)
+);
 const MapCenterController = dynamic(
   () => import("./MapCenterController").then((mod) => mod.MapCenterController),
   { ssr: false }
-)
+);
 
 interface MapCanvasProps {
-  onObjectSelect: (id: string) => void
-  selectedObjectId?: string | null
-  activePipelineId?: PipelineId | null
-  height?: string
-  className?: string
+  onObjectSelect: (id: string) => void;
+  selectedObjectId?: string | null;
+  activePipelineId?: PipelineId | null;
+  height?: string;
+  className?: string;
 }
 
-const KAZAKHSTAN_CENTER: [number, number] = [48.0, 66.5]
-const DEFAULT_ZOOM = 6
-const MIN_ZOOM = 5
-const MAX_ZOOM = 18
+const KAZAKHSTAN_CENTER: [number, number] = [48.0, 66.5];
+const DEFAULT_ZOOM = 6;
+const MIN_ZOOM = 5;
+const MAX_ZOOM = 18;
 
 // Kazakhstan approximate bounds: [southwest, northeast]
 const KAZAKHSTAN_BOUNDS: [[number, number], [number, number]] = [
   [40.0, 46.0], // Southwest corner
   [55.5, 87.5], // Northeast corner
-]
+];
 
 // CartoDB Positron (Light) tile layer
-const TILE_URL = "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-const TILE_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+const TILE_URL =
+  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+const TILE_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
 export function MapCanvas({
   onObjectSelect,
@@ -59,12 +61,12 @@ export function MapCanvas({
   height = "100%",
   className = "",
 }: MapCanvasProps) {
-  const [mounted, setMounted] = useState(false)
-  const { data: objectsData, isLoading } = useObjects({ perPage: 100 })
+  const [mounted, setMounted] = useState(false);
+  const { data: objectsData, isLoading } = useObjects({ perPage: 500 });
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    setMounted(true);
+  }, []);
 
   if (!mounted) {
     return (
@@ -74,10 +76,10 @@ export function MapCanvas({
       >
         <div className="text-slate-500 text-sm">Загрузка карты...</div>
       </div>
-    )
+    );
   }
 
-  const objects = objectsData?.items ?? []
+  const objects = objectsData?.items ?? [];
 
   return (
     <div className={`relative ${className}`} style={{ height, zIndex: 0 }}>
@@ -88,13 +90,15 @@ export function MapCanvas({
         maxZoom={MAX_ZOOM}
         maxBounds={KAZAKHSTAN_BOUNDS}
         maxBoundsViscosity={1.0}
-        style={{ height: "100%", width: "100%", background: "#f8fafc", zIndex: 0 }}
+        style={{
+          height: "100%",
+          width: "100%",
+          background: "#f8fafc",
+          zIndex: 0,
+        }}
         scrollWheelZoom={true}
       >
-        <TileLayer
-          attribution={TILE_ATTRIBUTION}
-          url={TILE_URL}
-        />
+        <TileLayer attribution={TILE_ATTRIBUTION} url={TILE_URL} />
 
         {/* Map center controller for auto-zoom */}
         <MapCenterController
@@ -114,7 +118,7 @@ export function MapCanvas({
           />
         )}
       </MapContainer>
-      
+
       {/* Loading overlay */}
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-white/50 pointer-events-none z-[1000]">
@@ -123,7 +127,7 @@ export function MapCanvas({
           </div>
         </div>
       )}
-      
+
       {/* Legend */}
       <div className="absolute bottom-6 left-4 z-[1000] rounded-md border border-slate-200 bg-white/95 p-3 backdrop-blur-sm shadow-sm">
         <div className="space-y-2 text-xs">
@@ -151,5 +155,5 @@ export function MapCanvas({
         </div>
       </div>
     </div>
-  )
+  );
 }
