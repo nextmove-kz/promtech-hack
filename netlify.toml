@@ -4,4 +4,6 @@
 
 [build.environment]
   BUN_INSTALL_OPTIONAL = "true"
+  NETLIFY_USE_BUN = "true"
+  TAILWIND_DISABLE_OXIDE = "1"
 
