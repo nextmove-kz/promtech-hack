@@ -171,11 +171,7 @@ export function DiagnosticDetailsPanel({
   const statusConfig =
     healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN;
 
-  const contentState = error
-    ? "error"
-    : hasDiagnostics
-      ? "data"
-      : "empty";
+  const contentState = error ? "error" : hasDiagnostics ? "data" : "empty";
 
   return (
     <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
@@ -245,7 +241,10 @@ export function DiagnosticDetailsPanel({
                               /100
                             </span>
                           </div>
-                          <Progress value={urgencyScore} className="mt-2 h-1.5" />
+                          <Progress
+                            value={urgencyScore}
+                            className="mt-2 h-1.5"
+                          />
                         </div>
                       )}
                       {aiSummary && (
@@ -307,7 +306,9 @@ export function DiagnosticDetailsPanel({
                             <div className="space-y-1">
                               <div className="flex items-center gap-1.5 text-muted-foreground">
                                 <Calendar className="h-3.5 w-3.5" />
-                                <span className="text-xs">Дата диагностики</span>
+                                <span className="text-xs">
+                                  Дата диагностики
+                                </span>
                               </div>
                               <p className="font-medium text-foreground">
                                 {diagnosticDate}
@@ -368,7 +369,9 @@ export function DiagnosticDetailsPanel({
                                 </span>
                                 <Badge
                                   variant={
-                                    hasDiagnosticIssue ? "destructive" : "outline"
+                                    hasDiagnosticIssue
+                                      ? "destructive"
+                                      : "outline"
                                   }
                                   className="text-xs"
                                 >
