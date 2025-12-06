@@ -1,13 +1,13 @@
-'use client'
+'use client';
 
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { KPICards } from '@/components/dashboard/stats/KPICards'
-import { LinearAssetVisualization } from '@/components/dashboard/stats/LinearAssetVisualization'
-import { MaterialDegradationChart } from '@/components/dashboard/stats/MaterialDegradationChart'
-import { AgeDefectsChart } from '@/components/dashboard/stats/AgeDefectsChart'
-import { DefectTypesChart } from '@/components/dashboard/stats/DefectTypesChart'
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { KPICards } from '@/components/dashboard/stats/KPICards';
+import { LinearAssetVisualization } from '@/components/dashboard/stats/LinearAssetVisualization';
+import { MaterialDegradationChart } from '@/components/dashboard/stats/MaterialDegradationChart';
+import { AgeDefectsChart } from '@/components/dashboard/stats/AgeDefectsChart';
+import { DefectTypesChart } from '@/components/dashboard/stats/DefectTypesChart';
 
 export default function StatsPage() {
   return (
@@ -23,8 +23,12 @@ export default function StatsPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">Digital Pipeline Passport</h1>
-              <p className="text-sm text-muted-foreground">Strategic Management Dashboard</p>
+              <h1 className="text-2xl font-bold text-foreground">
+                Digital Pipeline Passport
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Strategic Management Dashboard
+              </p>
             </div>
           </div>
         </div>
@@ -43,5 +47,5 @@ export default function StatsPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

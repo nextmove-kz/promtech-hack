@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Gauge } from 'lucide-react';
+import { Gauge, LineChart } from 'lucide-react';
 import { FilterBar } from '@/components/dashboard/FilterBar';
 import { DataImporter } from '@/components/data-importer';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ export function Header() {
               href="/stats"
               className="ml-2  text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 p-1 rounded-md"
             >
-              <ChartNetwork className="h-5 w-5" />
+              <LineChart className="h-5 w-5" />
             </Link>
           </div>
         </div>

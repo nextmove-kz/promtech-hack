@@ -1,43 +1,65 @@
-'use client'
+'use client';
 
-import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import pb from '@/app/api/client_pb'
-import type { DiagnosticsResponse } from '@/app/api/api_types'
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
+import { useQuery } from '@tanstack/react-query';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import pb from '@/app/api/client_pb';
+import type { DiagnosticsResponse } from '@/app/api/api_types';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
+
+type MethodStats = { count: number; withDefects: number };
+type MethodChartEntry = {
+  name: string;
+  value: number;
+  total: number;
+  percentage: string;
+};
 
 export function DefectTypesChart() {
-  const { data: diagnostics = [], isLoading } = useQuery<DiagnosticsResponse[]>({
-    queryKey: ['diagnostics'],
-    queryFn: async () => {
-      return await pb.collection('diagnostics').getFullList<DiagnosticsResponse>({
-        sort: '-created',
-      })
+  const { data: diagnostics = [], isLoading } = useQuery<DiagnosticsResponse[]>(
+    {
+      queryKey: ['diagnostics'],
+      queryFn: async () => {
+        return await pb
+          .collection('diagnostics')
+          .getFullList<DiagnosticsResponse>({
+            sort: '-created',
+          });
+      },
     },
-  })
+  );
 
   // Group by diagnostic method (as proxy for defect type)
-  const methodCounts = diagnostics.reduce((acc, diag) => {
-    const method = diag.method || 'Unknown'
-    if (!acc[method]) {
-      acc[method] = { count: 0, withDefects: 0 }
-    }
-    acc[method].count++
-    if (diag.defect_found) {
-      acc[method].withDefects++
-    }
-    return acc
-  }, {} as Record<string, { count: number; withDefects: number }>)
+  const methodCounts = diagnostics.reduce<Record<string, MethodStats>>(
+    (acc, diag) => {
+      const method = diag.method || 'Unknown';
+      if (!acc[method]) {
+        acc[method] = { count: 0, withDefects: 0 };
+      }
+      acc[method].count += 1;
+      if (diag.defect_found) {
+        acc[method].withDefects += 1;
+      }
+      return acc;
+    },
+    {},
+  );
 
-  const chartData = Object.entries(methodCounts)
+  const chartData: MethodChartEntry[] = Object.entries(methodCounts)
     .map(([method, data]) => ({
       name: method,
       value: data.withDefects,
       total: data.count,
       percentage: ((data.withDefects / data.count) * 100).toFixed(1),
     }))
-    .filter(item => item.value > 0)
-    .sort((a, b) => b.value - a.value)
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   // Color palette for different methods
   const COLORS = [
@@ -52,13 +74,7 @@ export function DefectTypesChart() {
     '#d946ef', // fuchsia
     '#ec4899', // pink
     '#f97316', // orange-600
-  ]
-
-  // Custom label for pie chart
-  const renderCustomLabel = (entry: any) => {
-    return `${entry.name}: ${entry.value}`
-  }
-
+  ];
   return (
     <Card>
       <CardHeader>
@@ -86,10 +102,15 @@ export function DefectTypesChart() {
                   outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                  label={({ name, percent }) =>
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
+                  }
                 >
                   {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    <Cell
+                      key={entry.name}
+                      fill={COLORS[index % COLORS.length]}
+                    />
                   ))}
                 </Pie>
                 <Tooltip
@@ -99,16 +120,30 @@ export function DefectTypesChart() {
                     borderRadius: '0.5rem',
                     fontSize: '12px',
                   }}
-                  formatter={(value: any, name: string, props: any) => {
-                    const { total, percentage } = props.payload
+                  formatter={(
+                    value: number,
+                    name: string,
+                    item: Payload<number, string>,
+                  ) => {
+                    const { total, percentage } =
+                      item.payload as MethodChartEntry;
                     return [
                       <div key="tooltip" className="space-y-1">
-                        <div>Дефектов: <span className="font-semibold">{value}</span></div>
-                        <div>Всего проверок: <span className="font-semibold">{total}</span></div>
-                        <div>Процент: <span className="font-semibold">{percentage}%</span></div>
+                        <div>
+                          Дефектов:{' '}
+                          <span className="font-semibold">{value}</span>
+                        </div>
+                        <div>
+                          Всего проверок:{' '}
+                          <span className="font-semibold">{total}</span>
+                        </div>
+                        <div>
+                          Процент:{' '}
+                          <span className="font-semibold">{percentage}%</span>
+                        </div>
                       </div>,
-                      name
-                    ]
+                      name,
+                    ];
                   }}
                 />
               </PieChart>
@@ -121,7 +156,10 @@ export function DefectTypesChart() {
                 <span>Дефекты / Всего</span>
               </div>
               {chartData.slice(0, 5).map((item, index) => (
-                <div key={item.name} className="flex items-center justify-between text-xs">
+                <div
+                  key={item.name}
+                  className="flex items-center justify-between text-xs"
+                >
                   <div className="flex items-center gap-2">
                     <div
                       className="h-3 w-3 rounded-sm"
@@ -144,5 +182,5 @@ export function DefectTypesChart() {
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
