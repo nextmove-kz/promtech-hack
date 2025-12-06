@@ -58,4 +58,4 @@ export function toBounds(bounds: MapBounds): L.LatLngBoundsExpression {
  * Default map center (Kazakhstan approximate center)
  */
 export const DEFAULT_CENTER: [number, number] = [48.0196, 66.9237]
-export const DEFAULT_ZOOM = 6
+export const DEFAULT_ZOOM = 5
