@@ -21,14 +21,19 @@ import {
   ReferenceLine,
 } from 'recharts';
 import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 export function LinearAssetVisualization() {
   const { data: objects = [], isLoading } = useQuery<ObjectsResponse[]>({
     queryKey: ['objects'],
     queryFn: async () => {
-      return await pb.collection('objects').getFullList<ObjectsResponse>({
-        sort: '-created',
-      });
+      const records = await pb.collection('objects').getFullList<ObjectsResponse>(
+        {
+          sort: '-created',
+        },
+      );
+
+      return records.map((record) => withDerivedUrgencyScore(record));
     },
   });
 

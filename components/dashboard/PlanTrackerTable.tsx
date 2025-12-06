@@ -40,7 +40,7 @@ const statusConfig: Record<
 };
 
 const getUrgencyBadgeClass = (score?: number) => {
-  if (score === undefined || score === null)
+  if (score === undefined || score === null || score < 0)
     return 'border-muted-foreground/40 text-muted-foreground';
   if (score >= 80) return 'border-red-500/60 text-red-600 bg-red-500/5';
   if (score >= 50) return 'border-amber-500/60 text-amber-600 bg-amber-500/5';

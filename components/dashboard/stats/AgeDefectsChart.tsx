@@ -20,14 +20,19 @@ import {
   ResponsiveContainer,
   ZAxis,
 } from 'recharts';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 export function AgeDefectsChart() {
   const { data: objects = [], isLoading } = useQuery<ObjectsResponse[]>({
     queryKey: ['objects'],
     queryFn: async () => {
-      return await pb.collection('objects').getFullList<ObjectsResponse>({
-        sort: '-created',
-      });
+      const records = await pb.collection('objects').getFullList<ObjectsResponse>(
+        {
+          sort: '-created',
+        },
+      );
+
+      return records.map((record) => withDerivedUrgencyScore(record));
     },
   });
 

@@ -21,6 +21,7 @@ import {
   Cell,
 } from 'recharts';
 import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 type MaterialStats = {
   material: string;
@@ -42,9 +43,13 @@ export function MaterialDegradationChart() {
   >({
     queryKey: ['objects'],
     queryFn: async () => {
-      return await pb.collection('objects').getFullList<ObjectsResponse>({
-        sort: '-created',
-      });
+      const records = await pb.collection('objects').getFullList<ObjectsResponse>(
+        {
+          sort: '-created',
+        },
+      );
+
+      return records.map((record) => withDerivedUrgencyScore(record));
     },
   });
 

@@ -5,15 +5,20 @@ import { Shield, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import pb from '@/app/api/client_pb';
 import type { ObjectsResponse, PlanResponse } from '@/app/api/api_types';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 export function KPICards() {
   // Fetch all objects
   const { data: objects = [] } = useQuery<ObjectsResponse[]>({
     queryKey: ['objects'],
     queryFn: async () => {
-      return await pb.collection('objects').getFullList<ObjectsResponse>({
-        sort: '-created',
-      });
+      const records = await pb.collection('objects').getFullList<ObjectsResponse>(
+        {
+          sort: '-created',
+        },
+      );
+
+      return records.map((record) => withDerivedUrgencyScore(record));
     },
   });
 
