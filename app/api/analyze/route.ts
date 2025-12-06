@@ -1,15 +1,20 @@
-import { NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
-import { pocketbase } from "../pocketbase";
+import { type NextRequest, NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
+import { pocketbase } from '../pocketbase';
 import type {
   ObjectsResponse,
   DiagnosticsResponse,
   ObjectsHealthStatusOptions,
-} from "../api_types";
+} from '../api_types';
 
 // Initialize Gemini AI
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  throw new Error('GEMINI_API_KEY environment variable is required');
+}
+
 const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY!,
+  apiKey,
 });
 
 // Base system instruction for the AI analysis
@@ -137,17 +142,22 @@ Each element must have this structure:
 IMPORTANT: Return results for ALL objects in the input, in the SAME ORDER.`;
 
 // Helper: latest timestamp from diagnostics (date field preferred, fallback to updated/created)
-const getLatestDiagnosticTimestamp = (diagnostics: DiagnosticsResponse[]): number => {
+const getLatestDiagnosticTimestamp = (
+  diagnostics: DiagnosticsResponse[],
+): number => {
   return diagnostics.reduce((latest, d) => {
     const ts = new Date(
-      d.date || (d as { updated?: string }).updated || (d as { created?: string }).created || 0
+      d.date ||
+        (d as { updated?: string }).updated ||
+        (d as { created?: string }).created ||
+        0,
     ).getTime();
     return Number.isFinite(ts) ? Math.max(latest, ts) : latest;
   }, 0);
 };
 
 const getLatestDiagnostic = (
-  diagnostics: DiagnosticsResponse[]
+  diagnostics: DiagnosticsResponse[],
 ): DiagnosticsResponse | undefined => {
   if (!diagnostics.length) return undefined;
 
@@ -157,47 +167,47 @@ const getLatestDiagnostic = (
         b.date ||
           (b as { updated?: string }).updated ||
           (b as { created?: string }).created ||
-          0
+          0,
       ).getTime() -
       new Date(
         a.date ||
           (a as { updated?: string }).updated ||
           (a as { created?: string }).created ||
-          0
-      ).getTime()
+          0,
+      ).getTime(),
   )[0];
 };
 
 const formatParam = (value?: number | string | null): string =>
-  value === undefined || value === null ? "n/a" : `${value}`;
+  value === undefined || value === null ? 'n/a' : `${value}`;
 
 const buildParamContext = (
   method?: string,
   p1?: number | string | null,
   p2?: number | string | null,
-  p3?: number | string | null
+  p3?: number | string | null,
 ): string => {
   switch (method) {
-    case "VIBRO":
+    case 'VIBRO':
       return `VIBRO params -> vibration velocity=${formatParam(
-        p1
+        p1,
       )} mm/s (critical if >7.1), acceleration=${formatParam(
-        p2
+        p2,
       )} m/s², frequency/temperature=${formatParam(p3)}.`;
-    case "MFL":
-    case "UTWM":
+    case 'MFL':
+    case 'UTWM':
       return `MFL/UTWM params -> corrosion depth=${formatParam(
-        p1
+        p1,
       )} mm (or % metal loss), remaining wall=${formatParam(
-        p2
+        p2,
       )} mm, defect length=${formatParam(p3)} mm.`;
-    case "VIK":
+    case 'VIK':
       return `VIK params -> size LxW=${formatParam(p1)}x${formatParam(
-        p2
+        p2,
       )} mm, depth=${formatParam(p3)} mm (if available).`;
     default:
       return `Params -> param1=${formatParam(p1)}, param2=${formatParam(
-        p2
+        p2,
       )}, param3=${formatParam(p3)}.`;
   }
 };
@@ -233,8 +243,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!object_id) {
       return NextResponse.json(
-        { success: false, error: "object_id is required" },
-        { status: 400 }
+        { success: false, error: 'object_id is required' },
+        { status: 400 },
       );
     }
 
@@ -243,24 +253,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Fetch the object
     let object: ObjectsResponse;
     try {
-      object = await pb.collection("objects").getOne(object_id);
+      object = await pb.collection('objects').getOne(object_id);
     } catch {
       return NextResponse.json(
-        { success: false, object_id, error: "Object not found" },
-        { status: 404 }
+        { success: false, object_id, error: 'Object not found' },
+        { status: 404 },
       );
     }
 
     // Fetch all diagnostics for this object
     let diagnostics: DiagnosticsResponse[] = [];
     try {
-      const result = await pb.collection("diagnostics").getFullList({
+      const result = await pb.collection('diagnostics').getFullList({
         filter: `object="${object_id}"`,
-        sort: "-date",
+        sort: '-date',
       });
       diagnostics = result as DiagnosticsResponse[];
     } catch (e) {
-      console.error("Failed to fetch diagnostics:", e);
+      console.error('Failed to fetch diagnostics:', e);
     }
 
     const latestDiagnosticTs =
@@ -268,7 +278,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const lastAnalysisTs = object.last_analysis_at
       ? new Date(object.last_analysis_at).getTime()
       : 0;
-    const hasUrgency = typeof object.urgency_score === "number";
+    const hasUrgency = typeof object.urgency_score === 'number';
 
     // Skip if no diagnostics
     if (diagnostics.length === 0) {
@@ -276,7 +286,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         success: true,
         object_id,
         skipped: true,
-        reason: "no_diagnostics",
+        reason: 'no_diagnostics',
       });
     }
 
@@ -286,7 +296,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         success: true,
         object_id,
         skipped: true,
-        reason: "no_new_diagnostics",
+        reason: 'no_new_diagnostics',
       });
     }
 
@@ -309,7 +319,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         param1: d.param1,
         param2: d.param2,
         param3: d.param3,
-        param_context: buildParamContext(d.method, d.param1, d.param2, d.param3),
+        param_context: buildParamContext(
+          d.method,
+          d.param1,
+          d.param2,
+          d.param3,
+        ),
         temperature: d.temperature,
         humidity: d.humidity,
         illumination: d.illumination,
@@ -318,16 +333,16 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Call Gemini for analysis
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: 'gemini-2.0-flash-lite',
       contents: [
         {
-          role: "user",
+          role: 'user',
           parts: [
             {
               text: `Context for parameters (method-specific meaning):\n${PARAMETER_CONTEXT}\n\nAnalyze this pipeline object diagnostic data and provide a health assessment. Use the param_context fields to understand numeric values.\n\n${JSON.stringify(
                 analysisData,
                 null,
-                2
+                2,
               )}`,
             },
           ],
@@ -335,7 +350,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ],
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
+        responseMimeType: 'application/json',
         temperature: 0.3,
         maxOutputTokens: 1024,
       },
@@ -344,20 +359,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Parse AI response
     const aiText = response.text;
     if (!aiText) {
-      throw new Error("Empty response from AI");
+      throw new Error('Empty response from AI');
     }
 
     let aiResult: AiAnalysisResult;
     try {
       // Clean the response - remove markdown code blocks if present
       let cleanedText = aiText.trim();
-      if (cleanedText.startsWith("```json")) {
+      if (cleanedText.startsWith('```json')) {
         cleanedText = cleanedText.slice(7);
       }
-      if (cleanedText.startsWith("```")) {
+      if (cleanedText.startsWith('```')) {
         cleanedText = cleanedText.slice(3);
       }
-      if (cleanedText.endsWith("```")) {
+      if (cleanedText.endsWith('```')) {
         cleanedText = cleanedText.slice(0, -3);
       }
       cleanedText = cleanedText.trim();
@@ -367,37 +382,40 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       // Validate the response structure
       if (
         !aiResult.health_status ||
-        typeof aiResult.urgency_score !== "number"
+        typeof aiResult.urgency_score !== 'number'
       ) {
-        throw new Error("Invalid response structure");
+        throw new Error('Invalid response structure');
       }
 
       // Clamp urgency_score to 0-100
       aiResult.urgency_score = Math.max(
         0,
-        Math.min(100, Math.round(aiResult.urgency_score))
+        Math.min(100, Math.round(aiResult.urgency_score)),
       );
 
       // Enforce consistency between health_status and urgency_score
       // Score determines status, not the other way around
       if (aiResult.urgency_score <= 25) {
-        aiResult.health_status = "OK" as ObjectsHealthStatusOptions;
+        aiResult.health_status = 'OK' as ObjectsHealthStatusOptions;
       } else if (aiResult.urgency_score <= 65) {
-        aiResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
+        aiResult.health_status = 'WARNING' as ObjectsHealthStatusOptions;
       } else {
-        aiResult.health_status = "CRITICAL" as ObjectsHealthStatusOptions;
+        aiResult.health_status = 'CRITICAL' as ObjectsHealthStatusOptions;
       }
     } catch (parseError) {
-      console.error("Failed to parse AI response:", aiText, parseError);
-      throw new Error("Failed to parse AI response");
+      console.error('Failed to parse AI response:', aiText, parseError);
+      throw new Error('Failed to parse AI response');
     }
 
     const latestDiagnostic = getLatestDiagnostic(diagnostics);
     const hasDefects = Boolean(latestDiagnostic?.defect_found);
-    const analysisResult: AnalysisResult = { ...aiResult, has_defects: hasDefects };
+    const analysisResult: AnalysisResult = {
+      ...aiResult,
+      has_defects: hasDefects,
+    };
 
     // Update the object in Pocketbase
-    await pb.collection("objects").update(object_id, {
+    await pb.collection('objects').update(object_id, {
       health_status: analysisResult.health_status,
       urgency_score: analysisResult.urgency_score,
       ai_summary: analysisResult.ai_summary,
@@ -412,13 +430,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       result: analysisResult,
     } as AnalysisResponse);
   } catch (error) {
-    console.error("Analysis error:", error);
+    console.error('Analysis error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -448,8 +466,8 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
     if (!object_ids || object_ids.length === 0) {
       return NextResponse.json(
-        { success: false, error: "object_ids array is required" },
-        { status: 400 }
+        { success: false, error: 'object_ids array is required' },
+        { status: 400 },
       );
     }
 
@@ -457,28 +475,32 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     const idsToProcess = object_ids.slice(0, BATCH_SIZE);
     const pb = await pocketbase();
 
-    // Fetch all objects
-    const objects: ObjectsResponse[] = [];
-    for (const id of idsToProcess) {
-      try {
-        const obj = await pb.collection("objects").getOne(id);
-        objects.push(obj);
-      } catch {
-        // Skip objects that don't exist
-      }
-    }
+    // Fetch all objects in a single query
+    const objectFilter = idsToProcess.map((id) => `id="${id}"`).join(' || ');
+    const objects = await pb.collection('objects').getFullList({
+      filter: objectFilter,
+    });
 
     if (objects.length === 0) {
       return NextResponse.json({
         success: true,
         results: [],
-        errors: idsToProcess.map((id) => ({ object_id: id, error: "Not found" })),
+        errors: idsToProcess.map((id) => ({
+          object_id: id,
+          error: 'Not found',
+        })),
       });
     }
 
-    // Fetch all diagnostics for these objects in one query
-    const allDiagnostics = await pb.collection("diagnostics").getFullList();
+    // Fetch diagnostics only for these objects in one query
     const objectIds = new Set(objects.map((o) => o.id));
+    const diagFilter =
+      objects.length > 0
+        ? objects.map((o) => `object="${o.id}"`).join(' || ')
+        : '';
+    const allDiagnostics = await pb.collection('diagnostics').getFullList({
+      filter: diagFilter,
+    });
     const diagnosticsMap = new Map<string, DiagnosticsResponse[]>();
 
     for (const d of allDiagnostics) {
@@ -487,92 +509,106 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       if (!diagnosticsMap.has(objId)) {
         diagnosticsMap.set(objId, []);
       }
-      diagnosticsMap.get(objId)!.push(d);
+      diagnosticsMap.get(objId)?.push(d);
     }
 
-  // Prepare batch data for AI with skipping rules
-  const results: BatchAnalysisResult[] = [];
-  const errors: Array<{ object_id: string; error: string }> = [];
-  const skipped: Array<{ object_id: string; reason: string }> = [];
+    // Prepare batch data for AI with skipping rules
+    const results: BatchAnalysisResult[] = [];
+    const errors: Array<{ object_id: string; error: string }> = [];
+    const skipped: Array<{ object_id: string; reason: string }> = [];
 
-  const batchData = objects.map((obj) => {
-    const diagnostics = diagnosticsMap.get(obj.id) || [];
-    const sortedDiagnostics = diagnostics
-      .sort(
-        (a, b) =>
-          new Date(b.date || (b as { updated?: string }).updated || 0).getTime() -
-          new Date(a.date || (a as { updated?: string }).updated || 0).getTime()
-      )
-      .slice(0, 5);
+    const batchData = objects.map((obj) => {
+      const diagnostics = diagnosticsMap.get(obj.id) || [];
+      const sortedDiagnostics = diagnostics
+        .sort(
+          (a, b) =>
+            new Date(
+              b.date || (b as { updated?: string }).updated || 0,
+            ).getTime() -
+            new Date(
+              a.date || (a as { updated?: string }).updated || 0,
+            ).getTime(),
+        )
+        .slice(0, 5);
 
-    return {
-      object: {
-        id: obj.id,
-        name: obj.name,
-        type: obj.type,
-        material: obj.material,
-        year: obj.year,
-        last_analysis_at: obj.last_analysis_at,
-        urgency_score: obj.urgency_score,
-      },
-      diagnostics: sortedDiagnostics.map((d) => ({
-        date: d.date,
-        method: d.method,
-        defect_found: d.defect_found,
-        defect_description: d.defect_description,
-        quality_grade: d.quality_grade,
-        ml_label: d.ml_label,
-        param1: d.param1,
-        param2: d.param2,
-        param3: d.param3,
-        param_context: buildParamContext(d.method, d.param1, d.param2, d.param3),
-        updated: (d as { updated?: string }).updated,
-        created: (d as { created?: string }).created,
-      })),
-      latestDiagnosticTs: diagnostics.length ? getLatestDiagnosticTimestamp(diagnostics) : 0,
-    };
-  });
+      return {
+        object: {
+          id: obj.id,
+          name: obj.name,
+          type: obj.type,
+          material: obj.material,
+          year: obj.year,
+          last_analysis_at: obj.last_analysis_at,
+          urgency_score: obj.urgency_score,
+        },
+        diagnostics: sortedDiagnostics.map((d) => ({
+          date: d.date,
+          method: d.method,
+          defect_found: d.defect_found,
+          defect_description: d.defect_description,
+          quality_grade: d.quality_grade,
+          ml_label: d.ml_label,
+          param1: d.param1,
+          param2: d.param2,
+          param3: d.param3,
+          param_context: buildParamContext(
+            d.method,
+            d.param1,
+            d.param2,
+            d.param3,
+          ),
+          updated: (d as { updated?: string }).updated,
+          created: (d as { created?: string }).created,
+        })),
+        latestDiagnosticTs: diagnostics.length
+          ? getLatestDiagnosticTimestamp(diagnostics)
+          : 0,
+      };
+    });
 
-  const objectsToAnalyze = batchData.filter((entry) => {
-    if (entry.diagnostics.length === 0) {
-      skipped.push({ object_id: entry.object.id, reason: "no_diagnostics" });
+    const objectsToAnalyze = batchData.filter((entry) => {
+      if (entry.diagnostics.length === 0) {
+        skipped.push({ object_id: entry.object.id, reason: 'no_diagnostics' });
+        return false;
+      }
+
+      const hasUrgency = typeof entry.object.urgency_score === 'number';
+      const lastAnalysisTs = entry.object.last_analysis_at
+        ? new Date(entry.object.last_analysis_at).getTime()
+        : 0;
+      const hasNewDiagnostics =
+        entry.latestDiagnosticTs > 0 &&
+        (!lastAnalysisTs || entry.latestDiagnosticTs > lastAnalysisTs);
+
+      if (!hasUrgency) return true;
+      if (hasNewDiagnostics) return true;
+
+      skipped.push({
+        object_id: entry.object.id,
+        reason: 'no_new_diagnostics',
+      });
       return false;
+    });
+
+    if (objectsToAnalyze.length === 0) {
+      return NextResponse.json({
+        success: true,
+        results,
+        errors,
+        skipped,
+      } as BatchAnalysisResponse);
     }
-
-    const hasUrgency = typeof entry.object.urgency_score === "number";
-    const lastAnalysisTs = entry.object.last_analysis_at
-      ? new Date(entry.object.last_analysis_at).getTime()
-      : 0;
-    const hasNewDiagnostics =
-      entry.latestDiagnosticTs > 0 &&
-      (!lastAnalysisTs || entry.latestDiagnosticTs > lastAnalysisTs);
-
-    if (!hasUrgency) return true;
-    if (hasNewDiagnostics) return true;
-
-    skipped.push({ object_id: entry.object.id, reason: "no_new_diagnostics" });
-    return false;
-  });
-
-  if (objectsToAnalyze.length === 0) {
-    return NextResponse.json({
-      success: true,
-      results,
-      errors,
-      skipped,
-    } as BatchAnalysisResponse);
-  }
 
     // If there are objects with diagnostics, call AI
     if (objectsToAnalyze.length > 0) {
       const response = await ai.models.generateContent({
-        model: "gemini-2.0-flash-lite",
+        model: 'gemini-2.0-flash-lite',
         contents: [
           {
-            role: "user",
+            role: 'user',
             parts: [
               {
-              text: `Context for parameters (method-specific meaning):\n${PARAMETER_CONTEXT}\n\nAnalyze these ${objectsToAnalyze.length} pipeline objects and provide health assessments for each. Use the param_context fields to interpret param1-3.\n\n${JSON.stringify(
+                text: `Context for parameters (method-specific meaning):\n${PARAMETER_CONTEXT}\n\nAnalyze these ${objectsToAnalyze.length} pipeline objects and provide health assessments for each. Use the param_context fields to interpret param1-3.\n\n${JSON.stringify(
                   objectsToAnalyze.map(({ object, diagnostics }) => ({
                     object: {
                       id: object.id,
@@ -584,7 +620,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
                     diagnostics,
                   })),
                   null,
-                  2
+                  2,
                 )}`,
               },
             ],
@@ -592,7 +628,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         ],
         config: {
           systemInstruction: BATCH_SYSTEM_INSTRUCTION,
-          responseMimeType: "application/json",
+          responseMimeType: 'application/json',
           temperature: 0.3,
           maxOutputTokens: 4096,
         },
@@ -600,14 +636,14 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
 
       const aiText = response.text;
       if (!aiText) {
-        throw new Error("Empty response from AI");
+        throw new Error('Empty response from AI');
       }
 
       // Parse batch response
       let cleanedText = aiText.trim();
-      if (cleanedText.startsWith("```json")) cleanedText = cleanedText.slice(7);
-      if (cleanedText.startsWith("```")) cleanedText = cleanedText.slice(3);
-      if (cleanedText.endsWith("```")) cleanedText = cleanedText.slice(0, -3);
+      if (cleanedText.startsWith('```json')) cleanedText = cleanedText.slice(7);
+      if (cleanedText.startsWith('```')) cleanedText = cleanedText.slice(3);
+      if (cleanedText.endsWith('```')) cleanedText = cleanedText.slice(0, -3);
       cleanedText = cleanedText.trim();
 
       const batchResults: AiBatchAnalysisResult[] = JSON.parse(cleanedText);
@@ -615,33 +651,36 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       // Process each result
       for (const rawResult of batchResults) {
         const resultFromAi = { ...rawResult };
-        
+
         // Clamp urgency_score to 0-100
         resultFromAi.urgency_score = Math.max(
           0,
-          Math.min(100, Math.round(resultFromAi.urgency_score))
+          Math.min(100, Math.round(resultFromAi.urgency_score)),
         );
 
         // Enforce consistency between health_status and urgency_score
         // Score determines status, not the other way around
         if (resultFromAi.urgency_score <= 25) {
-          resultFromAi.health_status = "OK" as ObjectsHealthStatusOptions;
+          resultFromAi.health_status = 'OK' as ObjectsHealthStatusOptions;
         } else if (resultFromAi.urgency_score <= 65) {
-          resultFromAi.health_status = "WARNING" as ObjectsHealthStatusOptions;
+          resultFromAi.health_status = 'WARNING' as ObjectsHealthStatusOptions;
         } else {
-          resultFromAi.health_status = "CRITICAL" as ObjectsHealthStatusOptions;
+          resultFromAi.health_status = 'CRITICAL' as ObjectsHealthStatusOptions;
         }
 
         const diagList = diagnosticsMap.get(resultFromAi.object_id) || [];
         const latestDiagnostic = getLatestDiagnostic(diagList);
         const hasDefects = Boolean(latestDiagnostic?.defect_found);
-        const result: BatchAnalysisResult = { ...resultFromAi, has_defects: hasDefects };
+        const result: BatchAnalysisResult = {
+          ...resultFromAi,
+          has_defects: hasDefects,
+        };
 
         results.push(result);
 
         // Update in DB
         try {
-          await pb.collection("objects").update(result.object_id, {
+          await pb.collection('objects').update(result.object_id, {
             health_status: result.health_status,
             urgency_score: result.urgency_score,
             ai_summary: result.ai_summary,
@@ -652,7 +691,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         } catch (e) {
           errors.push({
             object_id: result.object_id,
-            error: e instanceof Error ? e.message : "DB update failed",
+            error: e instanceof Error ? e.message : 'DB update failed',
           });
         }
       }
@@ -661,18 +700,23 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       results,
-    errors,
-    skipped,
+      errors,
+      skipped,
     } as BatchAnalysisResponse);
   } catch (error) {
-    console.error("Batch analysis error:", error);
+    console.error('Batch analysis error:', error);
     return NextResponse.json(
       {
         success: false,
         results: [],
-        errors: [{ object_id: "batch", error: error instanceof Error ? error.message : "Unknown error" }],
+        errors: [
+          {
+            object_id: 'batch',
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+        ],
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -689,18 +733,29 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     const pb = await pocketbase();
 
     // Fetch objects and diagnostics once
-    const allObjects = await pb.collection("objects").getFullList();
-    const targetSet = object_ids && object_ids.length > 0 ? new Set(object_ids) : null;
-    const objects = targetSet ? allObjects.filter((o) => targetSet.has(o.id)) : allObjects;
+    const allObjects = await pb.collection('objects').getFullList();
+    const targetSet =
+      object_ids && object_ids.length > 0 ? new Set(object_ids) : null;
+    const objects = targetSet
+      ? allObjects.filter((o) => targetSet.has(o.id))
+      : allObjects;
 
-    const diagnostics = await pb.collection("diagnostics").getFullList();
+    const objectIdsForDiagnostics = objects.map((o) => o.id);
+    const diagFilter =
+      objectIdsForDiagnostics.length > 0
+        ? objectIdsForDiagnostics.map((id) => `object="${id}"`).join(' || ')
+        : '';
+    const diagnostics =
+      objectIdsForDiagnostics.length > 0
+        ? await pb.collection('diagnostics').getFullList({ filter: diagFilter })
+        : [];
     const diagnosticsMap = new Map<string, DiagnosticsResponse[]>();
 
     for (const d of diagnostics) {
       const objectId = d.object as string;
       if (targetSet && !targetSet.has(objectId)) continue;
       if (!diagnosticsMap.has(objectId)) diagnosticsMap.set(objectId, []);
-      diagnosticsMap.get(objectId)!.push(d);
+      diagnosticsMap.get(objectId)?.push(d);
     }
 
     // Filter to objects that actually need analysis
@@ -713,7 +768,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         const lastAnalysisTs = obj.last_analysis_at
           ? new Date(obj.last_analysis_at).getTime()
           : 0;
-        const hasUrgency = typeof obj.urgency_score === "number";
+        const hasUrgency = typeof obj.urgency_score === 'number';
 
         if (!hasUrgency) return true;
         return latestDiagTs > lastAnalysisTs;
@@ -730,13 +785,15 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 
         const currentRisk = riskMap.get(objectId) || 0;
         let newRisk = 0;
-        if (d.ml_label === "high") newRisk = 3;
-        else if (d.ml_label === "medium") newRisk = 2;
-        else if (d.ml_label === "normal") newRisk = 1;
+        if (d.ml_label === 'high') newRisk = 3;
+        else if (d.ml_label === 'medium') newRisk = 2;
+        else if (d.ml_label === 'normal') newRisk = 1;
 
-        if (d.quality_grade === "недопустимо") newRisk = Math.max(newRisk, 4);
-        else if (d.quality_grade === "требует_мер") newRisk = Math.max(newRisk, 3);
-        else if (d.quality_grade === "допустимо") newRisk = Math.max(newRisk, 2);
+        if (d.quality_grade === 'недопустимо') newRisk = Math.max(newRisk, 4);
+        else if (d.quality_grade === 'требует_мер')
+          newRisk = Math.max(newRisk, 3);
+        else if (d.quality_grade === 'допустимо')
+          newRisk = Math.max(newRisk, 2);
 
         if (newRisk > currentRisk) {
           riskMap.set(objectId, newRisk);
@@ -756,14 +813,13 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       object_ids: idsToAnalyze,
     });
   } catch (error) {
-    console.error("Batch preparation error:", error);
+    console.error('Batch preparation error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
-

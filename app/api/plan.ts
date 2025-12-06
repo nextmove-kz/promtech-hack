@@ -1,34 +1,34 @@
-import clientPocketBase from './client_pb'
+import clientPocketBase from './client_pb';
 import type {
   PlanResponse,
   ActionResponse,
   ObjectsResponse,
-  DiagnosticsResponse,
   PlanStatusOptions,
-} from './api_types'
+} from './api_types';
+import type { DiagnosticWithObject } from '@/lib/types/api';
+
+export type { DiagnosticWithObject } from '@/lib/types/api';
 
 export type PlanWithExpanded = PlanResponse<{
-  actions?: ActionResponse[]
+  actions?: ActionResponse[];
   object?: ObjectsResponse<{
-    pipeline?: { name: string }
-  }>
-}>
-
-export type DiagnosticWithObject = DiagnosticsResponse<{
-  object?: ObjectsResponse
-}>
+    pipeline?: { name: string };
+  }>;
+}>;
 
 /**
  * Get all plans with expanded relations
  * Returns every plan ever created
  */
 export async function getAllPlans(): Promise<PlanWithExpanded[]> {
-  const plans = await clientPocketBase.collection('plan').getFullList<PlanWithExpanded>({
-    expand: 'actions,object,object.pipeline',
-    sort: '-created',
-  })
+  const plans = await clientPocketBase
+    .collection('plan')
+    .getFullList<PlanWithExpanded>({
+      expand: 'actions,object,object.pipeline',
+      sort: '-created',
+    });
 
-  return plans
+  return plans;
 }
 
 /**
@@ -36,7 +36,7 @@ export async function getAllPlans(): Promise<PlanWithExpanded[]> {
  * Returns the most recent plan for the given object
  */
 export async function getPlanByObjectId(
-  objectId: string
+  objectId: string,
 ): Promise<PlanWithExpanded | null> {
   try {
     const result = await clientPocketBase
@@ -45,12 +45,12 @@ export async function getPlanByObjectId(
         filter: `object = "${objectId}"`,
         sort: '-created',
         expand: 'actions,object,object.pipeline',
-      })
+      });
 
-    return result.items[0] || null
+    return result.items[0] || null;
   } catch (error) {
-    console.error('Error fetching plan:', error)
-    return null
+    console.error('Error fetching plan:', error);
+    return null;
   }
 }
 
@@ -62,16 +62,16 @@ export async function getPlan(id: string): Promise<PlanWithExpanded> {
     .collection('plan')
     .getOne<PlanWithExpanded>(id, {
       expand: 'actions,object,object.pipeline',
-    })
+    });
 
-  return plan
+  return plan;
 }
 
 /**
  * Get the latest diagnostic for an object
  */
 export async function getLatestDiagnostic(
-  objectId: string
+  objectId: string,
 ): Promise<DiagnosticWithObject | null> {
   try {
     const result = await clientPocketBase
@@ -80,12 +80,12 @@ export async function getLatestDiagnostic(
         filter: `object = "${objectId}"`,
         sort: '-date',
         expand: 'object',
-      })
+      });
 
-    return result.items[0] || null
+    return result.items[0] || null;
   } catch (error) {
-    console.error('Error fetching diagnostic:', error)
-    return null
+    console.error('Error fetching diagnostic:', error);
+    return null;
   }
 }
 
@@ -94,15 +94,15 @@ export async function getLatestDiagnostic(
  */
 export async function updateActionStatus(
   actionId: string,
-  status: boolean
+  status: boolean,
 ): Promise<ActionResponse> {
   const action = await clientPocketBase
     .collection('action')
     .update<ActionResponse>(actionId, {
       status,
-    })
+    });
 
-  return action
+  return action;
 }
 
 /**
@@ -110,13 +110,13 @@ export async function updateActionStatus(
  */
 export async function updatePlanStatus(
   planId: string,
-  status: PlanStatusOptions
+  status: PlanStatusOptions,
 ): Promise<PlanResponse> {
   const plan = await clientPocketBase
     .collection('plan')
     .update<PlanResponse>(planId, {
       status,
-    })
+    });
 
-  return plan
+  return plan;
 }

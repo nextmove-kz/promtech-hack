@@ -1,145 +1,48 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from '@/components/ui/accordion';
 import {
   ArrowLeft,
   AlertTriangle,
   Calendar,
   Loader2,
   ClipboardList,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useDiagnostic } from "@/hooks/useDiagnostic";
-import { useObject } from "@/hooks/useObject";
-import { usePlanByObjectId } from "@/hooks/usePlan";
-import { ActionPlanModal } from "./ActionPlanModal";
-import { useRouter } from "next/navigation";
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from '@/lib/constants';
+import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
+import { useDiagnostic } from '@/hooks/useDiagnostic';
+import { usePlanByObjectId } from '@/hooks/usePlan';
+import { ActionPlanModal } from './ActionPlanModal';
+import { useRouter } from 'next/navigation';
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
   onClose: () => void;
 }
 
-const healthStatusConfig = {
-  OK: {
-    label: "Норма",
-    variant: "outline" as const,
-    iconColor: "text-emerald-600",
-    iconBg: "bg-emerald-100",
-  },
-  WARNING: {
-    label: "Предупреждение",
-    variant: "secondary" as const,
-    iconColor: "text-amber-600",
-    iconBg: "bg-amber-100",
-  },
-  CRITICAL: {
-    label: "Критический",
-    variant: "destructive" as const,
-    iconColor: "text-red-600",
-    iconBg: "bg-red-100",
-  },
-  UNKNOWN: {
-    label: "Неизвестно",
-    variant: "outline" as const,
-    iconColor: "text-gray-600",
-    iconBg: "bg-gray-100",
-  },
-};
-
-const objectTypeLabels: Record<string, string> = {
-  crane: "Кран",
-  compressor: "Компрессор",
-  pipeline_section: "Участок трубопровода",
-};
-
-const renderParams = (
-  method?: string,
-  p1?: number | string,
-  p2?: number | string,
-  p3?: number | string
-) => {
-  const hasValue = (v?: number | string | null) => {
-    if (v === undefined || v === null) return false;
-    if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
-    if (typeof v === "string") return v.trim() !== "" && v.trim() !== "0";
-    return true;
-  };
-
-  const v1 = hasValue(p1);
-  const v2 = hasValue(p2);
-  const v3 = hasValue(p3);
-  const hasAny = v1 || v2 || v3;
-
-  if (!hasAny) return null;
-
-  switch (method) {
-    case "VIBRO":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Виброскорость: <b>{p1} мм/с</b>
-            </div>
-          )}
-          {v2 && <div>Ускорение: {p2} м/с²</div>}
-          {v3 && <div>Частота/Температура: {p3}</div>}
-        </>
-      );
-    case "MFL":
-    case "UTWM":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Глубина коррозии: <b className="text-red-500">{p1} мм</b>
-            </div>
-          )}
-          {v2 && <div>Остаток стенки: {p2} мм</div>}
-          {v3 && <div>Длина дефекта: {p3} мм</div>}
-        </>
-      );
-    case "TVK":
-      // TVK параметры без названий не показываем
-      return null;
-    default:
-      if (v1 && v2) {
-        return (
-          <>
-            <div>
-              Размеры (ДхШ): {p1} x {p2} мм
-            </div>
-          </>
-        );
-      }
-
-      return null;
-  }
-};
-
 export function DiagnosticDetailsPanel({
   objectId,
   onClose,
 }: DiagnosticDetailsPanelProps) {
   const { data: diagnostics, isLoading, error } = useDiagnostic(objectId);
-  const { data: objectData, isLoading: isObjectLoading } = useObject(objectId);
   const { data: plan } = usePlanByObjectId(objectId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
 
   if (!objectId) return null;
 
-  const isLoadingState = isLoading || isObjectLoading;
+  const isLoadingState = isLoading;
 
   if (isLoadingState) {
     return (
@@ -156,7 +59,7 @@ export function DiagnosticDetailsPanel({
   const firstDiagnostic = diagnosticsList[0] ?? null;
 
   // Prefer expanded object from diagnostics, otherwise fall back to direct fetch
-  const object = firstDiagnostic?.expand?.object ?? objectData ?? null;
+  const object = firstDiagnostic?.expand?.object ?? null;
   const pipeline = object?.expand?.pipeline;
   const objectType = object?.type;
   const objectName = object?.name;
@@ -167,11 +70,11 @@ export function DiagnosticDetailsPanel({
   const displayId = object?.id || firstDiagnostic?.id || objectId;
 
   const statusKey = (healthStatus ??
-    "UNKNOWN") as keyof typeof healthStatusConfig;
+    'UNKNOWN') as keyof typeof HEALTH_STATUS_CONFIG;
   const statusConfig =
-    healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN;
+    HEALTH_STATUS_CONFIG[statusKey] ?? HEALTH_STATUS_CONFIG.UNKNOWN;
 
-  const contentState = error ? "error" : hasDiagnostics ? "data" : "empty";
+  const contentState = error ? 'error' : hasDiagnostics ? 'data' : 'empty';
 
   return (
     <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
@@ -187,15 +90,15 @@ export function DiagnosticDetailsPanel({
             Назад к списку
           </Button>
           <div className="flex items-start gap-2.5">
-            <div className={cn("rounded p-1.5 mt-0.5", statusConfig.iconBg)}>
+            <div className={cn('rounded p-1.5 mt-0.5', statusConfig.iconBg)}>
               <AlertTriangle
-                className={cn("h-4 w-4", statusConfig.iconColor)}
+                className={cn('h-4 w-4', statusConfig.iconColor)}
               />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold text-xl text-foreground truncate">
-                  {objectName || "Объект без имени"}
+                  {objectName || 'Объект без имени'}
                 </h2>
               </div>
               <div className="mt-1 text-xs text-muted-foreground/70">
@@ -204,7 +107,13 @@ export function DiagnosticDetailsPanel({
               {(objectType || pipelineName) && (
                 <div className="mt-1.5 space-y-0.5 text-xs text-muted-foreground">
                   {objectType && (
-                    <div>{objectTypeLabels[objectType] || objectType}</div>
+                    <div>
+                      {OBJECT_TYPE_LABELS[
+                        objectType as keyof typeof OBJECT_TYPE_LABELS
+                      ] ||
+                        objectType ||
+                        'Неизвестный тип'}
+                    </div>
                   )}
                   {pipelineName && <div>{pipelineName}</div>}
                 </div>
@@ -214,7 +123,7 @@ export function DiagnosticDetailsPanel({
         </div>
 
         <div className="flex-1 overflow-auto p-4">
-          {contentState === "data" && firstDiagnostic ? (
+          {contentState === 'data' && firstDiagnostic ? (
             <div className="space-y-6">
               {(urgencyScore !== undefined || aiSummary) && (
                 <div className="space-y-4">
@@ -231,8 +140,8 @@ export function DiagnosticDetailsPanel({
                           <div className="flex items-end gap-2">
                             <span
                               className={cn(
-                                "text-2xl font-bold tabular-nums",
-                                statusConfig.iconColor
+                                'text-2xl font-bold tabular-nums',
+                                statusConfig.iconColor,
                               )}
                             >
                               {urgencyScore}
@@ -251,8 +160,8 @@ export function DiagnosticDetailsPanel({
                         <div
                           className={
                             urgencyScore !== undefined
-                              ? "pt-3 border-t border-border/50"
-                              : ""
+                              ? 'pt-3 border-t border-border/50'
+                              : ''
                           }
                         >
                           <p className="text-sm text-foreground leading-relaxed">
@@ -274,8 +183,8 @@ export function DiagnosticDetailsPanel({
                 {diagnosticsList.map((diagnostic) => {
                   const hasDiagnosticIssue = diagnostic.defect_found ?? false;
                   const diagnosticDate = diagnostic.date
-                    ? new Date(diagnostic.date).toLocaleDateString("ru-RU")
-                    : "-";
+                    ? new Date(diagnostic.date).toLocaleDateString('ru-RU')
+                    : '-';
 
                   return (
                     <AccordionItem key={diagnostic.id} value={diagnostic.id}>
@@ -288,15 +197,15 @@ export function DiagnosticDetailsPanel({
                             </span>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {diagnostic.method || "-"}
+                            {diagnostic.method || '-'}
                           </span>
                           <Badge
                             variant={
-                              hasDiagnosticIssue ? "destructive" : "outline"
+                              hasDiagnosticIssue ? 'destructive' : 'outline'
                             }
                             className="text-xs shrink-0"
                           >
-                            {hasDiagnosticIssue ? "Дефект" : "Норма"}
+                            {hasDiagnosticIssue ? 'Дефект' : 'Норма'}
                           </Badge>
                         </div>
                       </AccordionTrigger>
@@ -319,7 +228,7 @@ export function DiagnosticDetailsPanel({
                                 Метод
                               </span>
                               <p className="font-medium text-foreground">
-                                {diagnostic.method || "-"}
+                                {diagnostic.method || '-'}
                               </p>
                             </div>
                             {diagnostic.temperature !== undefined && (
@@ -370,23 +279,23 @@ export function DiagnosticDetailsPanel({
                                 <Badge
                                   variant={
                                     hasDiagnosticIssue
-                                      ? "destructive"
-                                      : "outline"
+                                      ? 'destructive'
+                                      : 'outline'
                                   }
                                   className="text-xs"
                                 >
-                                  {hasDiagnosticIssue ? "Да" : "Нет"}
+                                  {hasDiagnosticIssue ? 'Да' : 'Нет'}
                                 </Badge>
                               </div>
                             )}
                           </div>
 
                           {(() => {
-                            const paramsContent = renderParams(
+                            const paramsContent = renderDiagnosticParams(
                               diagnostic.method,
                               diagnostic.param1,
                               diagnostic.param2,
-                              diagnostic.param3
+                              diagnostic.param3,
                             );
                             if (!paramsContent) return null;
 
@@ -415,23 +324,23 @@ export function DiagnosticDetailsPanel({
                   <AlertTriangle className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium text-foreground">
-                  {contentState === "error"
-                    ? "Ошибка загрузки данных диагностики"
-                    : "Диагностики не найдены"}
+                  {contentState === 'error'
+                    ? 'Ошибка загрузки данных диагностики'
+                    : 'Диагностики не найдены'}
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  {contentState === "error"
-                    ? "Попробуйте обновить страницу или выбрать другой объект."
-                    : "Для этого объекта нет диагностик, поэтому AI-анализ и история недоступны."}
+                  {contentState === 'error'
+                    ? 'Попробуйте обновить страницу или выбрать другой объект.'
+                    : 'Для этого объекта нет диагностик, поэтому AI-анализ и история недоступны.'}
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {contentState === "data" && firstDiagnostic && (
+        {contentState === 'data' && firstDiagnostic && (
           <div className="border-t border-border p-4">
-            {plan?.status === "pending" ? (
+            {plan?.status === 'pending' ? (
               <Button
                 className="w-full gap-2"
                 onClick={() => router.push(`/plan/${plan.object}`)}
@@ -452,7 +361,7 @@ export function DiagnosticDetailsPanel({
         )}
       </div>
 
-      {contentState === "data" && firstDiagnostic && (
+      {contentState === 'data' && firstDiagnostic && (
         <ActionPlanModal
           diagnosticId={firstDiagnostic.id}
           diagnostic={firstDiagnostic}

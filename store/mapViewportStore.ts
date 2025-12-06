@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import { atom } from "jotai";
+import { atom } from 'jotai';
 
 export interface MapViewportBounds {
   north: number;
@@ -10,5 +10,3 @@ export interface MapViewportBounds {
 }
 
 export const mapViewportAtom = atom<MapViewportBounds | null>(null);
-
-

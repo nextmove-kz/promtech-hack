@@ -1,26 +1,26 @@
-import { atom } from 'jotai'
-import {
+import { atom } from 'jotai';
+import type {
   DiagnosticsMethodOptions,
   ObjectsHealthStatusOptions,
   ObjectsTypeOptions,
-} from '@/app/api/api_types'
+} from '@/app/api/api_types';
 
-export type FilterOptionId = 'defective' | 'critical' | 'recent'
+export type FilterOptionId = 'defective' | 'critical' | 'recent';
 
 export interface AdvancedFilterState {
-  type?: ObjectsTypeOptions | ''
-  diagnosticMethod?: DiagnosticsMethodOptions | ''
-  healthStatus?: ObjectsHealthStatusOptions | ''
-  material?: string
-  yearFrom?: number | ''
-  yearTo?: number | ''
-  pipeline?: string
+  type?: ObjectsTypeOptions | '';
+  diagnosticMethod?: DiagnosticsMethodOptions | '';
+  healthStatus?: ObjectsHealthStatusOptions | '';
+  material?: string;
+  yearFrom?: number | '';
+  yearTo?: number | '';
+  pipeline?: string;
 }
 
 export interface FilterState {
-  activeFilters: FilterOptionId[]
-  advanced: AdvancedFilterState
-  searchQuery: string
+  activeFilters: FilterOptionId[];
+  advanced: AdvancedFilterState;
+  searchQuery: string;
 }
 
 export const defaultAdvancedFilters: AdvancedFilterState = {
@@ -31,12 +31,12 @@ export const defaultAdvancedFilters: AdvancedFilterState = {
   yearFrom: '',
   yearTo: '',
   pipeline: '',
-}
+};
 
 export const defaultFilters: FilterState = {
   activeFilters: [],
   advanced: { ...defaultAdvancedFilters },
   searchQuery: '',
-}
+};
 
-export const filterAtom = atom<FilterState>(defaultFilters)
+export const filterAtom = atom<FilterState>(defaultFilters);

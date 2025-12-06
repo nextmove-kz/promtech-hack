@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useState, useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { AnalysisResponse, AnalysisResult } from "@/app/api/analyze/route";
+import { useState, useCallback } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { AnalysisResponse, AnalysisResult } from '@/app/api/analyze/route';
 
 interface UseAnalysisOptions {
   onSuccess?: (result: AnalysisResult) => void;
@@ -26,14 +26,14 @@ export function useObjectAnalysis(options: UseAnalysisOptions = {}) {
 
   const mutation = useMutation({
     mutationFn: async (objectId: string): Promise<AnalysisResponse> => {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ object_id: objectId }),
       });
 
       if (!response.ok) {
-        throw new Error("Analysis failed");
+        throw new Error('Analysis failed');
       }
 
       return response.json();
@@ -42,7 +42,7 @@ export function useObjectAnalysis(options: UseAnalysisOptions = {}) {
       if (data.success && data.result) {
         options.onSuccess?.(data.result);
         // Invalidate objects query to refresh the list
-        queryClient.invalidateQueries({ queryKey: ["objects"] });
+        queryClient.invalidateQueries({ queryKey: ['objects'] });
       }
     },
     onError: (error) => {
@@ -76,39 +76,39 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
 
   const fetchPriorityQueue = useCallback(
     async (highRiskOnly: boolean = true): Promise<string[]> => {
-      const response = await fetch("/api/analyze", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/analyze', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prioritize_high_risk: highRiskOnly }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch objects");
+        throw new Error('Failed to fetch objects');
       }
 
       const data = await response.json();
       return data.object_ids || [];
     },
-    []
+    [],
   );
 
   const analyzeObject = useCallback(
     async (objectId: string): Promise<AnalysisResponse> => {
-      const response = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ object_id: objectId }),
       });
 
       return response.json();
     },
-    []
+    [],
   );
 
   const runBatchAnalysis = useCallback(
     async (
       objectIds?: string[],
-      runOptions: { highRiskOnly?: boolean; delayMs?: number } = {}
+      runOptions: { highRiskOnly?: boolean; delayMs?: number } = {},
     ) => {
       const { highRiskOnly = true, delayMs = 300 } = runOptions;
 
@@ -143,12 +143,12 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
             if (response.success && response.result) {
               results.set(objectId, response.result);
             } else {
-              errors.set(objectId, response.error || "Unknown error");
+              errors.set(objectId, response.error || 'Unknown error');
             }
           } catch (error) {
             errors.set(
               objectId,
-              error instanceof Error ? error.message : "Unknown error"
+              error instanceof Error ? error.message : 'Unknown error',
             );
           }
 
@@ -166,7 +166,7 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
         }
 
         // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ["objects"] });
+        queryClient.invalidateQueries({ queryKey: ['objects'] });
 
         onComplete?.();
 
@@ -175,7 +175,7 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
         setState((prev) => ({ ...prev, isRunning: false }));
       }
     },
-    [fetchPriorityQueue, analyzeObject, queryClient, onComplete]
+    [fetchPriorityQueue, analyzeObject, queryClient, onComplete],
   );
 
   const reset = useCallback(() => {
@@ -199,13 +199,13 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
       successful: state.results.size,
       failed: state.errors.size,
       critical: Array.from(state.results.values()).filter(
-        (r) => r.health_status === "CRITICAL"
+        (r) => r.health_status === 'CRITICAL',
       ).length,
       warning: Array.from(state.results.values()).filter(
-        (r) => r.health_status === "WARNING"
+        (r) => r.health_status === 'WARNING',
       ).length,
       ok: Array.from(state.results.values()).filter(
-        (r) => r.health_status === "OK"
+        (r) => r.health_status === 'OK',
       ).length,
     },
   };
@@ -224,21 +224,21 @@ export function useHighRiskObjects() {
     setError(null);
 
     try {
-      const response = await fetch("/api/analyze", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/analyze', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prioritize_high_risk: true }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch high-risk objects");
+        throw new Error('Failed to fetch high-risk objects');
       }
 
       const data = await response.json();
       setObjectIds(data.object_ids || []);
       return data.object_ids || [];
     } catch (err) {
-      const error = err instanceof Error ? err : new Error("Unknown error");
+      const error = err instanceof Error ? err : new Error('Unknown error');
       setError(error);
       throw error;
     } finally {
@@ -253,4 +253,3 @@ export function useHighRiskObjects() {
     fetchHighRiskObjects,
   };
 }
-

@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { useState, useCallback, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
-import Papa from "papaparse";
-import { toast } from "sonner";
+import { useState, useCallback, useRef } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import Papa from 'papaparse';
+import { toast } from 'sonner';
 import {
   detectDataType,
   validateRow,
   type DataType,
   type ObjectRow,
   type DiagnosticRow,
-} from "@/app/lib/schemas";
+} from '@/app/lib/schemas';
 import {
   ensurePipelines,
   fetchAllObjects,
   createObjectsBatch,
   createDiagnosticsBatch,
-} from "@/app/api/importer";
+} from '@/app/api/importer';
 import type {
   DiagnosticsMethodOptions,
   DiagnosticsMlLabelOptions,
   DiagnosticsQualityGradeOptions,
   ObjectsTypeOptions,
-} from "@/app/api/api_types";
+} from '@/app/api/api_types';
 
 const BATCH_SIZE = 50; // Smaller batches for smoother real-time updates
 const BATCH_DELAY = 100;
@@ -30,7 +30,7 @@ const BATCH_DELAY = 100;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export interface ImportState {
-  phase: "idle" | "parsing" | "uploading" | "done";
+  phase: 'idle' | 'parsing' | 'uploading' | 'done';
   total: number;
   processed: number;
   errors: number;
@@ -86,10 +86,11 @@ const parseFile = (file: File): Promise<FileData | null> => {
         const type = detectDataType(rows[0]);
         if (!type) return resolve(null);
 
-        const records: FileData["records"] = [];
+        const records: FileData['records'] = [];
         rows.forEach((row, i) => {
           const result = validateRow(row, type);
-          if (result.success) records.push({ record: result.data, rowIndex: i + 2 });
+          if (result.success)
+            records.push({ record: result.data, rowIndex: i + 2 });
         });
 
         resolve(records.length ? { name: file.name, type, records } : null);
@@ -106,7 +107,7 @@ export interface UseDataImportOptions {
 export function useDataImport(options: UseDataImportOptions = {}) {
   const queryClient = useQueryClient();
   const [state, setState] = useState<ImportState>({
-    phase: "idle",
+    phase: 'idle',
     total: 0,
     processed: 0,
     errors: 0,
@@ -115,12 +116,12 @@ export function useDataImport(options: UseDataImportOptions = {}) {
 
   const reset = useCallback(() => {
     abortRef.current = false;
-    setState({ phase: "idle", total: 0, processed: 0, errors: 0 });
+    setState({ phase: 'idle', total: 0, processed: 0, errors: 0 });
   }, []);
 
   const abort = useCallback(() => {
     abortRef.current = true;
-    toast.info("Импорт отменён");
+    toast.info('Импорт отменён');
     setTimeout(() => {
       reset();
       options.onComplete?.();
@@ -129,13 +130,13 @@ export function useDataImport(options: UseDataImportOptions = {}) {
 
   // Invalidate objects query to refresh the map
   const refreshMap = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["objects"] });
+    queryClient.invalidateQueries({ queryKey: ['objects'] });
   }, [queryClient]);
 
   const runImport = useCallback(
     async (files: File[]) => {
       reset();
-      setState((s) => ({ ...s, phase: "parsing" }));
+      setState((s) => ({ ...s, phase: 'parsing' }));
 
       // Parse files
       const parsed: FileData[] = [];
@@ -145,19 +146,21 @@ export function useDataImport(options: UseDataImportOptions = {}) {
       }
 
       if (!parsed.length) {
-        toast.error("Не удалось распознать файлы");
+        toast.error('Не удалось распознать файлы');
         reset();
         return;
       }
 
       // Sort: objects first
-      parsed.sort((a, b) => (a.type === "objects" ? -1 : b.type === "objects" ? 1 : 0));
+      parsed.sort((a, b) =>
+        a.type === 'objects' ? -1 : b.type === 'objects' ? 1 : 0,
+      );
 
-      const objectsData = parsed.find((f) => f.type === "objects");
-      const diagData = parsed.find((f) => f.type === "diagnostics");
+      const objectsData = parsed.find((f) => f.type === 'objects');
+      const diagData = parsed.find((f) => f.type === 'diagnostics');
       const total = parsed.reduce((n, f) => n + f.records.length, 0);
 
-      setState((s) => ({ ...s, phase: "uploading", total }));
+      setState((s) => ({ ...s, phase: 'uploading', total }));
 
       let processed = 0;
       let errors = 0;
@@ -166,14 +169,20 @@ export function useDataImport(options: UseDataImportOptions = {}) {
 
       // Upload objects
       if (objectsData) {
-        const objectRows = objectsData.records.map((r) => r.record as ObjectRow);
-        const pipelines = await ensurePipelines(objectRows.map((o) => o.pipeline_id || ""));
+        const objectRows = objectsData.records.map(
+          (r) => r.record as ObjectRow,
+        );
+        const pipelines = await ensurePipelines(
+          objectRows.map((o) => o.pipeline_id || ''),
+        );
 
         for (let i = 0; i < objectsData.records.length; i += BATCH_SIZE) {
           if (abortRef.current) break;
 
           const batch = objectsData.records.slice(i, i + BATCH_SIZE);
-          const pbRecords = batch.map((b) => toObjectPB(b.record as ObjectRow, pipelines));
+          const pbRecords = batch.map((b) =>
+            toObjectPB(b.record as ObjectRow, pipelines),
+          );
           const result = await createObjectsBatch(pbRecords);
 
           errors += result.errors;
@@ -191,7 +200,8 @@ export function useDataImport(options: UseDataImportOptions = {}) {
             refreshMap();
           }
 
-          if (i + BATCH_SIZE < objectsData.records.length) await sleep(BATCH_DELAY);
+          if (i + BATCH_SIZE < objectsData.records.length)
+            await sleep(BATCH_DELAY);
         }
 
         // Final refresh after all objects uploaded
@@ -208,7 +218,7 @@ export function useDataImport(options: UseDataImportOptions = {}) {
 
           const batch = diagData.records.slice(i, i + BATCH_SIZE);
           const pbRecords = batch.map((b) =>
-            toDiagnosticPB(b.record as DiagnosticRow, objectMap)
+            toDiagnosticPB(b.record as DiagnosticRow, objectMap),
           );
           const result = await createDiagnosticsBatch(pbRecords);
 
@@ -216,12 +226,13 @@ export function useDataImport(options: UseDataImportOptions = {}) {
           processed += batch.length;
           setState((s) => ({ ...s, processed, errors }));
 
-          if (i + BATCH_SIZE < diagData.records.length) await sleep(BATCH_DELAY);
+          if (i + BATCH_SIZE < diagData.records.length)
+            await sleep(BATCH_DELAY);
         }
       }
 
       // Done
-      setState((s) => ({ ...s, phase: "done" }));
+      setState((s) => ({ ...s, phase: 'done' }));
 
       // Final refresh to ensure map is up to date
       refreshMap();
@@ -243,17 +254,17 @@ export function useDataImport(options: UseDataImportOptions = {}) {
         options.onComplete?.();
       }, 1500);
     },
-    [reset, options, refreshMap]
+    [reset, options, refreshMap],
   );
 
   const onDrop = useCallback(
     (files: File[]) => {
       if (files.length) runImport(files);
     },
-    [runImport]
+    [runImport],
   );
 
-  const isWorking = state.phase === "parsing" || state.phase === "uploading";
+  const isWorking = state.phase === 'parsing' || state.phase === 'uploading';
   const progress = state.total > 0 ? (state.processed / state.total) * 100 : 0;
 
   return {

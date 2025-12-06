@@ -1,36 +1,40 @@
-"use client";
+'use client';
 
-import dynamic from "next/dynamic";
-import { useObjects } from "@/hooks/useObjects";
-import type { PipelineId } from "@/lib/generator-utils";
+import dynamic from 'next/dynamic';
+import { useObjects } from '@/hooks/useObjects';
+import type { PipelineId } from '@/lib/generator-utils';
 
 // Dynamically import Leaflet components to avoid SSR issues
 const MapContainer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.MapContainer),
-  { ssr: false }
+  () => import('react-leaflet').then((mod) => mod.MapContainer),
+  {
+    ssr: false,
+  },
 );
 const TileLayer = dynamic(
-  () => import("react-leaflet").then((mod) => mod.TileLayer),
-  { ssr: false }
+  () => import('react-leaflet').then((mod) => mod.TileLayer),
+  {
+    ssr: false,
+  },
 );
 
 // Dynamic imports for our layers
 const PipelinesLayer = dynamic(
-  () => import("./layers/PipelinesLayer").then((mod) => mod.PipelinesLayer),
-  { ssr: false }
+  () => import('./layers/PipelinesLayer').then((mod) => mod.PipelinesLayer),
+  { ssr: false },
 );
 const ObjectsLayer = dynamic(
-  () => import("./layers/ObjectsLayer").then((mod) => mod.ObjectsLayer),
-  { ssr: false }
+  () => import('./layers/ObjectsLayer').then((mod) => mod.ObjectsLayer),
+  { ssr: false },
 );
 const MapCenterController = dynamic(
-  () => import("./MapCenterController").then((mod) => mod.MapCenterController),
-  { ssr: false }
+  () => import('./MapCenterController').then((mod) => mod.MapCenterController),
+  { ssr: false },
 );
 const MapViewportController = dynamic(
   () =>
-    import("./MapViewportController").then((mod) => mod.MapViewportController),
-  { ssr: false }
+    import('./MapViewportController').then((mod) => mod.MapViewportController),
+  { ssr: false },
 );
 
 interface MapCanvasProps {
@@ -54,7 +58,7 @@ const KAZAKHSTAN_BOUNDS: [[number, number], [number, number]] = [
 
 // CartoDB Positron (Light) tile layer
 const TILE_URL =
-  "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
@@ -62,8 +66,8 @@ export function MapCanvas({
   onObjectSelect,
   selectedObjectId,
   activePipelineId,
-  height = "100%",
-  className = "",
+  height = '100%',
+  className = '',
 }: MapCanvasProps) {
   const { data: objectsData, isLoading } = useObjects({ perPage: 500 });
 
@@ -79,9 +83,9 @@ export function MapCanvas({
         maxBounds={KAZAKHSTAN_BOUNDS}
         maxBoundsViscosity={1.0}
         style={{
-          height: "100%",
-          width: "100%",
-          background: "#f8fafc",
+          height: '100%',
+          width: '100%',
+          background: '#f8fafc',
           zIndex: 0,
         }}
         scrollWheelZoom={true}
