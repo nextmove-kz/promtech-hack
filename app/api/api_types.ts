@@ -122,7 +122,6 @@ export enum DiagnosticsMlLabelOptions {
 	"high" = "high",
 }
 export type DiagnosticsRecord = {
-	diag_id?: number | string
 	created: IsoAutoDateString
 	date?: IsoDateString
 	defect_description?: string
@@ -153,10 +152,9 @@ export enum ObjectsHealthStatusOptions {
 	"CRITICAL" = "CRITICAL",
 }
 export type ObjectsRecord = {
-	object_id?: number | string
 	ai_summary?: string
-	conflict_detected?: boolean
 	created: IsoAutoDateString
+	has_defects?: boolean
 	health_status?: ObjectsHealthStatusOptions
 	id: string
 	last_analysis_at?: IsoAutoDateString

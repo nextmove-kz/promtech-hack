@@ -13,45 +13,39 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDiagnostic } from "@/hooks/useDiagnostic";
-import type { DiagnosticsMlLabelOptions } from "@/app/api/api_types";
-import type { DiagnosticWithObject } from "@/app/api/diagnostics";
+import { getHealthStyles } from "@/lib/objectHealthStyles";
+import type { ObjectsHealthStatusOptions } from "@/app/api/api_types";
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
   onClose: () => void;
 }
 
-const mapMlLabelToSeverity = (
-  mlLabel?: DiagnosticsMlLabelOptions
-): "critical" | "high" | "medium" | "low" => {
-  switch (mlLabel) {
-    case "high":
-      return "critical";
-    case "medium":
-      return "medium";
-    case "normal":
-    default:
-      return "low";
-  }
-};
-
-const severityConfig = {
-  critical: {
+const healthStatusConfig = {
+  OK: {
+    label: "Норма",
+    variant: "outline" as const,
+    iconColor: "text-emerald-600",
+    iconBg: "bg-emerald-100",
+  },
+  WARNING: {
+    label: "Предупреждение",
+    variant: "secondary" as const,
+    iconColor: "text-amber-600",
+    iconBg: "bg-amber-100",
+  },
+  CRITICAL: {
     label: "Критический",
     variant: "destructive" as const,
-    color: "text-risk-critical",
+    iconColor: "text-red-600",
+    iconBg: "bg-red-100",
   },
-  high: {
-    label: "Высокий",
-    variant: "destructive" as const,
-    color: "text-risk-high",
+  UNKNOWN: {
+    label: "Неизвестно",
+    variant: "outline" as const,
+    iconColor: "text-gray-600",
+    iconBg: "bg-gray-100",
   },
-  medium: {
-    label: "Средний",
-    variant: "secondary" as const,
-    color: "text-risk-medium",
-  },
-  low: { label: "Низкий", variant: "outline" as const, color: "text-risk-low" },
 };
 
 const objectTypeLabels: Record<string, string> = {
@@ -159,8 +153,6 @@ export function DiagnosticDetailsPanel({
     );
   }
 
-  const severityKey = mapMlLabelToSeverity(diagnostic.ml_label);
-  const severity = severityConfig[severityKey];
   const hasDiagnosticIssue = diagnostic.defect_found ?? false;
 
   // Extract expanded object and pipeline data
@@ -169,8 +161,14 @@ export function DiagnosticDetailsPanel({
   const objectType = object?.type;
   const objectName = object?.name;
   const pipelineName = pipeline?.name;
+  const healthStatus = object?.health_status;
   const urgencyScore = object?.urgency_score;
   const aiSummary = object?.ai_summary;
+
+  // Get health status config and styles
+  const statusKey = (healthStatus ?? "UNKNOWN") as keyof typeof healthStatusConfig;
+  const statusConfig = healthStatusConfig[statusKey] ?? healthStatusConfig.UNKNOWN;
+  const healthStyles = getHealthStyles(healthStatus);
 
   return (
     <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
@@ -190,18 +188,21 @@ export function DiagnosticDetailsPanel({
             <div
               className={cn(
                 "rounded p-1.5 mt-0.5",
-                severityKey === "critical" ? "bg-risk-critical/20" : "bg-muted"
+                statusConfig.iconBg
               )}
             >
-              <AlertTriangle className={cn("h-4 w-4", severity.color)} />
+              <AlertTriangle className={cn("h-4 w-4", statusConfig.iconColor)} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold text-xl text-foreground truncate">
                   {objectName || "Объект без имени"}
                 </h2>
-                <Badge variant={severity.variant} className="text-sm">
-                  {severity.label}
+                <Badge
+                  variant="outline"
+                  className={cn("text-sm", healthStyles.badgeClass)}
+                >
+                  {statusConfig.label}
                 </Badge>
               </div>
               <div className="mt-1 text-xs text-muted-foreground/70">
@@ -241,13 +242,7 @@ export function DiagnosticDetailsPanel({
                           <span
                             className={cn(
                               "text-2xl font-bold tabular-nums",
-                              urgencyScore >= 80
-                                ? "text-risk-critical"
-                                : urgencyScore >= 60
-                                ? "text-risk-high"
-                                : urgencyScore >= 40
-                                ? "text-risk-medium"
-                                : "text-risk-low"
+                              statusConfig.iconColor
                             )}
                           >
                             {urgencyScore}

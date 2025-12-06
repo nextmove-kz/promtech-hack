@@ -22,7 +22,7 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
       filters.push(`health_status = "CRITICAL"`)
     }
     if (activeFilters.includes('defective')) {
-      filters.push(`conflict_detected = true`)
+      filters.push(`has_defects = true`)
     }
     if (activeFilters.includes('recent')) {
       filters.push(`last_analysis_at > "2022-01-01"`)

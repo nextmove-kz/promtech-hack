@@ -27,15 +27,14 @@ const ANALYSIS_RULES = `DIAGNOSTIC METHODS REFERENCE:
 - UTWM (Ultrasonic Wall Measurement): Precise thickness measurement.
 
 ANALYSIS RULES:
-1. **Conflict Detection**: If MFL shows defects but VIK is clean → Mark conflict_detected: true (internal corrosion not visible externally). Same for UZK vs VIK discrepancies.
-2. **Trend Analysis**: If defect depth/severity increases over time across inspections → Escalate status.
-3. **Quality Grades**: 
+1. **Trend Analysis**: If defect depth/severity increases over time across inspections → Escalate status.
+2. **Quality Grades**: 
    - "недопустимо" (unacceptable) → CRITICAL
    - "требует_мер" (needs action) → WARNING or CRITICAL based on params
    - "допустимо" (acceptable) → WARNING if params are borderline
    - "удовлетворительно" (satisfactory) → OK
-4. **ML Labels**: Consider ml_label as a supporting factor (high=concern, medium=monitor, normal=ok).
-5. **Environmental Factors**: High humidity + temperature variations may accelerate corrosion.
+3. **ML Labels**: Consider ml_label as a supporting factor (high=concern, medium=monitor, normal=ok).
+4. **Environmental Factors**: High humidity + temperature variations may accelerate corrosion.
 
 SCORING GUIDELINES:
 - 0-30: OK (Good condition, routine monitoring sufficient)
@@ -68,8 +67,7 @@ Return ONLY a valid JSON object with this exact structure:
   "health_status": "OK" | "WARNING" | "CRITICAL",
   "urgency_score": <number 0-100>,
   "ai_summary": "<Brief 1-2 sentence summary in Russian of the main finding>",
-  "recommended_action": "<Specific actionable recommendation in Russian>",
-  "conflict_detected": <boolean>
+  "recommended_action": "<Specific actionable recommendation in Russian>"
 }`;
 
 // System instruction for BATCH analysis (multiple objects at once)
@@ -87,8 +85,7 @@ Each element must have this structure:
     "health_status": "OK" | "WARNING" | "CRITICAL",
     "urgency_score": <number 0-100>,
     "ai_summary": "<Brief 1-2 sentence summary in Russian>",
-    "recommended_action": "<Specific recommendation in Russian>",
-    "conflict_detected": <boolean>
+    "recommended_action": "<Specific recommendation in Russian>"
   },
   ...
 ]
@@ -103,6 +100,28 @@ const getLatestDiagnosticTimestamp = (diagnostics: DiagnosticsResponse[]): numbe
     ).getTime();
     return Number.isFinite(ts) ? Math.max(latest, ts) : latest;
   }, 0);
+};
+
+const getLatestDiagnostic = (
+  diagnostics: DiagnosticsResponse[]
+): DiagnosticsResponse | undefined => {
+  if (!diagnostics.length) return undefined;
+
+  return [...diagnostics].sort(
+    (a, b) =>
+      new Date(
+        b.date ||
+          (b as { updated?: string }).updated ||
+          (b as { created?: string }).created ||
+          0
+      ).getTime() -
+      new Date(
+        a.date ||
+          (a as { updated?: string }).updated ||
+          (a as { created?: string }).created ||
+          0
+      ).getTime()
+  )[0];
 };
 
 const formatParam = (value?: number | string | null): string =>
@@ -143,12 +162,15 @@ export interface AnalysisRequest {
   object_id: string;
 }
 
-export interface AnalysisResult {
+type AiAnalysisResult = {
   health_status: ObjectsHealthStatusOptions;
   urgency_score: number;
   ai_summary: string;
   recommended_action: string;
-  conflict_detected: boolean;
+};
+
+export interface AnalysisResult extends AiAnalysisResult {
+  has_defects: boolean;
 }
 
 export interface AnalysisResponse {
@@ -281,7 +303,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw new Error("Empty response from AI");
     }
 
-    let analysisResult: AnalysisResult;
+    let aiResult: AiAnalysisResult;
     try {
       // Clean the response - remove markdown code blocks if present
       let cleanedText = aiText.trim();
@@ -296,31 +318,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
       cleanedText = cleanedText.trim();
 
-      analysisResult = JSON.parse(cleanedText);
+      aiResult = JSON.parse(cleanedText);
 
       // Validate the response structure
       if (
-        !analysisResult.health_status ||
-        typeof analysisResult.urgency_score !== "number"
+        !aiResult.health_status ||
+        typeof aiResult.urgency_score !== "number"
       ) {
         throw new Error("Invalid response structure");
       }
 
       // Ensure health_status is valid
       const validStatuses = ["OK", "WARNING", "CRITICAL"];
-      if (!validStatuses.includes(analysisResult.health_status)) {
-        analysisResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
+      if (!validStatuses.includes(aiResult.health_status)) {
+        aiResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
       }
 
       // Clamp urgency_score to 0-100
-      analysisResult.urgency_score = Math.max(
+      aiResult.urgency_score = Math.max(
         0,
-        Math.min(100, Math.round(analysisResult.urgency_score))
+        Math.min(100, Math.round(aiResult.urgency_score))
       );
     } catch (parseError) {
       console.error("Failed to parse AI response:", aiText, parseError);
       throw new Error("Failed to parse AI response");
     }
+
+    const latestDiagnostic = getLatestDiagnostic(diagnostics);
+    const hasDefects = Boolean(latestDiagnostic?.defect_found);
+    const analysisResult: AnalysisResult = { ...aiResult, has_defects: hasDefects };
 
     // Update the object in Pocketbase
     await pb.collection("objects").update(object_id, {
@@ -328,7 +354,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       urgency_score: analysisResult.urgency_score,
       ai_summary: analysisResult.ai_summary,
       recommended_action: analysisResult.recommended_action,
-      conflict_detected: analysisResult.conflict_detected,
+      has_defects: analysisResult.has_defects,
       last_analysis_at: new Date().toISOString(),
     });
 
@@ -352,13 +378,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 // Batch analysis endpoint - analyze multiple objects in ONE AI call
 const BATCH_SIZE = 10; // Analyze up to 10 objects per AI call
 
-export interface BatchAnalysisResult {
+type AiBatchAnalysisResult = AiAnalysisResult & {
   object_id: string;
-  health_status: ObjectsHealthStatusOptions;
-  urgency_score: number;
-  ai_summary: string;
-  recommended_action: string;
-  conflict_detected: boolean;
+};
+
+export interface BatchAnalysisResult extends AiBatchAnalysisResult {
+  has_defects: boolean;
 }
 
 export interface BatchAnalysisResponse {
@@ -537,16 +562,25 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
       if (cleanedText.endsWith("```")) cleanedText = cleanedText.slice(0, -3);
       cleanedText = cleanedText.trim();
 
-      const batchResults: BatchAnalysisResult[] = JSON.parse(cleanedText);
+      const batchResults: AiBatchAnalysisResult[] = JSON.parse(cleanedText);
 
       // Process each result
-      for (const result of batchResults) {
+      for (const rawResult of batchResults) {
+        const resultFromAi = { ...rawResult };
         // Validate and sanitize
         const validStatuses = ["OK", "WARNING", "CRITICAL"];
-        if (!validStatuses.includes(result.health_status)) {
-          result.health_status = "WARNING" as ObjectsHealthStatusOptions;
+        if (!validStatuses.includes(resultFromAi.health_status)) {
+          resultFromAi.health_status = "WARNING" as ObjectsHealthStatusOptions;
         }
-        result.urgency_score = Math.max(0, Math.min(100, Math.round(result.urgency_score)));
+        resultFromAi.urgency_score = Math.max(
+          0,
+          Math.min(100, Math.round(resultFromAi.urgency_score))
+        );
+
+        const diagList = diagnosticsMap.get(resultFromAi.object_id) || [];
+        const latestDiagnostic = getLatestDiagnostic(diagList);
+        const hasDefects = Boolean(latestDiagnostic?.defect_found);
+        const result: BatchAnalysisResult = { ...resultFromAi, has_defects: hasDefects };
 
         results.push(result);
 
@@ -557,7 +591,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
             urgency_score: result.urgency_score,
             ai_summary: result.ai_summary,
             recommended_action: result.recommended_action,
-            conflict_detected: result.conflict_detected,
+            has_defects: result.has_defects,
             last_analysis_at: new Date().toISOString(),
           });
         } catch (e) {
