@@ -20,7 +20,9 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useDiagnostic } from "@/hooks/useDiagnostic";
+import { usePlanByObjectId } from "@/hooks/usePlan";
 import { ActionPlanModal } from "./ActionPlanModal";
+import { useRouter } from "next/navigation";
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
@@ -129,7 +131,9 @@ export function DiagnosticDetailsPanel({
   onClose,
 }: DiagnosticDetailsPanelProps) {
   const { data: diagnostics, isLoading, error } = useDiagnostic(objectId);
+  const { data: plan } = usePlanByObjectId(objectId);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const router = useRouter();
 
   if (!objectId) return null;
 
@@ -403,10 +407,23 @@ export function DiagnosticDetailsPanel({
         </div>
 
         <div className="border-t border-border p-4">
-          <Button className="w-full gap-2" onClick={() => setIsModalOpen(true)}>
-            <ClipboardList className="h-4 w-4" />
-            Сгенерировать план действий
-          </Button>
+          {plan?.status === "pending" ? (
+            <Button
+              className="w-full gap-2"
+              onClick={() => router.push(`/plan/${plan.object}`)}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Перейти к плану
+            </Button>
+          ) : (
+            <Button
+              className="w-full gap-2"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <ClipboardList className="h-4 w-4" />
+              Сгенерировать план действий
+            </Button>
+          )}
         </div>
       </div>
 
