@@ -6,10 +6,12 @@ import { filterAtom } from '@/store/filterStore'
 
 interface UseInfiniteObjectsParams {
   perPage?: number
+  sort?: string
 }
 
 export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   const perPage = params.perPage ?? 20
+  const sort = params.sort
   const { activeFilters } = useAtomValue(filterAtom)
   const hasFilters = activeFilters.length > 0
 
@@ -29,9 +31,9 @@ export function useInfiniteObjects(params: UseInfiniteObjectsParams = {}) {
   }, [activeFilters, hasFilters])
 
   return useInfiniteQuery<GetObjectsResult>({
-    queryKey: ['objects', 'infinite', perPage, filter],
+    queryKey: ['objects', 'infinite', perPage, filter, sort],
     queryFn: ({ pageParam }) =>
-      getObjects({ page: pageParam as number, perPage, filter }),
+      getObjects({ page: pageParam as number, perPage, filter, sort }),
     initialPageParam: 1,
     getNextPageParam: lastPage => {
       if (lastPage.page < lastPage.totalPages) {
