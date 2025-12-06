@@ -30,6 +30,7 @@ import {
   useUpdatePlanStatus,
 } from "@/hooks/usePlan";
 import { PlanStatusOptions } from "@/app/api/api_types";
+import Link from "next/link";
 
 const objectTypeLabels: Record<string, string> = {
   crane: "Кран",
@@ -132,6 +133,11 @@ export default function PlanPage() {
     updateActionMutation.mutate({ actionId, status: newStatus });
   };
 
+  const handleStatusChange = (status: PlanStatusOptions) => {
+    if (!plan) return;
+    updatePlanMutation.mutate({ planId: plan.id, status });
+  };
+
   const handleMarkAsDoneClick = () => {
     if (!plan) return;
 
@@ -145,20 +151,12 @@ export default function PlanPage() {
       setShowConfirmDialog(true);
     } else {
       // All actions completed, proceed directly
-      confirmMarkAsDone();
+      handleStatusChange(PlanStatusOptions.done);
     }
   };
 
   const confirmMarkAsDone = () => {
-    if (!plan) return;
-    updatePlanMutation.mutate(
-      { planId: plan.id, status: PlanStatusOptions.done },
-      {
-        onSuccess: () => {
-          router.push("/");
-        },
-      }
-    );
+    handleStatusChange(PlanStatusOptions.done);
     setShowConfirmDialog(false);
   };
 
@@ -255,7 +253,12 @@ export default function PlanPage() {
         {/* Problem Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-foreground">План работ</h1>
+            <div className="flex items-center">
+              <Link href="/plans">
+                <ArrowLeft className="h-6 w-6 mr-2" />
+              </Link>
+              <h1 className="text-2xl font-bold text-foreground">План работ</h1>
+            </div>
             <Badge
               variant={
                 plan.status === PlanStatusOptions.done
@@ -270,7 +273,7 @@ export default function PlanPage() {
                 : plan.status === PlanStatusOptions.pending
                 ? "В работе"
                 : plan.status === PlanStatusOptions.created
-                ? "Создано"
+                ? "Новый"
                 : "Архив"}
             </Badge>
           </div>
@@ -440,7 +443,8 @@ export default function PlanPage() {
                     disabled={
                       updateActionMutation.isPending ||
                       plan.status === PlanStatusOptions.done ||
-                      plan.status === PlanStatusOptions.archive
+                      plan.status === PlanStatusOptions.archive ||
+                      plan.status === PlanStatusOptions.created
                     }
                     className={cn(
                       "w-full flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:bg-accent/50",
@@ -476,29 +480,64 @@ export default function PlanPage() {
 
       {/* Fixed Bottom Button */}
       <div className="fixed bottom-0 left-0 right-0 border-t border-border bg-card/95 backdrop-blur p-4">
-        <div className="max-w-2xl mx-auto">
-          <Button
-            onClick={handleMarkAsDoneClick}
-            disabled={
-              updatePlanMutation.isPending ||
-              plan.status === PlanStatusOptions.done
-            }
-            className="w-full"
-            size="lg"
-          >
-            {updatePlanMutation.isPending ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Сохранение...
-              </>
-            ) : plan.status === PlanStatusOptions.done ? (
-              "План выполнен"
-            ) : allActionsCompleted ? (
-              "Отметить как выполнено"
-            ) : (
-              `Отметить как выполнено (${completedCount}/${totalCount})`
-            )}
-          </Button>
+        <div className="max-w-2xl mx-auto flex gap-3">
+          {plan.status === PlanStatusOptions.created && (
+            <Button
+              onClick={() => handleStatusChange(PlanStatusOptions.pending)}
+              disabled={updatePlanMutation.isPending}
+              className="w-full"
+              size="lg"
+            >
+              {updatePlanMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                "Взять в работу"
+              )}
+            </Button>
+          )}
+
+          {plan.status === PlanStatusOptions.pending && (
+            <Button
+              onClick={handleMarkAsDoneClick}
+              disabled={updatePlanMutation.isPending}
+              className="w-full"
+              size="lg"
+            >
+              {updatePlanMutation.isPending ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Сохранение...
+                </>
+              ) : (
+                "Завершить"
+              )}
+            </Button>
+          )}
+
+          {plan.status === PlanStatusOptions.done && (
+            <>
+              <Button
+                onClick={() => handleStatusChange(PlanStatusOptions.pending)}
+                disabled={updatePlanMutation.isPending}
+                className="flex-1"
+                variant="outline"
+                size="lg"
+              >
+                Вернуть в работу
+              </Button>
+              <Button
+                onClick={() => handleStatusChange(PlanStatusOptions.archive)}
+                disabled={updatePlanMutation.isPending}
+                className="flex-1"
+                size="lg"
+              >
+                Архивировать
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </div>
