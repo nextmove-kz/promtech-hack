@@ -153,8 +153,8 @@ export enum ObjectsHealthStatusOptions {
 }
 export type ObjectsRecord = {
 	ai_summary?: string
-	conflict_detected?: boolean
 	created: IsoAutoDateString
+	has_defects?: boolean
 	health_status?: ObjectsHealthStatusOptions
 	id: string
 	last_analysis_at?: IsoAutoDateString

@@ -38,7 +38,7 @@ interface AnalysisSummary {
   warning: number;
   ok: number;
   errors: number;
-  conflicts: number;
+  defects: number;
 }
 
 interface AnalysisTriggerProps {
@@ -59,7 +59,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
     warning: 0,
     ok: 0,
     errors: 0,
-    conflicts: 0,
+    defects: 0,
   });
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -118,7 +118,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
       warning: 0,
       ok: 0,
       errors: 0,
-      conflicts: 0,
+      defects: 0,
     });
 
     abortControllerRef.current = new AbortController();
@@ -199,8 +199,7 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
                 prev.warning +
                 (result.result?.health_status === "WARNING" ? 1 : 0),
               ok: prev.ok + (result.result?.health_status === "OK" ? 1 : 0),
-              conflicts:
-                prev.conflicts + (result.result?.conflict_detected ? 1 : 0),
+              defects: prev.defects + (result.result?.has_defects ? 1 : 0),
             }));
           } else {
             setSummary((prev) => ({
@@ -426,9 +425,9 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
             <div className="flex items-center gap-2 rounded-lg bg-purple-500/10 px-3 py-2">
               <Brain className="size-4 text-purple-500" />
               <div>
-                <div className="text-xs text-muted-foreground">Конфликты</div>
+                <div className="text-xs text-muted-foreground">Дефекты</div>
                 <div className="font-mono font-semibold text-purple-600">
-                  {summary.conflicts}
+                  {summary.defects}
                 </div>
               </div>
             </div>
@@ -478,12 +477,12 @@ export function AnalysisTrigger({ objectIds, onComplete }: AnalysisTriggerProps)
                             log.result.health_status,
                             log.result.urgency_score
                           )}
-                        {log.result?.conflict_detected && (
+                        {log.result?.has_defects && (
                           <Badge
                             variant="outline"
                             className="bg-purple-500/20 text-purple-600 border-purple-500/30 text-xs"
                           >
-                            Конфликт данных
+                            Дефект обнаружен
                           </Badge>
                         )}
                       </div>
