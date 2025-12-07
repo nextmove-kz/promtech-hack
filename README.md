@@ -1,38 +1,43 @@
-# Promtech Hack
+# IntegrityOS
 
-Next.js 16 app (App Router) using Bun and Shadcn UI for pipeline integrity monitoring and diagnostics.
+Next.js 16 приложение (App Router) на Bun и Shadcn UI для мониторинга целостности трубопроводов и диагностики.
 
-## Prerequisites
+## Деплой
+
+Для проверки работы приложения перейдите на: https://link-integrity.netlify.app/
+
+## Требования
 - Bun 1.1+
-- Node.js 18+ (for tooling compatibility)
+- Node.js 18+ (для совместимости с инструментами)
 
-## Install
+## Установка
 ```bash
 bun install
 ```
 
-## Run (dev)
+## Запуск (dev)
 ```bash
 bun dev
 ```
 
-## Build (CI)
+## Сборка (CI)
 ```bash
 bun run build
 ```
 
-## Generate sample data
-Creates CSV fixtures in the repo root:
+## Генерация тестовых данных
+Создает CSV файлы в корне репозитория:
 ```bash
 bun run scripts/generate-data.ts
 ```
-Outputs: `Objects.csv`, `Diagnostics.csv`, plus smaller `small_objects.csv` / `small_diagnostics.csv`.
+Результат: `Objects.csv`, `Diagnostics.csv`, а также меньшие файлы `small_objects.csv` / `small_diagnostics.csv`.
 
-## Import workflow
-- Upload the generated CSVs at `/import` using the “Импорт” dialog.
-- After import, kick off AI analysis from the UI (batching is handled automatically).
+## Рабочий процесс импорта
+- Загрузите сгенерированные CSV файлы через кнопку "Импорт" в шапке главной страницы.
+- После импорта запустите AI-анализ из интерфейса (батчинг обрабатывается автоматически).
 
-## Useful pages
-- `/` – dashboard with objects, diagnostics, and map
-- `/import` – data import UI
-- `/map-example` – standalone Leaflet map example (client-rendered)
+## Полезные страницы
+- `/` – главный дашборд с картой объектов, таблицей и боковой панелью с деталями
+- `/plans` – трекер задач и планов действий
+- `/plan/[id]` – детальная страница плана действий для конкретного объекта
+- `/stats` – статистика и аналитика с графиками и отчетами
