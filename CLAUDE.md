@@ -10,17 +10,17 @@ Next.js 16 application for pipeline infrastructure diagnostics and object manage
 
 ```bash
 # Development
-npm run dev              # Start dev server at http://localhost:3000
+bun run dev              # Start dev server at http://localhost:3000
 
 # Build and production
-npm run build           # Build for production
-npm run start           # Run production server
+bun run build           # Build for production
+bun run start           # Run production server
 
 # Code quality
-npm run lint            # Run ESLint
+bun run lint            # Run ESLint
 
 # Type generation
-npm run typegen         # Generate PocketBase types from schema
+bun run typegen         # Generate PocketBase types from schema
 ```
 
 ## Architecture
@@ -50,6 +50,7 @@ Two separate PocketBase clients exist:
 Types are auto-generated in `app/api/api_types.ts` via `npm run typegen`.
 
 Key collections:
+
 - `objects` - Pipeline objects (cranes, compressors, pipeline sections) with coordinates
 - `diagnostics` - Diagnostic records linked to objects
 - `pipelines` - Pipeline metadata
@@ -57,6 +58,7 @@ Key collections:
 ### Data Import System
 
 CSV import flow (`app/api/importer.ts`, `app/lib/schemas.ts`):
+
 1. Auto-detect data type (objects vs diagnostics) from CSV headers
 2. Validate rows with Zod schemas
 3. Batch create via PocketBase `/api/batch` endpoint
@@ -68,12 +70,14 @@ Diagnostic methods: `VIK`, `PVK`, `MPK`, `UZK`, `RGK`, `TVK`, `VIBRO`, `MFL`, `T
 ### Map System
 
 Leaflet-based interactive map (`app/components/map/`):
+
 - `PipelineMap.tsx` - Main container with OpenStreetMap tiles
 - `PipelineMarker.tsx` - Individual markers with color-coded types
 - `map-utils.ts` - Color mapping, bounds calculation
 - Layers system (`layers/`) for organizing different object types
 
 Color coding:
+
 - Crane: blue
 - Compressor: red
 - Pipeline section: green
@@ -90,6 +94,7 @@ See `app/components/map/MAP_USAGE.md` for detailed usage examples.
 
 shadcn/ui components in `components/ui/` with Tailwind CSS + class-variance-authority.
 Dashboard components handle:
+
 - Map/table view switching
 - Object selection and details panel
 - Data import dialog
@@ -98,6 +103,7 @@ Dashboard components handle:
 ### Environment Variables
 
 Required in `.env`:
+
 ```
 PB_TYPEGEN_URL="http://pocketbase.url:port"
 PB_TYPEGEN_EMAIL=
@@ -125,6 +131,7 @@ JSX: react-jsx (Next.js handles runtime)
 ## UI Patterns
 
 **Object List Health Status**: Each object card in the Sidebar displays a colored left border and background:
+
 - Green (OK): Healthy object, no issues
 - Yellow (WARNING): Requires attention
 - Red (CRITICAL): Critical issues detected
@@ -136,6 +143,7 @@ The color is based on the `health_status` field or calculated from diagnostic da
 **Urgency Score Calculation**: Currently using placeholder logic in `ObjectCardList.tsx` based on object type. Should be replaced with real diagnostic-based calculation using `ml_label` or `quality_grade` from the most recent diagnostic record.
 
 **Health Status Calculation**: Currently using placeholder logic in `ObjectCardList.tsx` (line 108). Should be replaced with real diagnostic data:
+
 - ml_label "high" or quality_grade "недопустимо" → CRITICAL (red)
-- ml_label "medium" or quality_grade "требует_мер" → WARNING (yellow)
+- ml*label "medium" or quality_grade "требует*мер" → WARNING (yellow)
 - ml_label "normal" or quality_grade "удовлетворительно/допустимо" → OK (green)

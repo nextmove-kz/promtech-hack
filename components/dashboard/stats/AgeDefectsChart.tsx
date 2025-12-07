@@ -3,18 +3,29 @@
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import pb from '@/app/api/client_pb'
+import { useAtom } from 'jotai'
+import { filterAtom } from '@/store/filterStore'
 import type { ObjectsResponse } from '@/app/api/api_types'
 import { ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ZAxis } from 'recharts'
 
 export function AgeDefectsChart() {
-  const { data: objects = [], isLoading } = useQuery<ObjectsResponse[]>({
+  const [filters] = useAtom(filterAtom)
+  const selectedPipelineId = filters.advanced.pipeline
+
+  const { data: allObjects = [], isLoading } = useQuery<ObjectsResponse[]>({
     queryKey: ['objects'],
     queryFn: async () => {
       return await pb.collection('objects').getFullList<ObjectsResponse>({
         sort: '-created',
+        expand: 'pipeline',
       })
     },
   })
+
+  // Filter objects by selected pipeline
+  const objects = selectedPipelineId
+    ? allObjects.filter(obj => obj.pipeline === selectedPipelineId)
+    : allObjects
 
   // Process data for scatter plot
   const scatterData = objects
@@ -45,69 +56,72 @@ export function AgeDefectsChart() {
   const correlation = avgRiskOld > avgRiskYoung ? 'положительная' : 'отрицательная'
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">Age vs Defects</CardTitle>
-        <CardDescription>Корреляция возраста и дефектов</CardDescription>
+    <Card className="border-border/50">
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-base font-medium text-slate-700">Возраст и дефекты</CardTitle>
+        <CardDescription className="text-sm text-slate-500">Корреляция между возрастом объектов и уровнем риска</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex h-[250px] items-center justify-center text-muted-foreground">
+          <div className="flex h-[240px] items-center justify-center text-slate-400">
             Загрузка...
           </div>
         ) : scatterData.length === 0 ? (
-          <div className="flex h-[250px] items-center justify-center text-muted-foreground">
+          <div className="flex h-[240px] items-center justify-center text-slate-400">
             Нет данных
           </div>
         ) : (
           <>
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={240}>
               <ScatterChart
-                margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
+                margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" strokeOpacity={0.5} />
                 <XAxis
                   type="number"
                   dataKey="age"
                   name="Возраст"
                   unit=" лет"
-                  className="text-xs"
-                  label={{ value: 'Возраст (лет)', position: 'insideBottom', offset: -5, style: { fontSize: 11 } }}
+                  tick={{ fontSize: 11, fill: '#64748b' }}
+                  label={{ value: 'Возраст (лет)', position: 'insideBottom', offset: -5, style: { fontSize: 11, fill: '#64748b' } }}
+                  stroke="#cbd5e1"
                 />
                 <YAxis
                   type="number"
                   dataKey="risk"
                   name="Риск"
-                  className="text-xs"
+                  tick={{ fontSize: 11, fill: '#64748b' }}
                   domain={[0, 100]}
-                  label={{ value: 'Уровень риска', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
+                  label={{ value: 'Уровень риска', angle: -90, position: 'insideLeft', style: { fontSize: 11, fill: '#64748b' } }}
+                  stroke="#cbd5e1"
                 />
-                <ZAxis range={[50, 200]} />
+                <ZAxis range={[40, 120]} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'hsl(var(--popover))',
-                    border: '1px solid hsl(var(--border))',
+                    backgroundColor: 'white',
+                    border: '1px solid #e2e8f0',
                     borderRadius: '0.5rem',
                     fontSize: '12px',
+                    boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
                   }}
-                  cursor={{ strokeDasharray: '3 3' }}
+                  cursor={{ strokeDasharray: '3 3', stroke: '#cbd5e1' }}
                   content={({ active, payload }) => {
                     if (!active || !payload || payload.length === 0) return null
                     const data = payload[0].payload
                     return (
-                      <div className="rounded-lg border border-border bg-popover p-2 shadow-md">
-                        <div className="font-semibold">{data.name}</div>
-                        <div className="text-xs text-muted-foreground">
+                      <div className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
+                        <div className="font-medium text-slate-700">{data.name}</div>
+                        <div className="mt-1 text-xs text-slate-500">
                           Возраст: {data.age} лет ({data.year})
                         </div>
-                        <div className="text-xs">
-                          Риск: <span className="font-semibold">{data.risk}</span>
+                        <div className="text-xs text-slate-600">
+                          Риск: <span className="font-medium">{data.risk}</span>
                         </div>
-                        <div className="text-xs">
-                          Статус: <span className={`font-semibold ${
-                            data.status === 'CRITICAL' ? 'text-red-500' :
-                            data.status === 'WARNING' ? 'text-yellow-500' :
-                            'text-green-500'
+                        <div className="text-xs text-slate-600">
+                          Статус: <span className={`font-medium ${
+                            data.status === 'CRITICAL' ? 'text-rose-600' :
+                            data.status === 'WARNING' ? 'text-amber-600' :
+                            'text-emerald-600'
                           }`}>{data.status}</span>
                         </div>
                       </div>
@@ -117,30 +131,30 @@ export function AgeDefectsChart() {
                 <Scatter
                   name="Объекты"
                   data={scatterData}
-                  fill="#8b5cf6"
-                  fillOpacity={0.6}
+                  fill="#60a5fa"
+                  fillOpacity={0.5}
                   shape="circle"
                 />
               </ScatterChart>
             </ResponsiveContainer>
 
             {/* Correlation insights */}
-            <div className="mt-3 space-y-2 border-t border-border pt-3 text-xs">
+            <div className="mt-4 space-y-2 border-t border-slate-200 pt-3 text-xs">
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Средний возраст:</span>
-                <span className="font-semibold">{avgAge.toFixed(1)} лет</span>
+                <span className="text-slate-500">Средний возраст:</span>
+                <span className="font-medium text-slate-700">{avgAge.toFixed(1)} лет</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Риск старых объектов:</span>
-                <span className="font-semibold text-orange-500">{avgRiskOld.toFixed(1)}</span>
+                <span className="text-slate-500">Риск старых объектов:</span>
+                <span className="font-medium text-amber-600">{avgRiskOld.toFixed(1)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Риск новых объектов:</span>
-                <span className="font-semibold text-green-500">{avgRiskYoung.toFixed(1)}</span>
+                <span className="text-slate-500">Риск новых объектов:</span>
+                <span className="font-medium text-emerald-600">{avgRiskYoung.toFixed(1)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Корреляция:</span>
-                <span className="font-semibold capitalize">{correlation}</span>
+                <span className="text-slate-500">Корреляция:</span>
+                <span className="font-medium text-slate-700 capitalize">{correlation}</span>
               </div>
             </div>
           </>

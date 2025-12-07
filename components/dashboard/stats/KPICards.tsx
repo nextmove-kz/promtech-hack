@@ -1,21 +1,32 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
-import { Shield, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react'
+import { Shield, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import pb from '@/app/api/client_pb'
+import { useAtom } from 'jotai'
+import { filterAtom } from '@/store/filterStore'
 import type { ObjectsResponse, PlanResponse } from '@/app/api/api_types'
 
 export function KPICards() {
+  const [filters] = useAtom(filterAtom)
+  const selectedPipelineId = filters.advanced.pipeline
+
   // Fetch all objects
-  const { data: objects = [] } = useQuery<ObjectsResponse[]>({
+  const { data: allObjects = [] } = useQuery<ObjectsResponse[]>({
     queryKey: ['objects'],
     queryFn: async () => {
       return await pb.collection('objects').getFullList<ObjectsResponse>({
         sort: '-created',
+        expand: 'pipeline',
       })
     },
   })
+
+  // Filter objects by selected pipeline
+  const objects = selectedPipelineId
+    ? allObjects.filter(obj => obj.pipeline === selectedPipelineId)
+    : allObjects
 
   // Fetch all plans
   const { data: plans = [] } = useQuery<PlanResponse[]>({
@@ -27,19 +38,25 @@ export function KPICards() {
     },
   })
 
-  // Calculate Safety Score (0-100, inverse of average urgency_score)
+  // Calculate average urgency score
   const avgUrgency = objects.length > 0
     ? objects.reduce((sum, obj) => sum + (obj.urgency_score || 0), 0) / objects.length
     : 0
+
+  // Determine urgency status
+  const getUrgencyStatus = (score: number): { label: string; color: string } => {
+    if (score <= 30) return { label: 'Нормальный', color: 'text-emerald-600' }
+    if (score <= 60) return { label: 'Повышенный', color: 'text-amber-600' }
+    return { label: 'Критический', color: 'text-rose-600' }
+  }
+
+  const urgencyStatus = getUrgencyStatus(avgUrgency)
+
+  // Calculate Safety Score (0-100, inverse of average urgency_score)
   const safetyScore = Math.round(100 - avgUrgency)
 
   // Determine safety status color
-  const safetyStatus = safetyScore >= 80 ? 'success' : safetyScore >= 60 ? 'warning' : 'critical'
-
-  // Calculate CAPEX Forecast (synthetic: Critical = $50k, Warning = $10k)
-  const criticalObjects = objects.filter(obj => obj.health_status === 'CRITICAL')
-  const warningObjects = objects.filter(obj => obj.health_status === 'WARNING')
-  const capexForecast = (criticalObjects.length * 50000) + (warningObjects.length * 10000)
+  const safetyStatus = safetyScore >= 70 ? 'success' : safetyScore >= 40 ? 'warning' : 'critical'
 
   // Count active anomalies (objects with status != OK)
   const activeAnomalies = objects.filter(obj => obj.health_status !== 'OK').length
@@ -48,35 +65,35 @@ export function KPICards() {
   const pendingActions = plans.filter(plan => plan.status === 'pending' || plan.status === 'created').length
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
       {/* Safety Score */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Safety Score</CardTitle>
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-sm font-medium text-slate-600">Индекс безопасности</CardTitle>
           <Shield className={`h-4 w-4 ${
-            safetyStatus === 'success' ? 'text-green-500' :
-            safetyStatus === 'warning' ? 'text-yellow-500' :
-            'text-red-500'
+            safetyStatus === 'success' ? 'text-emerald-500' :
+            safetyStatus === 'warning' ? 'text-amber-500' :
+            'text-rose-500'
           }`} />
         </CardHeader>
         <CardContent>
-          <div className={`text-3xl font-bold ${
-            safetyStatus === 'success' ? 'text-green-500' :
-            safetyStatus === 'warning' ? 'text-yellow-500' :
-            'text-red-500'
+          <div className={`text-3xl font-semibold ${
+            safetyStatus === 'success' ? 'text-emerald-600' :
+            safetyStatus === 'warning' ? 'text-amber-600' :
+            'text-rose-600'
           }`}>
             {safetyScore}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Индекс безопасности (0-100)
+          <p className="mt-1 text-xs text-slate-500">
+            шкала 0-100
           </p>
-          <div className="mt-2 flex items-center gap-2">
-            <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+          <div className="mt-3 flex items-center gap-2">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
               <div
                 className={`h-full transition-all ${
-                  safetyStatus === 'success' ? 'bg-green-500' :
-                  safetyStatus === 'warning' ? 'bg-yellow-500' :
-                  'bg-red-500'
+                  safetyStatus === 'success' ? 'bg-emerald-500' :
+                  safetyStatus === 'warning' ? 'bg-amber-500' :
+                  'bg-rose-500'
                 }`}
                 style={{ width: `${safetyScore}%` }}
               />
@@ -85,61 +102,59 @@ export function KPICards() {
         </CardContent>
       </Card>
 
-      {/* CAPEX Forecast */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">CAPEX Forecast</CardTitle>
-          <DollarSign className="h-4 w-4 text-blue-500" />
+      {/* Average Urgency Score */}
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-sm font-medium text-slate-600">Средняя срочность</CardTitle>
+          <TrendingUp className={`h-4 w-4 ${urgencyStatus.color}`} />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-blue-500">
-            ${(capexForecast / 1000000).toFixed(1)}M
+          <div className={`text-3xl font-semibold ${urgencyStatus.color}`}>
+            {avgUrgency.toFixed(1)}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Прогноз затрат на ремонт
+          <p className="mt-1 text-xs text-slate-500">
+            {urgencyStatus.label}
           </p>
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span className="text-red-500">{criticalObjects.length} Critical</span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-yellow-500">{warningObjects.length} Warning</span>
+          <div className="mt-3 text-xs text-slate-400">
+            по {objects.length} объектам
           </div>
         </CardContent>
       </Card>
 
       {/* Active Anomalies */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Active Anomalies</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-orange-500" />
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-sm font-medium text-slate-600">Требуют внимания</CardTitle>
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-orange-500">
+          <div className="text-3xl font-semibold text-slate-700">
             {activeAnomalies}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Объектов требуют внимания
+          <p className="mt-1 text-xs text-slate-500">
+            объектов с проблемами
           </p>
-          <div className="mt-2 text-xs text-muted-foreground">
-            из {objects.length} всего объектов
+          <div className="mt-3 text-xs text-slate-400">
+            из {objects.length} всего
           </div>
         </CardContent>
       </Card>
 
       {/* Pending Actions */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Pending Actions</CardTitle>
-          <CheckCircle className="h-4 w-4 text-purple-500" />
+      <Card className="border-border/50">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <CardTitle className="text-sm font-medium text-slate-600">Открытые задачи</CardTitle>
+          <CheckCircle className="h-4 w-4 text-blue-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-purple-500">
+          <div className="text-3xl font-semibold text-slate-700">
             {pendingActions}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Открытых задач в плане
+          <p className="mt-1 text-xs text-slate-500">
+            в плане действий
           </p>
-          <div className="mt-2 text-xs text-muted-foreground">
-            из {plans.length} всего планов
+          <div className="mt-3 text-xs text-slate-400">
+            из {plans.length} всего
           </div>
         </CardContent>
       </Card>
