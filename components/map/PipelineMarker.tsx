@@ -2,7 +2,7 @@
 
 import { Marker, Popup } from 'react-leaflet';
 import type { PipelineObject } from '@/lib/types/pipeline';
-import { getMarkerColorByType, createColoredIcon } from './map-utils';
+import { createColoredIcon, getMarkerColorByType } from './map-utils';
 
 interface PipelineMarkerProps {
   object: PipelineObject;

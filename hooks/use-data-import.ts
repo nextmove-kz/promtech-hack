@@ -1,28 +1,28 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import Papa from 'papaparse';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import {
-  detectDataType,
-  validateRow,
-  type DataType,
-  type ObjectRow,
-  type DiagnosticRow,
-} from '@/app/lib/schemas';
-import {
-  ensurePipelines,
-  fetchAllObjects,
-  createObjectsBatch,
-  createDiagnosticsBatch,
-} from '@/app/api/importer';
 import type {
   DiagnosticsMethodOptions,
   DiagnosticsMlLabelOptions,
   DiagnosticsQualityGradeOptions,
   ObjectsTypeOptions,
 } from '@/app/api/api_types';
+import {
+  createDiagnosticsBatch,
+  createObjectsBatch,
+  ensurePipelines,
+  fetchAllObjects,
+} from '@/app/api/importer';
+import {
+  type DataType,
+  type DiagnosticRow,
+  detectDataType,
+  type ObjectRow,
+  validateRow,
+} from '@/app/lib/schemas';
 
 const BATCH_SIZE = 50; // Smaller batches for smoother real-time updates
 const BATCH_DELAY = 100;

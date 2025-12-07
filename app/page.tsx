@@ -1,11 +1,11 @@
 'use client';
 
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { Header } from '@/components/dashboard/Header';
 import { MapView } from '@/components/dashboard/MapView';
-import { TableView } from '@/components/dashboard/TableView';
 import { Sidebar } from '@/components/dashboard/Sidebar';
+import { TableView } from '@/components/dashboard/TableView';
 
 type ViewMode = 'map' | 'table';
 

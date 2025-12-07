@@ -1,10 +1,10 @@
-import clientPocketBase from './client_pb';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 import type {
   DiagnosticsMethodOptions,
   ObjectsResponse,
   PipelinesResponse,
 } from './api_types';
-import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
+import clientPocketBase from './client_pb';
 
 export interface GetObjectsParams {
   page?: number;

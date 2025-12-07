@@ -1,7 +1,7 @@
 'use server';
+import { cookies } from 'next/headers';
 import type { AuthSystemFields } from '../api_types';
 import { pocketbase } from '../pocketbase';
-import { cookies } from 'next/headers';
 
 export const getUser = async () => {
   const pb = await pocketbase();

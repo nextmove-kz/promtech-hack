@@ -1,9 +1,11 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
+import { Brain, Loader2, Upload, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Brain, Loader2, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +14,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useDataImport } from '@/hooks/use-data-import';
-import { toast } from 'sonner';
 
 export function DataImporter({ className }: { className?: string }) {
   const queryClient = useQueryClient();
@@ -36,8 +36,6 @@ export function DataImporter({ className }: { className?: string }) {
   const importToastId = useRef<string | number | null>(null);
   const analysisToastId = useRef<string | number | null>(null);
   const analysisAbortRef = useRef(false);
-
-  const BATCH_SIZE = 10; // Process 10 objects per AI call
 
   const refreshObjects = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ['objects'] });
@@ -74,52 +72,47 @@ export function DataImporter({ className }: { className?: string }) {
         ok = 0,
         errors = 0;
 
-      // Process in batches of BATCH_SIZE objects per AI call
-      const totalBatches = Math.ceil(object_ids.length / BATCH_SIZE);
-
-      for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      // Process objects one by one for visual feedback
+      for (let i = 0; i < object_ids.length; i++) {
         if (analysisAbortRef.current) break;
 
-        const batchStart = batchIndex * BATCH_SIZE;
-        const batchIds = object_ids.slice(batchStart, batchStart + BATCH_SIZE);
+        const objectId = object_ids[i];
 
         setAnalysisProgress({
-          current: Math.min(batchStart + BATCH_SIZE, object_ids.length),
+          current: i + 1,
           total: object_ids.length,
         });
 
         try {
-          // Use PATCH for batch analysis (multiple objects in one AI call)
+          // Use POST for single object analysis
           const res = await fetch('/api/analyze', {
-            method: 'PATCH',
+            method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ object_ids: batchIds }),
+            body: JSON.stringify({ object_id: objectId }),
           });
 
           const data = await res.json();
 
-          if (data.success && data.results) {
-            for (const result of data.results) {
-              if (result.health_status === 'CRITICAL') critical++;
-              else if (result.health_status === 'WARNING') warning++;
-              else ok++;
-            }
-          }
-
-          if (data.errors && data.errors.length > 0) {
-            errors += data.errors.length;
+          if (data.success) {
+            if (data.health_status === 'CRITICAL') critical++;
+            else if (data.health_status === 'WARNING') warning++;
+            else ok++;
+          } else {
+            errors++;
           }
 
           setAnalysisCounts({ critical, warning, ok, errors });
+
+          // Refresh objects after each analysis to show progress
           refreshObjects();
         } catch {
-          errors += batchIds.length;
+          errors++;
           setAnalysisCounts({ critical, warning, ok, errors });
         }
 
-        // Small delay between batches to avoid rate limiting
-        if (batchIndex < totalBatches - 1) {
-          await new Promise((r) => setTimeout(r, 500));
+        // Small delay between analyses for visual feedback and to avoid rate limiting
+        if (i < object_ids.length - 1) {
+          await new Promise((r) => setTimeout(r, 300));
         }
       }
 

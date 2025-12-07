@@ -1,13 +1,13 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Shield, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import pb from '@/app/api/client_pb';
 import { useAtom } from 'jotai';
-import { filterAtom } from '@/store/filterStore';
+import { AlertTriangle, CheckCircle, Shield, TrendingUp } from 'lucide-react';
 import type { ObjectsResponse, PlanResponse } from '@/app/api/api_types';
+import pb from '@/app/api/client_pb';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
+import { filterAtom } from '@/store/filterStore';
 
 export function KPICards() {
   const [filters] = useAtom(filterAtom);

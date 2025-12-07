@@ -1,31 +1,31 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  BarChart3,
+  Brain,
+  CheckCircle2,
+  Loader2,
+  Play,
+  Sparkles,
+  Square,
+  Zap,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
+import type { AnalysisResponse, AnalysisResult } from '@/app/api/analyze/route';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import {
-  Brain,
-  Play,
-  Square,
-  AlertTriangle,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Sparkles,
-  BarChart3,
-  Zap,
-} from 'lucide-react';
-import type { AnalysisResponse, AnalysisResult } from '@/app/api/analyze/route';
 
 const createInitialSummary = () => ({
   total: 0,

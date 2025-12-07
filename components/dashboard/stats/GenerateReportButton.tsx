@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { FileDown, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
 import { toast } from 'sonner';
-import { generateStatsReport } from '@/lib/stats-report-generator';
-import { useStatsReportData } from '@/hooks/useStatsReportData';
 import type { PipelinesResponse } from '@/app/api/api_types';
+import { Button } from '@/components/ui/button';
+import { useStatsReportData } from '@/hooks/useStatsReportData';
+import { generateStatsReport } from '@/lib/stats-report-generator';
 
 interface GenerateReportButtonProps {
   selectedPipelineId: string | null | undefined;

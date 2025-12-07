@@ -1,7 +1,7 @@
 'use client';
 
-import Link from 'next/link';
 import { Gauge, LineChart } from 'lucide-react';
+import Link from 'next/link';
 import { FilterBar } from '@/components/dashboard/FilterBar';
 import { ReanalysisAlert } from '@/components/dashboard/ReanalysisAlert';
 import { DataImporter } from '@/components/data-importer';
