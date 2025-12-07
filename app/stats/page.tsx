@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { ArrowLeft, Filter, Gauge } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { useAtom } from "jotai";
-import { Button } from "@/components/ui/button";
-import { filterAtom } from "@/store/filterStore";
-import clientPocketBase from "@/app/api/client_pb";
-import type { PipelinesResponse } from "@/app/api/api_types";
-import { KPICards } from "@/components/dashboard/stats/KPICards";
-import { LinearAssetVisualization } from "@/components/dashboard/stats/LinearAssetVisualization";
-import { MaterialDegradationChart } from "@/components/dashboard/stats/MaterialDegradationChart";
-import { AgeDefectsChart } from "@/components/dashboard/stats/AgeDefectsChart";
-import { DefectTypesChart } from "@/components/dashboard/stats/DefectTypesChart";
+import Link from 'next/link';
+import { ArrowLeft, Filter, Gauge } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
+import { Button } from '@/components/ui/button';
+import { filterAtom } from '@/store/filterStore';
+import clientPocketBase from '@/app/api/client_pb';
+import type { PipelinesResponse } from '@/app/api/api_types';
+import { KPICards } from '@/components/dashboard/stats/KPICards';
+import { LinearAssetVisualization } from '@/components/dashboard/stats/LinearAssetVisualization';
+import { MaterialDegradationChart } from '@/components/dashboard/stats/MaterialDegradationChart';
+import { AgeDefectsChart } from '@/components/dashboard/stats/AgeDefectsChart';
+import { DefectTypesChart } from '@/components/dashboard/stats/DefectTypesChart';
 
 export default function StatsPage() {
   const [filters, setFilters] = useAtom(filterAtom);
 
-  const { data: pipelines = [], isLoading: pipelinesLoading } = useQuery<
+  const { data: pipelines = [], isLoading: pipelinesLoading} = useQuery<
     PipelinesResponse[]
   >({
-    queryKey: ["pipelines"],
+    queryKey: ['pipelines'],
     queryFn: async () =>
-      clientPocketBase.collection("pipelines").getFullList<PipelinesResponse>(),
+      clientPocketBase.collection('pipelines').getFullList<PipelinesResponse>(),
     staleTime: Infinity,
   });
 
@@ -31,13 +31,13 @@ export default function StatsPage() {
       ...filters,
       advanced: {
         ...filters.advanced,
-        pipeline: pipelineId || "",
+        pipeline: pipelineId || '',
       },
     });
   };
 
   const selectedPipeline = pipelines.find(
-    (p) => p.id === filters.advanced.pipeline
+    (p) => p.id === filters.advanced.pipeline,
   );
 
   return (
@@ -96,7 +96,7 @@ export default function StatsPage() {
             </div>
             <select
               id="pipeline-select"
-              value={filters.advanced.pipeline || ""}
+              value={filters.advanced.pipeline || ''}
               onChange={(e) => handlePipelineChange(e.target.value)}
               disabled={pipelinesLoading}
               className="flex-1 max-w-md rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition-colors hover:border-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"

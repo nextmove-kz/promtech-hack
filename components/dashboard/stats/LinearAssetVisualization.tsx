@@ -1,17 +1,17 @@
-"use client";
+'use client';
 
-import { useQuery } from "@tanstack/react-query";
+import { useQuery } from '@tanstack/react-query';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import pb from "@/app/api/client_pb";
-import { useAtom } from "jotai";
-import { filterAtom } from "@/store/filterStore";
-import type { ObjectsResponse } from "@/app/api/api_types";
+} from '@/components/ui/card';
+import pb from '@/app/api/client_pb';
+import { useAtom } from 'jotai';
+import { filterAtom } from '@/store/filterStore';
+import type { ObjectsResponse } from '@/app/api/api_types';
 import {
   AreaChart,
   Area,
@@ -21,19 +21,25 @@ import {
   Tooltip,
   ResponsiveContainer,
   ReferenceLine,
-} from "recharts";
+} from 'recharts';
+import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 export function LinearAssetVisualization() {
   const [filters] = useAtom(filterAtom);
   const selectedPipelineId = filters.advanced.pipeline;
 
   const { data: allObjects = [], isLoading } = useQuery<ObjectsResponse[]>({
-    queryKey: ["objects"],
+    queryKey: ['objects'],
     queryFn: async () => {
-      return await pb.collection("objects").getFullList<ObjectsResponse>({
-        sort: "-created",
-        expand: "pipeline",
-      });
+      const records = await pb
+        .collection('objects')
+        .getFullList<ObjectsResponse>({
+          sort: '-created',
+          expand: 'pipeline',
+        });
+
+      return records.map((record) => withDerivedUrgencyScore(record));
     },
   });
 
@@ -47,7 +53,7 @@ export function LinearAssetVisualization() {
   const sortedObjects = objects
     .filter((obj) => obj.created)
     .sort(
-      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime(),
     );
 
   // Convert to mileage-based data points
@@ -114,13 +120,13 @@ export function LinearAssetVisualization() {
           Распределение уровня риска по протяженности трубопровода
           {processedData.length > 0 && (
             <>
-              {" • "}Средний риск:{" "}
+              {' • '}Средний риск:{' '}
               <span className="font-medium text-slate-700">
                 {avgRisk.toFixed(1)}
               </span>
               {hotspot && (
                 <>
-                  {" • "}Пик:{" "}
+                  {' • '}Пик:{' '}
                   <span className="font-medium text-rose-600">
                     {hotspot.km.toFixed(1)} км
                   </span>
@@ -165,47 +171,51 @@ export function LinearAssetVisualization() {
               <XAxis
                 dataKey="km"
                 label={{
-                  value: "Километраж (км)",
-                  position: "insideBottom",
+                  value: 'Километраж (км)',
+                  position: 'insideBottom',
                   offset: -5,
-                  style: { fill: "#64748b", fontSize: 12 },
+                  style: { fill: '#64748b', fontSize: 12 },
                 }}
-                tick={{ fill: "#64748b", fontSize: 11 }}
+                tick={{ fill: '#64748b', fontSize: 11 }}
                 stroke="#cbd5e1"
               />
               <YAxis
                 label={{
-                  value: "Уровень риска",
+                  value: 'Уровень риска',
                   angle: -90,
-                  position: "insideLeft",
-                  style: { fill: "#64748b", fontSize: 12 },
+                  position: 'insideLeft',
+                  style: { fill: '#64748b', fontSize: 12 },
                 }}
                 domain={[0, 100]}
-                tick={{ fill: "#64748b", fontSize: 11 }}
+                tick={{ fill: '#64748b', fontSize: 11 }}
                 stroke="#cbd5e1"
               />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: "white",
-                  border: "none",
-                  borderRadius: "0.75rem",
+                  backgroundColor: 'white',
+                  border: 'none',
+                  borderRadius: '0.75rem',
                   boxShadow:
-                    "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
-                  padding: "0",
+                    '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+                  padding: '0',
                 }}
                 wrapperStyle={{
-                  outline: "none",
+                  outline: 'none',
                 }}
                 labelFormatter={(value) => `${Number(value).toFixed(1)} км`}
                 labelStyle={{
-                  color: "#64748b",
-                  fontSize: "0.75rem",
+                  color: '#64748b',
+                  fontSize: '0.75rem',
                   fontWeight: 500,
-                  padding: "0.5rem 0.75rem 0",
-                  marginBottom: "-0.25rem",
+                  padding: '0.5rem 0.75rem 0',
+                  marginBottom: '-0.25rem',
                 }}
-                formatter={(value: number, name: string, props: any) => {
-                  const objectName = props.payload.name;
+                formatter={(
+                  value: number,
+                  _name: string,
+                  item: Payload<number, string>,
+                ) => {
+                  const objectName = item.payload.name as string | undefined;
                   return [
                     <div
                       key="tooltip"
@@ -216,11 +226,11 @@ export function LinearAssetVisualization() {
                           className="h-2 w-2 rounded-full"
                           style={{
                             backgroundColor:
-                              value > 7
-                                ? "#ef4444"
-                                : value > 4
-                                ? "#f59e0b"
-                                : "#22c55e",
+                              value > 70
+                                ? '#ef4444'
+                                : value > 40
+                                  ? '#f59e0b'
+                                  : '#22c55e',
                           }}
                         />
                         <span className="text-sm font-semibold text-slate-800">
@@ -228,24 +238,24 @@ export function LinearAssetVisualization() {
                         </span>
                       </div>
                       {objectName && (
-                        <span className="text-xs text-slate-500 pl-4">
+                        <span className="pl-4 text-xs text-slate-500">
                           {objectName}
                         </span>
                       )}
                     </div>,
-                    "",
+                    '',
                   ];
                 }}
-              />{" "}
+              />
               <ReferenceLine
                 y={70}
                 stroke="#fca5a5"
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
-                  value: "Критический",
-                  position: "right",
-                  fill: "#dc2626",
+                  value: 'Критический',
+                  position: 'right',
+                  fill: '#dc2626',
                   fontSize: 11,
                 }}
               />
@@ -255,9 +265,9 @@ export function LinearAssetVisualization() {
                 strokeDasharray="4 4"
                 strokeWidth={1}
                 label={{
-                  value: "Предупреждение",
-                  position: "right",
-                  fill: "#d97706",
+                  value: 'Предупреждение',
+                  position: 'right',
+                  fill: '#d97706',
                   fontSize: 11,
                 }}
               />
@@ -297,10 +307,7 @@ export function LinearAssetVisualization() {
                 Требуют внимания
               </div>
               <div className="mt-1 text-lg font-semibold text-amber-700">
-                {
-                  processedData.filter((d) => d.risk >= 40 && d.risk < 70)
-                    .length
-                }
+                {processedData.filter((d) => d.risk >= 40 && d.risk < 70).length}
               </div>
             </div>
           </div>
