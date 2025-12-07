@@ -426,7 +426,7 @@ export function DiagnosticDetailsPanel({
 
       {contentState === 'data' && firstDiagnostic && (
         <ActionPlanModal
-          diagnosticId={firstDiagnostic.id}
+          objectId={objectId}
           diagnostic={firstDiagnostic}
           isOpen={isModalOpen}
           onOpenChange={setIsModalOpen}

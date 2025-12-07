@@ -24,8 +24,14 @@ const SYSTEM_INSTRUCTION = `
 РОЛЬ: Ты — Старший руководитель полевых операций (Senior Field Operations Manager) в нефтегазовой отрасли.
 ЗАДАЧА: Сформировать четкий, профессиональный "Field Brief" (Полевое задание) для ремонтной бригады на основе данных диагностики.
 
+ВЫБОР ДИАГНОСТИКИ:
+- Тебе дадут список диагностик с их id, параметрами и кратким контекстом.
+- Определи самую критичную диагностику по риску для безопасности/надёжности. НЕ выбирай последнюю по дате автоматически, если она не самая рискованная.
+- Верни id выбранной диагностики в поле critical_diagnostic_id и одну строку объяснения в critical_reason.
+- Строй план действий именно по этой диагностике.
+
 ВХОДНЫЕ ДАННЫЕ:
-Ты получишь JSON с данными об объекте (тип, материал) и результатами диагностики (метод, параметры, статус).
+Ты получишь JSON с данными об объекте (тип, материал) и списком диагностик (метод, параметры, статус).
 
 КОНТЕКСТ ПАРАМЕТРОВ (Интерпретация):
 1. Метод VIBRO (Для компрессоров/насосов):
@@ -44,6 +50,8 @@ const SYSTEM_INSTRUCTION = `
 
 СТРУКТУРА JSON:
 {
+  "critical_diagnostic_id": "<id выбранной диагностики из списка>",
+  "critical_reason": "Коротко: почему выбрана эта диагностика",
   "problem_summary": "Техническое заключение. 1 объемный абзац, полно описывает все выявленные проблемы по объекту, включая параметры, локализацию, степень критичности и риски. Пример: 'Критический питтинг коррозии глубиной 6мм (80% стенки) на участке сварного шва, сопровождается снижением герметичности и риском разгерметизации при штатном давлении.'",
   "action_plan": [
     "Список конкретных шагов в повелительном наклонении.",
@@ -64,7 +72,23 @@ const SYSTEM_INSTRUCTION = `
 `;
 
 export interface ActionPlanRequest {
-  diagnostic_id: string;
+  object_id: string;
+}
+
+export interface SelectedDiagnostic {
+  id: string;
+  date?: string;
+  method?: string;
+  defect_found?: boolean;
+  defect_description?: string;
+  quality_grade?: string;
+  ml_label?: string;
+  param1?: number | string | null;
+  param2?: number | string | null;
+  param3?: number | string | null;
+  temperature?: number | null;
+  humidity?: number | null;
+  illumination?: number | null;
 }
 
 export interface ActionPlanResult {
@@ -73,6 +97,8 @@ export interface ActionPlanResult {
   required_resources: string;
   safety_requirements: string;
   expected_outcome: string;
+  critical_diagnostic_id?: string;
+  critical_reason?: string;
 }
 
 export interface ActionPlanResponse {
@@ -86,49 +112,164 @@ export interface ActionPlanResponse {
     health_status: string;
     urgency_score: number;
   };
+  selected_diagnostic?: SelectedDiagnostic;
+  diagnostic_reason?: string;
   error?: string;
 }
+
+const formatParam = (value?: number | string | null): string =>
+  value === undefined || value === null ? 'n/a' : `${value}`;
+
+const buildParamContext = (
+  method?: string,
+  p1?: number | string | null,
+  p2?: number | string | null,
+  p3?: number | string | null,
+): string => {
+  switch (method) {
+    case 'VIBRO':
+      return `VIBRO params -> vibration velocity=${formatParam(
+        p1,
+      )} мм/с (crit >7.1), acceleration=${formatParam(
+        p2,
+      )}, freq/temp=${formatParam(p3)}.`;
+    case 'MFL':
+    case 'UTWM':
+      return `MFL/UTWM params -> corrosion depth=${formatParam(
+        p1,
+      )}, remaining wall=${formatParam(p2)}, defect length=${formatParam(p3)}.`;
+    case 'VIK':
+      return `VIK params -> size=${formatParam(p1)}x${formatParam(
+        p2,
+      )} мм, depth=${formatParam(p3)} мм.`;
+    default:
+      return `Params -> p1=${formatParam(p1)}, p2=${formatParam(
+        p2,
+      )}, p3=${formatParam(p3)}.`;
+  }
+};
+
+const getDiagnosticTimestamp = (d: DiagnosticsResponse): number =>
+  new Date(
+    d.date ||
+      (d as { updated?: string }).updated ||
+      (d as { created?: string }).created ||
+      0,
+  ).getTime();
+
+const pickMostCriticalDiagnostic = (
+  diagnostics: DiagnosticsResponse[],
+): { diagnostic: DiagnosticsResponse; reason: string } => {
+  const scored = diagnostics.map((d) => {
+    let score = 0;
+    const reasons: string[] = [];
+
+    if (d.defect_found) {
+      score += 3;
+      reasons.push('обнаружен дефект');
+    }
+    if (d.quality_grade === 'недопустимо') {
+      score += 4;
+      reasons.push('качество=недопустимо');
+    } else if (d.quality_grade === 'требует_мер') {
+      score += 2;
+      reasons.push('качество=требует мер');
+    } else if (d.quality_grade === 'допустимо') {
+      score += 1;
+      reasons.push('качество=допустимо');
+    }
+
+    if (d.ml_label === 'high') {
+      score += 3;
+      reasons.push('AI=high');
+    } else if (d.ml_label === 'medium') {
+      score += 2;
+      reasons.push('AI=medium');
+    }
+
+    const ts = getDiagnosticTimestamp(d);
+
+    return {
+      diagnostic: d,
+      score,
+      ts,
+      reason:
+        reasons.length > 0
+          ? reasons.join(', ')
+          : 'выбрана самая свежая диагностика',
+    };
+  });
+
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return b.ts - a.ts;
+  });
+
+  return scored[0];
+};
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const body: ActionPlanRequest = await request.json();
-    const { diagnostic_id } = body;
+    const { object_id } = body;
 
-    if (!diagnostic_id) {
+    if (!object_id) {
       return NextResponse.json(
-        { success: false, error: 'diagnostic_id is required' },
+        { success: false, error: 'object_id is required' },
         { status: 400 },
       );
     }
 
     const pb = await pocketbase();
 
-    // Fetch the diagnostic with expanded object and pipeline
-    let diagnostic: DiagnosticsResponse<{
-      object: ObjectsResponse<{ pipeline: PipelinesResponse }>;
-    }>;
+    // Fetch object with pipeline
+    let object: ObjectsResponse<{ pipeline?: PipelinesResponse }>;
     try {
-      diagnostic = await pb.collection('diagnostics').getOne(diagnostic_id, {
-        expand: 'object.pipeline',
-      });
+      object = await pb
+        .collection('objects')
+        .getOne<ObjectsResponse<{ pipeline?: PipelinesResponse }>>(object_id, {
+          expand: 'pipeline',
+        });
     } catch {
       return NextResponse.json(
-        { success: false, error: 'Diagnostic not found' },
+        { success: false, error: 'Object not found' },
         { status: 404 },
       );
     }
 
-    const object = diagnostic.expand?.object;
-    const pipeline = object?.expand?.pipeline;
+    // Fetch diagnostics for the object (newest first)
+    const diagnostics = (await pb.collection('diagnostics').getFullList({
+      filter: `object="${object_id}"`,
+      sort: '-date',
+    })) as DiagnosticsResponse[];
 
-    if (!object) {
+    if (diagnostics.length === 0) {
       return NextResponse.json(
-        { success: false, error: 'Object not found for this diagnostic' },
+        { success: false, error: 'Diagnostics not found for this object' },
         { status: 404 },
       );
     }
 
+    const pipeline = object.expand?.pipeline;
     const urgencyScore = deriveUrgencyScore(object);
+    const fallbackCandidate = pickMostCriticalDiagnostic(diagnostics);
+
+    const diagnosticsPayload = diagnostics.slice(0, 20).map((d) => ({
+      id: d.id,
+      date: d.date,
+      method: d.method,
+      defect_found: d.defect_found,
+      defect_description: d.defect_description,
+      quality_grade: d.quality_grade,
+      ml_label: d.ml_label,
+      param1: d.param1,
+      param2: d.param2,
+      param3: d.param3,
+      temperature: d.temperature,
+      humidity: d.humidity,
+      illumination: d.illumination,
+      param_context: buildParamContext(d.method, d.param1, d.param2, d.param3),
+    }));
 
     // Prepare data for AI analysis
     const analysisData = {
@@ -146,19 +287,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       pipeline: {
         name: pipeline?.name || 'Неизвестный трубопровод',
       },
-      diagnostic: {
-        date: diagnostic.date,
-        method: diagnostic.method,
-        defect_found: diagnostic.defect_found,
-        defect_description: diagnostic.defect_description,
-        quality_grade: diagnostic.quality_grade,
-        ml_label: diagnostic.ml_label,
-        param1: diagnostic.param1,
-        param2: diagnostic.param2,
-        param3: diagnostic.param3,
-        temperature: diagnostic.temperature,
-        humidity: diagnostic.humidity,
-        illumination: diagnostic.illumination,
+      diagnostics: diagnosticsPayload,
+      auto_candidate: {
+        id: fallbackCandidate.diagnostic.id,
+        reason: fallbackCandidate.reason,
       },
     };
 
@@ -170,7 +302,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           role: 'user',
           parts: [
             {
-              text: `На основе данных диагностики сгенерируй план действий:\n\n${JSON.stringify(
+              text: `На основе списка диагностик выбери самую критичную (по риску) и сгенерируй план действий именно по ней. Обязательно верни critical_diagnostic_id из списка и поясни выбор в critical_reason.\n\n${JSON.stringify(
                 analysisData,
                 null,
                 2,
@@ -229,9 +361,42 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       throw handleApiError(parseError, 'Failed to parse AI response');
     }
 
+    const aiCriticalId = actionPlan.critical_diagnostic_id;
+    const selectedDiagnostic =
+      diagnostics.find((d) => d.id === aiCriticalId) ??
+      fallbackCandidate.diagnostic;
+
+    const selectionReason =
+      actionPlan.critical_reason ||
+      (aiCriticalId && selectedDiagnostic.id === aiCriticalId
+        ? 'AI выбрал эту диагностику без пояснения'
+        : fallbackCandidate.reason);
+
+    const resultWithCritical: ActionPlanResult = {
+      ...actionPlan,
+      critical_diagnostic_id: selectedDiagnostic.id,
+      critical_reason: selectionReason,
+    };
+
+    const selectedDiagnosticPayload: SelectedDiagnostic = {
+      id: selectedDiagnostic.id,
+      date: selectedDiagnostic.date,
+      method: selectedDiagnostic.method,
+      defect_found: selectedDiagnostic.defect_found,
+      defect_description: selectedDiagnostic.defect_description,
+      quality_grade: selectedDiagnostic.quality_grade,
+      ml_label: selectedDiagnostic.ml_label,
+      param1: selectedDiagnostic.param1,
+      param2: selectedDiagnostic.param2,
+      param3: selectedDiagnostic.param3,
+      temperature: selectedDiagnostic.temperature,
+      humidity: selectedDiagnostic.humidity,
+      illumination: selectedDiagnostic.illumination,
+    };
+
     return NextResponse.json({
       success: true,
-      result: actionPlan,
+      result: resultWithCritical,
       object_data: {
         id: object.id,
         name: object.name || 'Объект без имени',
@@ -243,6 +408,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         health_status: object.health_status || 'UNKNOWN',
         urgency_score: urgencyScore,
       },
+      selected_diagnostic: selectedDiagnosticPayload,
+      diagnostic_reason: selectionReason,
     } as ActionPlanResponse);
   } catch (error) {
     const apiError = handleApiError(error, 'Action plan generation error');

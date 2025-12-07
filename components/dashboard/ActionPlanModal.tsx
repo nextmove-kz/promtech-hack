@@ -30,7 +30,7 @@ import type {
 } from '@/app/api/action-plan/route';
 
 interface ActionPlanModalProps {
-  diagnosticId: string | null;
+  objectId: string | null;
   diagnostic?: DiagnosticsResponse<unknown>;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -93,7 +93,7 @@ const PLAN_FIELDS = [
 ] as const;
 
 export function ActionPlanModal({
-  diagnosticId,
+  objectId,
   diagnostic,
   isOpen,
   onOpenChange,
@@ -104,11 +104,32 @@ export function ActionPlanModal({
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [planId, setPlanId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [actionPlanText, setActionPlanText] = useState('');
   const abortControllerRef = useRef<AbortController | null>(null);
   const hasRequestedRef = useRef(false);
 
+  const selectedDiagnostic =
+    actionPlanData?.selected_diagnostic ??
+    (diagnostic
+      ? {
+          id: diagnostic.id,
+          date: diagnostic.date,
+          method: diagnostic.method,
+          defect_found: diagnostic.defect_found,
+          defect_description: diagnostic.defect_description,
+          quality_grade: diagnostic.quality_grade,
+          ml_label: diagnostic.ml_label,
+          param1: diagnostic.param1,
+          param2: diagnostic.param2,
+          param3: diagnostic.param3,
+          temperature: diagnostic.temperature,
+          humidity: diagnostic.humidity,
+          illumination: diagnostic.illumination,
+        }
+      : null);
+
   const generateActionPlan = useCallback(async () => {
-    if (!diagnosticId) return;
+    if (!objectId) return;
 
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
@@ -121,7 +142,7 @@ export function ActionPlanModal({
       const response = await fetch('/api/action-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ diagnostic_id: diagnosticId }),
+        body: JSON.stringify({ object_id: objectId }),
         signal: abortControllerRef.current.signal,
       });
 
@@ -142,18 +163,25 @@ export function ActionPlanModal({
     } finally {
       setIsGenerating(false);
     }
-  }, [diagnosticId]);
+  }, [objectId]);
 
   // Trigger generation when modal opens
   useEffect(() => {
-    if (isOpen && diagnosticId && !hasRequestedRef.current) {
+    if (isOpen && objectId && !hasRequestedRef.current) {
       hasRequestedRef.current = true;
       generateActionPlan();
     }
     return () => {
       abortControllerRef.current?.abort();
     };
-  }, [isOpen, diagnosticId, generateActionPlan]);
+  }, [isOpen, objectId, generateActionPlan]);
+
+  // Keep raw textarea text in sync with fetched plan
+  useEffect(() => {
+    const joinedPlan =
+      actionPlanData?.result?.action_plan?.join('\n') ?? '';
+    setActionPlanText(joinedPlan);
+  }, [actionPlanData?.result?.action_plan]);
 
   const savePlanToPocketBase = useCallback(
     async (planData: ActionPlanResult, objectId: string) => {
@@ -221,37 +249,47 @@ export function ActionPlanModal({
   const router = useRouter();
 
   const handleDownloadPdf = async () => {
-    if (!actionPlanData?.result || !actionPlanData.object_data || !diagnostic)
+    if (!actionPlanData?.result || !actionPlanData.object_data || !selectedDiagnostic)
       return;
 
     try {
       setIsSaving(true);
 
       // Save plan to PocketBase first (only if not already saved)
-      if (!planId && diagnostic.object) {
-        await savePlanToPocketBase(actionPlanData.result, diagnostic.object);
+      const targetObjectId =
+        actionPlanData.object_data.id ||
+        objectId ||
+        (diagnostic?.object as string | undefined) ||
+        null;
+      if (!planId && targetObjectId) {
+        await savePlanToPocketBase(actionPlanData.result, targetObjectId);
       }
 
       // Generate PDF with the current (potentially edited) data
       const pdfData = {
         object_data: {
           ...actionPlanData.object_data,
-          last_diagnostic: {
-            date: diagnostic.date || '',
-            method: diagnostic.method || '',
+          critical_diagnostic: {
+            id: selectedDiagnostic.id,
+            date: selectedDiagnostic.date || '',
+            method: selectedDiagnostic.method || '',
             params: {
-              param1: diagnostic.param1,
-              param2: diagnostic.param2,
-              param3: diagnostic.param3,
+              param1: selectedDiagnostic.param1,
+              param2: selectedDiagnostic.param2,
+              param3: selectedDiagnostic.param3,
             },
-            ml_label: diagnostic.ml_label,
-            quality_grade: diagnostic.quality_grade,
-            temperature: diagnostic.temperature,
-            illumination: diagnostic.illumination,
-            defect_found: diagnostic.defect_found,
+            ml_label: selectedDiagnostic.ml_label,
+            quality_grade: selectedDiagnostic.quality_grade,
+            temperature: selectedDiagnostic.temperature ?? undefined,
+            illumination: selectedDiagnostic.illumination ?? undefined,
+            humidity: selectedDiagnostic.humidity ?? undefined,
+            defect_found: selectedDiagnostic.defect_found,
           },
         },
         result: actionPlanData.result,
+        critical_reason:
+          actionPlanData.diagnostic_reason ??
+          actionPlanData.result?.critical_reason,
       };
 
       await generateActionPlanPdf(pdfData);
@@ -437,10 +475,35 @@ export function ActionPlanModal({
                 </div>
               )}
             </div>
+            {selectedDiagnostic && (
+              <div className="rounded-lg border border-border/70 bg-muted/20 p-4 space-y-2">
+                <div className="text-xs font-medium text-muted-foreground">
+                  Используемая диагностика
+                </div>
+                <div className="flex flex-wrap items-center gap-3 text-sm text-foreground">
+                  <Badge variant="outline" className="text-xs">
+                    {selectedDiagnostic.id}
+                  </Badge>
+                  <span className="font-medium">
+                    {selectedDiagnostic.method || '—'}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {selectedDiagnostic.date
+                      ? new Date(selectedDiagnostic.date).toLocaleDateString('ru-RU')
+                      : 'Дата не указана'}
+                  </span>
+                </div>
+                {actionPlanData.diagnostic_reason && (
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {actionPlanData.diagnostic_reason}
+                  </p>
+                )}
+              </div>
+            )}
             {PLAN_FIELDS.map((field) => {
               const value =
                 field.id === 'action_plan'
-                  ? (actionPlanData.result?.action_plan || []).join('\n')
+                  ? actionPlanText
                   : (actionPlanData.result?.[
                       field.id as keyof ActionPlanResult
                     ] as string) || '';
@@ -452,7 +515,11 @@ export function ActionPlanModal({
                   label={field.label}
                   value={value}
                   minHeight={field.minHeight}
-                  onChange={(updatedValue) =>
+                  onChange={(updatedValue) => {
+                    if (field.id === 'action_plan') {
+                      setActionPlanText(updatedValue);
+                    }
+
                     setActionPlanData((prev) => {
                       if (!prev) return prev;
 
@@ -470,16 +537,13 @@ export function ActionPlanModal({
                           ...currentResult,
                           ...(field.id === 'action_plan'
                             ? {
-                                action_plan: updatedValue
-                                  .split(/\n+/)
-                                  .map((line) => line.trim())
-                                  .filter((line) => line.length > 0),
+                                action_plan: updatedValue.split('\n'),
                               }
                             : { [field.id]: updatedValue }),
                         },
                       };
-                    })
-                  }
+                    });
+                  }}
                 />
               );
             })}
