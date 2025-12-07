@@ -249,7 +249,8 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                       type="button"
                       className="text-left text-sm font-semibold leading-tight cursor-pointer underline-offset-2 hover:underline"
                       onClick={() =>
-                        objectId && router.push(`/plan/${objectId}?planId=${plan.id}`)
+                        objectId &&
+                        router.push(`/plan/${objectId}?planId=${plan.id}`)
                       }
                     >
                       {object?.name ?? 'Без названия'}

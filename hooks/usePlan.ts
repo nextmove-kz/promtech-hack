@@ -10,7 +10,7 @@ import {
   type PlanWithExpanded,
   type DiagnosticWithObject,
 } from '@/app/api/plan';
-import type { PlanStatusOptions } from '@/app/api/api_types';
+import type { PlanStatusOptions, ActionResponse } from '@/app/api/api_types';
 
 /**
  * Hook to fetch a plan by object ID
@@ -85,7 +85,7 @@ export function useLatestDiagnostic(objectId: string | null) {
 }
 
 /**
- * Hook to update an action's status
+ * Hook to update an action's status with optimistic updates
  */
 export function useUpdateActionStatus() {
   const queryClient = useQueryClient();
@@ -93,15 +93,72 @@ export function useUpdateActionStatus() {
   return useMutation({
     mutationFn: ({ actionId, status }: { actionId: string; status: boolean }) =>
       updateActionStatus(actionId, status),
-    onSuccess: (_, _variables) => {
-      // Invalidate plan queries that might contain this action
-      queryClient.invalidateQueries({ queryKey: ['plan'] });
+
+    onMutate: async ({ actionId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['plan'] });
+
+      const previousPlans = queryClient.getQueriesData<
+        PlanWithExpanded | PlanWithExpanded[] | null
+      >({
+        queryKey: ['plan'],
+      });
+
+      const updateActionInPlan = (plan: PlanWithExpanded): PlanWithExpanded => {
+        if (!plan.expand?.actions) return plan;
+        return {
+          ...plan,
+          expand: {
+            ...plan.expand,
+            actions: plan.expand.actions.map((action: ActionResponse) =>
+              action.id === actionId ? { ...action, status } : action,
+            ),
+          },
+        };
+      };
+
+      queryClient.setQueriesData<PlanWithExpanded | null>(
+        { queryKey: ['plan', 'byObject'] },
+        (old) => (old ? updateActionInPlan(old) : old),
+      );
+
+      queryClient.setQueriesData<PlanWithExpanded>(
+        {
+          queryKey: ['plan'],
+          predicate: (query) =>
+            query.queryKey.length === 2 &&
+            typeof query.queryKey[1] === 'string' &&
+            query.queryKey[1] !== 'byObject' &&
+            query.queryKey[1] !== 'history' &&
+            query.queryKey[1] !== 'all',
+        },
+        (old) => (old ? updateActionInPlan(old) : old),
+      );
+
+      queryClient.setQueriesData<PlanWithExpanded[]>(
+        { queryKey: ['plans', 'all'] },
+        (old) => old?.map(updateActionInPlan),
+      );
+
+      queryClient.setQueriesData<PlanWithExpanded[]>(
+        { queryKey: ['plan', 'history'] },
+        (old) => old?.map(updateActionInPlan),
+      );
+
+      return { previousPlans };
+    },
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousPlans) {
+        for (const [queryKey, data] of context.previousPlans) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
     },
   });
 }
 
 /**
- * Hook to update a plan's status
+ * Hook to update a plan's status with optimistic updates
  */
 export function useUpdatePlanStatus() {
   const queryClient = useQueryClient();
@@ -114,9 +171,58 @@ export function useUpdatePlanStatus() {
       planId: string;
       status: PlanStatusOptions;
     }) => updatePlanStatus(planId, status),
-    onSuccess: (_, _variables) => {
-      // Invalidate all plan queries to ensure UI updates regardless of how the plan was fetched
-      queryClient.invalidateQueries({ queryKey: ['plan'] });
+
+    onMutate: async ({ planId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['plan'] });
+      await queryClient.cancelQueries({ queryKey: ['plans'] });
+
+      const previousPlans = queryClient.getQueriesData<
+        PlanWithExpanded | PlanWithExpanded[] | null
+      >({
+        queryKey: ['plan'],
+      });
+      const previousAllPlans = queryClient.getQueryData<PlanWithExpanded[]>([
+        'plans',
+        'all',
+      ]);
+
+      const updatePlanStatusInCache = (
+        plan: PlanWithExpanded,
+      ): PlanWithExpanded => {
+        if (plan.id !== planId) return plan;
+        return { ...plan, status };
+      };
+
+      queryClient.setQueriesData<PlanWithExpanded | null>(
+        { queryKey: ['plan', 'byObject'] },
+        (old) => (old && old.id === planId ? { ...old, status } : old),
+      );
+
+      queryClient.setQueryData<PlanWithExpanded>(['plan', planId], (old) =>
+        old ? { ...old, status } : old,
+      );
+
+      queryClient.setQueryData<PlanWithExpanded[]>(['plans', 'all'], (old) =>
+        old?.map(updatePlanStatusInCache),
+      );
+
+      queryClient.setQueriesData<PlanWithExpanded[]>(
+        { queryKey: ['plan', 'history'] },
+        (old) => old?.map(updatePlanStatusInCache),
+      );
+
+      return { previousPlans, previousAllPlans };
+    },
+
+    onError: (_err, _variables, context) => {
+      if (context?.previousPlans) {
+        for (const [queryKey, data] of context.previousPlans) {
+          queryClient.setQueryData(queryKey, data);
+        }
+      }
+      if (context?.previousAllPlans) {
+        queryClient.setQueryData(['plans', 'all'], context.previousAllPlans);
+      }
     },
   });
 }
