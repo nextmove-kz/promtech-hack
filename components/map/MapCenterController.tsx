@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import { useMap } from "react-leaflet";
-import type { ObjectsResponse } from "@/app/api/api_types";
+import { useEffect, useRef } from 'react';
+import { useMap } from 'react-leaflet';
+import type { ObjectsResponse } from '@/app/api/api_types';
 
 interface MapCenterControllerProps {
   selectedObjectId: string | null;
@@ -10,7 +10,7 @@ interface MapCenterControllerProps {
 }
 
 const KAZAKHSTAN_CENTER: [number, number] = [48.0, 66.5];
-const DEFAULT_ZOOM = 6;
+const DEFAULT_ZOOM = 5;
 
 /**
  * Component to handle automatic map centering and zooming when an object is selected
@@ -27,7 +27,7 @@ export function MapCenterController({
     if (selectedObjectId && objects.length > 0) {
       const selectedObject = objects.find((obj) => obj.id === selectedObjectId);
 
-      if (selectedObject && selectedObject.lat && selectedObject.lon) {
+      if (selectedObject?.lat && selectedObject.lon) {
         // Zoom to the selected object with a smooth curved animation
         map.flyTo([selectedObject.lat, selectedObject.lon], 14, {
           duration: 1.2,

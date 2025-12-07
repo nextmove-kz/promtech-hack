@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
+import { useParams, useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -10,10 +10,10 @@ import {
   Calendar,
   AlertTriangle,
   Gauge,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import {
   Dialog,
   DialogContent,
@@ -21,86 +21,18 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/dialog';
+import { cn } from '@/lib/utils';
+import { OBJECT_TYPE_LABELS } from '@/lib/constants';
+import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
 import {
   usePlanByObjectId,
   useLatestDiagnostic,
   useUpdateActionStatus,
   useUpdatePlanStatus,
-} from "@/hooks/usePlan";
-import { PlanStatusOptions } from "@/app/api/api_types";
-import Link from "next/link";
-
-const objectTypeLabels: Record<string, string> = {
-  crane: "Кран",
-  compressor: "Компрессор",
-  pipeline_section: "Участок трубопровода",
-};
-
-const renderParams = (
-  method?: string,
-  p1?: number | string,
-  p2?: number | string,
-  p3?: number | string
-) => {
-  const hasValue = (v?: number | string | null) => {
-    if (v === undefined || v === null) return false;
-    if (typeof v === "number") return v !== 0 && !Number.isNaN(v);
-    if (typeof v === "string") return v.trim() !== "" && v.trim() !== "0";
-    return true;
-  };
-
-  const v1 = hasValue(p1);
-  const v2 = hasValue(p2);
-  const v3 = hasValue(p3);
-  const hasAny = v1 || v2 || v3;
-
-  if (!hasAny) return null;
-
-  switch (method) {
-    case "VIBRO":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Виброскорость: <b>{p1} мм/с</b>
-            </div>
-          )}
-          {v2 && <div>Ускорение: {p2} м/с²</div>}
-          {v3 && <div>Частота/Температура: {p3}</div>}
-        </>
-      );
-    case "MFL":
-    case "UTWM":
-      return (
-        <>
-          {v1 && (
-            <div>
-              Глубина коррозии: <b className="text-red-500">{p1} мм</b>
-            </div>
-          )}
-          {v2 && <div>Остаток стенки: {p2} мм</div>}
-          {v3 && <div>Длина дефекта: {p3} мм</div>}
-        </>
-      );
-    case "TVK":
-      // TVK параметры без названий не показываем
-      return null;
-    default:
-      if (v1 && v2) {
-        return (
-          <>
-            <div>
-              Размеры (ДхШ): {p1} x {p2} мм
-            </div>
-          </>
-        );
-      }
-
-      return null;
-  }
-};
+} from '@/hooks/usePlan';
+import { PlanStatusOptions } from '@/app/api/api_types';
+import Link from 'next/link';
 
 export default function PlanPage() {
   const params = useParams();
@@ -139,7 +71,7 @@ export default function PlanPage() {
 
     const actions = plan.expand?.actions || [];
     const allActionsCompleted = actions.every(
-      (action) => localActionStates[action.id] ?? action.status
+      (action) => localActionStates[action.id] ?? action.status,
     );
 
     // If not all actions completed, show confirmation dialog
@@ -171,7 +103,7 @@ export default function PlanPage() {
           <div className="text-lg font-semibold text-destructive mb-2">
             План не найден для данного объекта
           </div>
-          <Button onClick={() => router.push("/")} variant="outline" size="sm">
+          <Button onClick={() => router.push('/')} variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             На главную
           </Button>
@@ -183,10 +115,9 @@ export default function PlanPage() {
   const object = plan.expand?.object;
   const actions = plan.expand?.actions || [];
   const completedCount = actions.filter(
-    (a) => localActionStates[a.id] ?? a.status
+    (a) => localActionStates[a.id] ?? a.status,
   ).length;
   const totalCount = actions.length;
-  const allActionsCompleted = completedCount === totalCount;
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -223,7 +154,7 @@ export default function PlanPage() {
                   Сохранение...
                 </>
               ) : (
-                "Да, завершить"
+                'Да, завершить'
               )}
             </Button>
           </DialogFooter>
@@ -258,19 +189,19 @@ export default function PlanPage() {
             <Badge
               variant={
                 plan.status === PlanStatusOptions.done
-                  ? "default"
+                  ? 'default'
                   : plan.status === PlanStatusOptions.pending
-                  ? "secondary"
-                  : "outline"
+                    ? 'secondary'
+                    : 'outline'
               }
             >
               {plan.status === PlanStatusOptions.done
-                ? "Выполнено"
+                ? 'Выполнено'
                 : plan.status === PlanStatusOptions.pending
-                ? "В работе"
-                : plan.status === PlanStatusOptions.created
-                ? "Новый"
-                : "Архив"}
+                  ? 'В работе'
+                  : plan.status === PlanStatusOptions.created
+                    ? 'Новый'
+                    : 'Архив'}
             </Badge>
           </div>
 
@@ -288,10 +219,16 @@ export default function PlanPage() {
           {object && (
             <div className="text-sm text-muted-foreground">
               <div className="font-medium text-foreground">
-                {object.name || "Объект без имени"}
+                {object.name || 'Объект без имени'}
               </div>
               {object.type && (
-                <div>{objectTypeLabels[object.type] || object.type}</div>
+                <div>
+                  {OBJECT_TYPE_LABELS[
+                    object.type as keyof typeof OBJECT_TYPE_LABELS
+                  ] ||
+                    object.type ||
+                    'Неизвестный тип'}
+                </div>
               )}
             </div>
           )}
@@ -314,15 +251,15 @@ export default function PlanPage() {
                 </div>
                 <p className="font-medium text-foreground">
                   {diagnostic.date
-                    ? new Date(diagnostic.date).toLocaleDateString("ru-RU")
-                    : "-"}
+                    ? new Date(diagnostic.date).toLocaleDateString('ru-RU')
+                    : '-'}
                 </p>
               </div>
 
               <div className="space-y-1">
                 <span className="text-xs text-muted-foreground">Метод</span>
                 <p className="font-medium text-foreground">
-                  {diagnostic.method || "-"}
+                  {diagnostic.method || '-'}
                 </p>
               </div>
 
@@ -377,22 +314,22 @@ export default function PlanPage() {
                   </span>
                   <Badge
                     variant={
-                      diagnostic.defect_found ? "destructive" : "outline"
+                      diagnostic.defect_found ? 'destructive' : 'outline'
                     }
                     className="text-xs"
                   >
-                    {diagnostic.defect_found ? "Да" : "Нет"}
+                    {diagnostic.defect_found ? 'Да' : 'Нет'}
                   </Badge>
                 </div>
               )}
             </div>
 
-            {(function () {
-              const paramsContent = renderParams(
+            {(() => {
+              const paramsContent = renderDiagnosticParams(
                 diagnostic.method,
                 diagnostic.param1,
                 diagnostic.param2,
-                diagnostic.param3
+                diagnostic.param3,
               );
               if (!paramsContent) return null;
 
@@ -434,6 +371,7 @@ export default function PlanPage() {
                 const isChecked = localActionStates[action.id] ?? action.status;
                 return (
                   <button
+                    type="button"
                     key={action.id}
                     onClick={() => handleActionToggle(action.id, isChecked)}
                     disabled={
@@ -443,8 +381,8 @@ export default function PlanPage() {
                       plan.status === PlanStatusOptions.created
                     }
                     className={cn(
-                      "w-full flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:bg-accent/50",
-                      isChecked && "bg-muted/50"
+                      'w-full flex items-start gap-3 rounded-lg border border-border bg-card p-4 text-left transition-all hover:bg-accent/50',
+                      isChecked && 'bg-muted/50',
                     )}
                   >
                     <div className="mt-0.5">
@@ -457,13 +395,13 @@ export default function PlanPage() {
                     <div className="flex-1 min-w-0">
                       <p
                         className={cn(
-                          "text-sm font-medium",
+                          'text-sm font-medium',
                           isChecked
-                            ? "text-muted-foreground line-through"
-                            : "text-foreground"
+                            ? 'text-muted-foreground line-through'
+                            : 'text-foreground',
                         )}
                       >
-                        {action.description || "Действие без описания"}
+                        {action.description || 'Действие без описания'}
                       </p>
                     </div>
                   </button>
@@ -490,7 +428,7 @@ export default function PlanPage() {
                   Сохранение...
                 </>
               ) : (
-                "Взять в работу"
+                'Взять в работу'
               )}
             </Button>
           )}
@@ -508,7 +446,7 @@ export default function PlanPage() {
                   Сохранение...
                 </>
               ) : (
-                "Завершить"
+                'Завершить'
               )}
             </Button>
           )}

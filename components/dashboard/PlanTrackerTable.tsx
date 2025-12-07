@@ -1,11 +1,17 @@
-'use client'
+'use client';
 
-import { useMemo, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { MapPin, ClipboardList, Loader2, RefreshCw, Filter } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  MapPin,
+  ClipboardList,
+  Loader2,
+  RefreshCw,
+  Filter,
+} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Table,
   TableBody,
@@ -13,13 +19,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Progress } from '@/components/ui/progress'
-import { usePlans } from '@/hooks/usePlan'
-import { PlanStatusOptions } from '@/app/api/api_types'
+} from '@/components/ui/table';
+import { Progress } from '@/components/ui/progress';
+import { usePlans } from '@/hooks/usePlan';
+import { PlanStatusOptions } from '@/app/api/api_types';
 
 interface PlanTrackerTableProps {
-  onShowOnMap?: (objectId: string) => void
+  onShowOnMap?: (objectId: string) => void;
 }
 
 const statusConfig: Record<
@@ -31,50 +37,58 @@ const statusConfig: Record<
   [PlanStatusOptions.created]: { label: 'Создан', variant: 'outline' },
   [PlanStatusOptions.archive]: { label: 'Архив', variant: 'outline' },
   unknown: { label: 'Неизвестно', variant: 'outline' },
-}
+};
 
 const getUrgencyBadgeClass = (score?: number) => {
-  if (score === undefined || score === null) return 'border-muted-foreground/40 text-muted-foreground'
-  if (score >= 80) return 'border-red-500/60 text-red-600 bg-red-500/5'
-  if (score >= 50) return 'border-amber-500/60 text-amber-600 bg-amber-500/5'
-  if (score >= 20) return 'border-blue-500/60 text-blue-600 bg-blue-500/5'
-  return 'border-slate-400/50 text-slate-600 bg-slate-200/40'
-}
+  if (score === undefined || score === null)
+    return 'border-muted-foreground/40 text-muted-foreground';
+  if (score >= 80) return 'border-red-500/60 text-red-600 bg-red-500/5';
+  if (score >= 50) return 'border-amber-500/60 text-amber-600 bg-amber-500/5';
+  if (score >= 20) return 'border-blue-500/60 text-blue-600 bg-blue-500/5';
+  return 'border-slate-400/50 text-slate-600 bg-slate-200/40';
+};
 
 export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
-  const router = useRouter()
-  const { data: plans, isLoading, error, refetch, isRefetching } = usePlans()
-  const [statusFilter, setStatusFilter] = useState<PlanStatusOptions | 'all'>('all')
-  const [urgencyFilter, setUrgencyFilter] = useState<'all' | 'high' | 'medium' | 'low' | 'none'>('all')
+  const router = useRouter();
+  const { data: plans, isLoading, error, refetch, isRefetching } = usePlans();
+  const [statusFilter, setStatusFilter] = useState<PlanStatusOptions | 'all'>(
+    'all',
+  );
+  const [urgencyFilter, setUrgencyFilter] = useState<
+    'all' | 'high' | 'medium' | 'low' | 'none'
+  >('all');
 
   const renderStatusBadge = (status?: PlanStatusOptions) => {
-    const config = status ? statusConfig[status] : statusConfig.unknown
+    const config = status ? statusConfig[status] : statusConfig.unknown;
     return (
       <Badge variant={config.variant} className="text-xs">
         {config.label}
       </Badge>
-    )
-  }
+    );
+  };
 
   const filteredPlans = useMemo(() => {
-    if (!plans) return []
+    if (!plans) return [];
 
-    return plans.filter(plan => {
-      const statusOk = statusFilter === 'all' ? true : plan.status === statusFilter
-      const score = plan.expand?.object?.urgency_score
+    return plans.filter((plan) => {
+      const statusOk =
+        statusFilter === 'all' ? true : plan.status === statusFilter;
+      const score = plan.expand?.object?.urgency_score;
 
       const urgencyOk = (() => {
-        if (urgencyFilter === 'all') return true
-        if (urgencyFilter === 'high') return (score ?? 0) >= 80
-        if (urgencyFilter === 'medium') return score !== undefined && score >= 50 && score < 80
-        if (urgencyFilter === 'low') return score !== undefined && score >= 20 && score < 50
-        if (urgencyFilter === 'none') return score === undefined || score < 20
-        return true
-      })()
+        if (urgencyFilter === 'all') return true;
+        if (urgencyFilter === 'high') return (score ?? 0) >= 80;
+        if (urgencyFilter === 'medium')
+          return score !== undefined && score >= 50 && score < 80;
+        if (urgencyFilter === 'low')
+          return score !== undefined && score >= 20 && score < 50;
+        if (urgencyFilter === 'none') return score === undefined || score < 20;
+        return true;
+      })();
 
-      return statusOk && urgencyOk
-    })
-  }, [plans, statusFilter, urgencyFilter])
+      return statusOk && urgencyOk;
+    });
+  }, [plans, statusFilter, urgencyFilter]);
 
   if (isLoading) {
     return (
@@ -84,7 +98,7 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
           Загрузка планов...
         </CardContent>
       </Card>
-    )
+    );
   }
 
   if (error) {
@@ -103,7 +117,7 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
           </Button>
         </CardContent>
       </Card>
-    )
+    );
   }
 
   return (
@@ -138,7 +152,9 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
             <select
               className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground"
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as PlanStatusOptions | 'all')}
+              onChange={(e) =>
+                setStatusFilter(e.target.value as PlanStatusOptions | 'all')
+              }
             >
               <option value="all">Все</option>
               <option value={PlanStatusOptions.pending}>В работе</option>
@@ -152,7 +168,9 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
             <select
               className="rounded-md border border-border bg-background px-2 py-1 text-xs text-foreground"
               value={urgencyFilter}
-              onChange={e => setUrgencyFilter(e.target.value as typeof urgencyFilter)}
+              onChange={(e) =>
+                setUrgencyFilter(e.target.value as typeof urgencyFilter)
+              }
             >
               <option value="all">Все</option>
               <option value="high">Высокая (80+)</option>
@@ -185,16 +203,18 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredPlans.map(plan => {
-              const object = plan.expand?.object
-              const actions = plan.expand?.actions ?? []
-              const completedActions = actions.filter(action => action.status).length
-              const totalActions = actions.length
+            {filteredPlans.map((plan) => {
+              const object = plan.expand?.object;
+              const actions = plan.expand?.actions ?? [];
+              const completedActions = actions.filter(
+                (action) => action.status,
+              ).length;
+              const totalActions = actions.length;
               const progress =
                 totalActions > 0
                   ? Math.round((completedActions / totalActions) * 100)
-                  : 0
-              const objectId = object?.id ?? plan.object ?? ''
+                  : 0;
+              const objectId = object?.id ?? plan.object ?? '';
 
               return (
                 <TableRow
@@ -205,7 +225,9 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                     <button
                       type="button"
                       className="text-left text-sm font-semibold leading-tight cursor-pointer underline-offset-2 hover:underline"
-                      onClick={() => objectId && router.push(`/plan/${objectId}`)}
+                      onClick={() =>
+                        objectId && router.push(`/plan/${objectId}`)
+                      }
                     >
                       {object?.name ?? 'Без названия'}
                     </button>
@@ -246,7 +268,7 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                     </Button>
                   </TableCell>
                 </TableRow>
-              )
+              );
             })}
             {filteredPlans.length === 0 && (plans?.length ?? 0) > 0 && (
               <TableRow>
@@ -265,8 +287,8 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        setStatusFilter('all')
-                        setUrgencyFilter('all')
+                        setStatusFilter('all');
+                        setUrgencyFilter('all');
                       }}
                     >
                       Сбросить фильтры
@@ -289,6 +311,5 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
         </Table>
       </CardContent>
     </Card>
-  )
+  );
 }
-

@@ -1,14 +1,17 @@
-"use client";
+'use client';
 
-import { useEffect, useMemo, useRef, useCallback } from "react";
-import { useMap } from "react-leaflet";
-import type { LatLngBounds } from "leaflet";
-import { useAtomValue, useSetAtom } from "jotai";
-import { mapViewportAtom, MapViewportBounds } from "@/store/mapViewportStore";
-import { filterAtom } from "@/store/filterStore";
+import { useEffect, useMemo, useRef, useCallback } from 'react';
+import { useMap } from 'react-leaflet';
+import type { LatLngBounds } from 'leaflet';
+import { useAtomValue, useSetAtom } from 'jotai';
+import {
+  mapViewportAtom,
+  type MapViewportBounds,
+} from '@/store/mapViewportStore';
+import { filterAtom } from '@/store/filterStore';
 
 const DEFAULT_CENTER: [number, number] = [48.0, 66.5];
-const DEFAULT_ZOOM = 6;
+const DEFAULT_ZOOM = 5;
 const DEBOUNCE_MS = 400;
 
 function toBounds(bounds: LatLngBounds): MapViewportBounds {
@@ -43,7 +46,7 @@ export function MapViewportController() {
         adv.material ||
         adv.pipeline ||
         adv.yearFrom ||
-        adv.yearTo
+        adv.yearTo,
     );
   }, [filters.advanced]);
 
@@ -52,7 +55,11 @@ export function MapViewportController() {
       filters.activeFilters.length > 0 ||
       hasAdvancedFilters ||
       filters.searchQuery.length > 0,
-    [filters.activeFilters.length, filters.searchQuery.length, hasAdvancedFilters]
+    [
+      filters.activeFilters.length,
+      filters.searchQuery.length,
+      hasAdvancedFilters,
+    ],
   );
 
   const updateBounds = useCallback(() => {
@@ -72,15 +79,15 @@ export function MapViewportController() {
       debouncedUpdate();
     };
 
-    map.on("moveend", handleMove);
-    map.on("zoomend", handleMove);
+    map.on('moveend', handleMove);
+    map.on('zoomend', handleMove);
 
     // Initial set on mount
     debouncedUpdate();
 
     return () => {
-      map.off("moveend", handleMove);
-      map.off("zoomend", handleMove);
+      map.off('moveend', handleMove);
+      map.off('zoomend', handleMove);
       if (debounceTimer.current) {
         clearTimeout(debounceTimer.current);
       }
@@ -90,7 +97,7 @@ export function MapViewportController() {
   useEffect(() => {
     if (!hasFilters && prevHasFilters.current) {
       // Recenter to default viewport when filters are cleared
-      map.once("moveend", updateBounds);
+      map.once('moveend', updateBounds);
       map.flyTo(DEFAULT_CENTER, DEFAULT_ZOOM, {
         duration: 1.0,
         easeLinearity: 0.25,
@@ -102,5 +109,3 @@ export function MapViewportController() {
 
   return null;
 }
-
-

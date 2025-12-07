@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useEffect, useRef } from "react";
-import { CircleMarker, Popup } from "react-leaflet";
-import type { CircleMarker as LeafletCircleMarker } from "leaflet";
+import { useEffect, useRef } from 'react';
+import { CircleMarker, Popup } from 'react-leaflet';
+import type { CircleMarker as LeafletCircleMarker } from 'leaflet';
 import type {
   ObjectsResponse,
   DiagnosticsMlLabelOptions,
   ObjectsHealthStatusOptions,
-} from "@/app/api/api_types";
+} from '@/app/api/api_types';
 
-export type ObjectStatus = "critical" | "warning" | "normal" | "unknown";
+export type ObjectStatus = 'critical' | 'warning' | 'normal' | 'unknown';
 
 interface ObjectWithDiagnostic extends ObjectsResponse {
   diagnosticMlLabel?: DiagnosticsMlLabelOptions;
@@ -22,45 +22,45 @@ interface ObjectsLayerProps {
 }
 
 function getStatusFromHealthStatus(
-  health_status?: ObjectsHealthStatusOptions | null
+  health_status?: ObjectsHealthStatusOptions | null,
 ): ObjectStatus {
-  if (!health_status) return "unknown";
+  if (!health_status) return 'unknown';
 
   switch (health_status) {
-    case "CRITICAL":
-      return "critical";
-    case "WARNING":
-      return "warning";
-    case "OK":
-      return "normal";
+    case 'CRITICAL':
+      return 'critical';
+    case 'WARNING':
+      return 'warning';
+    case 'OK':
+      return 'normal';
     default:
-      return "unknown";
+      return 'unknown';
   }
 }
 
 function getMarkerColor(status: ObjectStatus): string {
   switch (status) {
-    case "critical":
-      return "#ef4444"; // red-500
-    case "warning":
-      return "#f97316"; // orange-500
-    case "normal":
-      return "#10b981"; // emerald-500
-    case "unknown":
-      return "#9ca3af"; // gray-400
+    case 'critical':
+      return '#ef4444'; // red-500
+    case 'warning':
+      return '#f97316'; // orange-500
+    case 'normal':
+      return '#10b981'; // emerald-500
+    case 'unknown':
+      return '#9ca3af'; // gray-400
   }
 }
 
 function getStatusLabel(status: ObjectStatus): string {
   switch (status) {
-    case "critical":
-      return "Критический";
-    case "warning":
-      return "Предупреждение";
-    case "normal":
-      return "Норма";
-    case "unknown":
-      return "Неизвестно";
+    case 'critical':
+      return 'Критический';
+    case 'warning':
+      return 'Предупреждение';
+    case 'normal':
+      return 'Норма';
+    case 'unknown':
+      return 'Неизвестно';
   }
 }
 
@@ -82,6 +82,7 @@ function ObjectMarker({
   onObjectSelect,
 }: ObjectMarkerProps) {
   const markerRef = useRef<LeafletCircleMarker | null>(null);
+  const { lat, lon } = item;
 
   useEffect(() => {
     if (isSelected && markerRef.current) {
@@ -90,15 +91,19 @@ function ObjectMarker({
     }
   }, [isSelected]);
 
+  if (lat == null || lon == null) {
+    return null;
+  }
+
   return (
     <CircleMarker
       ref={markerRef}
-      center={[item.lat!, item.lon!]}
+      center={[lat, lon]}
       radius={isSelected ? 10 : isCritical ? 8 : 6}
       pathOptions={{
         fillColor: color,
         fillOpacity: isSelected ? 1 : 0.9,
-        color: isSelected ? "#ffffff" : color,
+        color: isSelected ? '#ffffff' : color,
         weight: isSelected ? 4 : 2,
         opacity: 1,
       }}
@@ -137,7 +142,7 @@ export function ObjectsLayer({
 
         const status = getStatusFromHealthStatus(item.health_status);
         const color = getMarkerColor(status);
-        const isCritical = status === "critical";
+        const isCritical = status === 'critical';
         const isSelected = selectedObjectId === item.id;
 
         return (

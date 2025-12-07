@@ -1,28 +1,60 @@
-import type { ObjectRow, DiagnosticRow, ObjectType, Method, QualityGrade, MlLabel } from "./schemas";
-import { PIPELINE_ROUTES, generateObjectsAlongPath, type PipelineId } from "@/lib/generator-utils";
+import type {
+  ObjectRow,
+  DiagnosticRow,
+  ObjectType,
+  Method,
+  QualityGrade,
+  MlLabel,
+} from './schemas';
+import {
+  PIPELINE_ROUTES,
+  generateObjectsAlongPath,
+  type PipelineId,
+} from '@/lib/generator-utils';
 
 // Pipeline definitions matching PIPELINE_ROUTES
 const PIPELINES: { id: PipelineId; name: string }[] = [
-  { id: "MT-01", name: "Магистраль Атырау-Актобе-Костанай" },
-  { id: "MT-02", name: "Магистраль Актау-Атырау-Астана" },
-  { id: "MT-03", name: "Магистраль Алматы-Караганда-Астана" },
+  { id: 'MT-01', name: 'Магистраль Атырау-Актобе-Костанай' },
+  { id: 'MT-02', name: 'Магистраль Актау-Атырау-Астана' },
+  { id: 'MT-03', name: 'Магистраль Алматы-Караганда-Астана' },
 ];
 
 // Object types distribution
-const OBJECT_TYPES: ObjectType[] = ["crane", "compressor", "pipeline_section"];
+const OBJECT_TYPES: ObjectType[] = ['crane', 'compressor', 'pipeline_section'];
 const OBJECT_TYPE_WEIGHTS = [0.3, 0.15, 0.55]; // 30% cranes, 15% compressors, 55% pipeline sections
 
 // Diagnostic methods
-const METHODS: Method[] = ["VIK", "PVK", "MPK", "UZK", "RGK", "TVK", "VIBRO", "MFL", "TFI", "GEO", "UTWM"];
+const METHODS: Method[] = [
+  'VIK',
+  'PVK',
+  'MPK',
+  'UZK',
+  'RGK',
+  'TVK',
+  'VIBRO',
+  'MFL',
+  'TFI',
+  'GEO',
+  'UTWM',
+];
 
 // Materials
-const MATERIALS = ["Ст3", "09Г2С", "17Г1С", "13ХФА", "20А", "10Г2"];
+const MATERIALS = ['Ст3', '09Г2С', '17Г1С', '13ХФА', '20А', '10Г2'];
 
 // Object name templates
 const OBJECT_NAMES: Record<ObjectType, string[]> = {
-  crane: ["Кран шаровой", "Кран запорный", "Кран подвесной", "Задвижка"],
-  compressor: ["Турбокомпрессор ТВ-80", "Компрессорная станция", "Нагнетатель ГПА"],
-  pipeline_section: ["Участок трубопровода", "Переход подводный", "Переход надземный", "Узел запуска СОД"],
+  crane: ['Кран шаровой', 'Кран запорный', 'Кран подвесной', 'Задвижка'],
+  compressor: [
+    'Турбокомпрессор ТВ-80',
+    'Компрессорная станция',
+    'Нагнетатель ГПА',
+  ],
+  pipeline_section: [
+    'Участок трубопровода',
+    'Переход подводный',
+    'Переход надземный',
+    'Узел запуска СОД',
+  ],
 };
 
 /**
@@ -39,15 +71,19 @@ function seededRandom(seed: number): () => number {
 /**
  * Selects an item based on weighted probabilities
  */
-function weightedSelect<T>(items: T[], weights: number[], random: () => number): T {
+function weightedSelect<T>(
+  items: T[],
+  weights: number[],
+  random: () => number,
+): T {
   const totalWeight = weights.reduce((a, b) => a + b, 0);
   let r = random() * totalWeight;
-  
+
   for (let i = 0; i < items.length; i++) {
     r -= weights[i];
     if (r <= 0) return items[i];
   }
-  
+
   return items[items.length - 1];
 }
 
@@ -55,8 +91,9 @@ function weightedSelect<T>(items: T[], weights: number[], random: () => number):
  * Generates a random date between start and end
  */
 function randomDate(start: Date, end: Date, random: () => number): string {
-  const timestamp = start.getTime() + random() * (end.getTime() - start.getTime());
-  return new Date(timestamp).toISOString().split("T")[0];
+  const timestamp =
+    start.getTime() + random() * (end.getTime() - start.getTime());
+  return new Date(timestamp).toISOString().split('T')[0];
 }
 
 /**
@@ -64,22 +101,34 @@ function randomDate(start: Date, end: Date, random: () => number): string {
  * @param countPerPipeline Number of objects per pipeline (default: ~100)
  * @param seed Random seed for reproducibility
  */
-export function generateObjects(countPerPipeline: number = 100, seed: number = 42): ObjectRow[] {
+export function generateObjects(
+  countPerPipeline: number = 100,
+  seed: number = 42,
+): ObjectRow[] {
   const random = seededRandom(seed);
   const objects: ObjectRow[] = [];
-  
+
   let objectId = 1;
 
   // Generate objects for each pipeline using exact route coordinates
   for (const pipeline of PIPELINES) {
     const route = PIPELINE_ROUTES[pipeline.id];
-    const generatedPoints = generateObjectsAlongPath(route, countPerPipeline, pipeline.id);
-    
+    const generatedPoints = generateObjectsAlongPath(
+      route,
+      countPerPipeline,
+      pipeline.id,
+    );
+
     for (const point of generatedPoints) {
-      const objectType = weightedSelect(OBJECT_TYPES, OBJECT_TYPE_WEIGHTS, random);
+      const objectType = weightedSelect(
+        OBJECT_TYPES,
+        OBJECT_TYPE_WEIGHTS,
+        random,
+      );
       const nameTemplates = OBJECT_NAMES[objectType];
-      const baseName = nameTemplates[Math.floor(random() * nameTemplates.length)];
-      
+      const baseName =
+        nameTemplates[Math.floor(random() * nameTemplates.length)];
+
       objects.push({
         object_id: objectId,
         object_name: `${baseName} №${objectId}`,
@@ -90,7 +139,7 @@ export function generateObjects(countPerPipeline: number = 100, seed: number = 4
         year: 1960 + Math.floor(random() * 64), // 1960-2024
         material: MATERIALS[Math.floor(random() * MATERIALS.length)],
       });
-      
+
       objectId++;
     }
   }
@@ -108,44 +157,47 @@ export function generateObjects(countPerPipeline: number = 100, seed: number = 4
 export function generateDiagnostics(
   objects: ObjectRow[],
   avgDiagnosticsPerObject: number = 5,
-  highRiskPercentage: number = 0.10,
-  seed: number = 123
+  highRiskPercentage: number = 0.1,
+  seed: number = 123,
 ): DiagnosticRow[] {
   const random = seededRandom(seed);
   const diagnostics: DiagnosticRow[] = [];
-  
-  const startDate = new Date("2020-01-01");
-  const endDate = new Date("2024-12-01");
-  
+
+  const startDate = new Date('2020-01-01');
+  const endDate = new Date('2024-12-01');
+
   let diagId = 1;
 
   objects.forEach((obj) => {
     // Vary the number of diagnostics per object
-    const numDiagnostics = Math.max(1, Math.floor(avgDiagnosticsPerObject * (0.5 + random())));
-    
+    const numDiagnostics = Math.max(
+      1,
+      Math.floor(avgDiagnosticsPerObject * (0.5 + random())),
+    );
+
     for (let i = 0; i < numDiagnostics; i++) {
       const isHighRisk = random() < highRiskPercentage;
       const method = METHODS[Math.floor(random() * METHODS.length)];
-      
+
       // Generate realistic parameters based on method
       let param1: number | undefined;
       let param2: number | undefined;
       let param3: number | undefined;
-      
+
       switch (method) {
-        case "UZK": // Ultrasonic - wall thickness
+        case 'UZK': // Ultrasonic - wall thickness
           param1 = parseFloat((5 + random() * 15).toFixed(2)); // thickness mm
           param2 = parseFloat((random() * 5).toFixed(2)); // corrosion depth
           break;
-        case "VIBRO": // Vibration
+        case 'VIBRO': // Vibration
           param1 = parseFloat((random() * 20).toFixed(2)); // vibration speed mm/s
           param2 = parseFloat((10 + random() * 500).toFixed(1)); // frequency Hz
           break;
-        case "MFL": // Magnetic flux leakage
+        case 'MFL': // Magnetic flux leakage
           param1 = parseFloat((random() * 50).toFixed(1)); // signal amplitude %
           param2 = parseFloat((random() * 100).toFixed(0)); // defect length mm
           break;
-        case "TFI": // Transverse field inspection
+        case 'TFI': // Transverse field inspection
           param1 = parseFloat((random() * 40).toFixed(1)); // crack depth %
           break;
         default:
@@ -153,33 +205,35 @@ export function generateDiagnostics(
             param1 = parseFloat((random() * 100).toFixed(2));
           }
       }
-      
+
       // Determine quality grade and ml_label based on risk
       let qualityGrade: QualityGrade;
       let mlLabel: MlLabel;
       let defectFound: boolean;
       let defectDescription: string;
-      
+
       if (isHighRisk) {
         // High risk - intentional defects for testing
-        qualityGrade = random() > 0.5 ? "недопустимо" : "требует_мер";
-        mlLabel = "high";
+        qualityGrade = random() > 0.5 ? 'недопустимо' : 'требует_мер';
+        mlLabel = 'high';
         defectFound = true;
         defectDescription = getDefectDescription(method, random);
       } else if (random() < 0.2) {
         // Medium risk
-        qualityGrade = "требует_мер";
-        mlLabel = "medium";
+        qualityGrade = 'требует_мер';
+        mlLabel = 'medium';
         defectFound = random() > 0.3;
-        defectDescription = defectFound ? getDefectDescription(method, random) : "";
+        defectDescription = defectFound
+          ? getDefectDescription(method, random)
+          : '';
       } else {
         // Normal
-        qualityGrade = random() > 0.3 ? "удовлетворительно" : "допустимо";
-        mlLabel = "normal";
+        qualityGrade = random() > 0.3 ? 'удовлетворительно' : 'допустимо';
+        mlLabel = 'normal';
         defectFound = random() < 0.05;
-        defectDescription = defectFound ? "Незначительное отклонение" : "";
+        defectDescription = defectFound ? 'Незначительное отклонение' : '';
       }
-      
+
       diagnostics.push({
         diag_id: diagId,
         object_id: obj.object_id,
@@ -196,7 +250,7 @@ export function generateDiagnostics(
         param3,
         ml_label: mlLabel,
       });
-      
+
       diagId++;
     }
   });
@@ -209,19 +263,35 @@ export function generateDiagnostics(
  */
 function getDefectDescription(method: Method, random: () => number): string {
   const descriptions: Record<Method, string[]> = {
-    VIK: ["Коррозия поверхности", "Механическое повреждение", "Трещина сварного шва"],
-    PVK: ["Подповерхностная трещина", "Расслоение металла", "Несплошность сварки"],
-    MPK: ["Магнитная аномалия", "Скопление дефектов", "Потеря металла"],
-    UZK: ["Потеря толщины стенки", "Внутренняя коррозия", "Язвенная коррозия"],
-    RGK: ["Внутренний дефект", "Пора в сварном шве", "Шлаковое включение"],
-    TVK: ["Термическое повреждение", "Аномалия теплопередачи", "Зона перегрева"],
-    VIBRO: ["Повышенная вибрация", "Дисбаланс ротора", "Износ подшипников"],
-    MFL: ["Потеря металла", "Внешняя коррозия", "Механическое повреждение"],
-    TFI: ["Продольная трещина", "Усталостная трещина", "Стресс-коррозия"],
-    GEO: ["Смещение оси", "Осадка грунта", "Деформация трубы"],
-    UTWM: ["Критическая потеря толщины", "Локальная коррозия", "Эрозионный износ"],
+    VIK: [
+      'Коррозия поверхности',
+      'Механическое повреждение',
+      'Трещина сварного шва',
+    ],
+    PVK: [
+      'Подповерхностная трещина',
+      'Расслоение металла',
+      'Несплошность сварки',
+    ],
+    MPK: ['Магнитная аномалия', 'Скопление дефектов', 'Потеря металла'],
+    UZK: ['Потеря толщины стенки', 'Внутренняя коррозия', 'Язвенная коррозия'],
+    RGK: ['Внутренний дефект', 'Пора в сварном шве', 'Шлаковое включение'],
+    TVK: [
+      'Термическое повреждение',
+      'Аномалия теплопередачи',
+      'Зона перегрева',
+    ],
+    VIBRO: ['Повышенная вибрация', 'Дисбаланс ротора', 'Износ подшипников'],
+    MFL: ['Потеря металла', 'Внешняя коррозия', 'Механическое повреждение'],
+    TFI: ['Продольная трещина', 'Усталостная трещина', 'Стресс-коррозия'],
+    GEO: ['Смещение оси', 'Осадка грунта', 'Деформация трубы'],
+    UTWM: [
+      'Критическая потеря толщины',
+      'Локальная коррозия',
+      'Эрозионный износ',
+    ],
   };
-  
+
   const options = descriptions[method];
   return options[Math.floor(random() * options.length)];
 }
@@ -230,19 +300,30 @@ function getDefectDescription(method: Method, random: () => number): string {
  * Converts objects array to CSV string
  */
 export function objectsToCsv(objects: ObjectRow[]): string {
-  const headers = ["object_id", "object_name", "object_type", "pipeline_id", "lat", "lon", "year", "material"];
-  const rows = objects.map((obj) => [
-    obj.object_id,
-    `"${obj.object_name}"`,
-    obj.object_type,
-    obj.pipeline_id,
-    obj.lat,
-    obj.lon,
-    obj.year ?? "",
-    obj.material ?? "",
-  ].join(","));
-  
-  return [headers.join(","), ...rows].join("\n");
+  const headers = [
+    'object_id',
+    'object_name',
+    'object_type',
+    'pipeline_id',
+    'lat',
+    'lon',
+    'year',
+    'material',
+  ];
+  const rows = objects.map((obj) =>
+    [
+      obj.object_id,
+      `"${obj.object_name}"`,
+      obj.object_type,
+      obj.pipeline_id,
+      obj.lat,
+      obj.lon,
+      obj.year ?? '',
+      obj.material ?? '',
+    ].join(','),
+  );
+
+  return [headers.join(','), ...rows].join('\n');
 }
 
 /**
@@ -250,29 +331,42 @@ export function objectsToCsv(objects: ObjectRow[]): string {
  */
 export function diagnosticsToCsv(diagnostics: DiagnosticRow[]): string {
   const headers = [
-    "diag_id", "object_id", "method", "date", "temperature", "humidity", 
-    "illumination", "defect_found", "defect_description", "quality_grade",
-    "param1", "param2", "param3", "ml_label"
+    'diag_id',
+    'object_id',
+    'method',
+    'date',
+    'temperature',
+    'humidity',
+    'illumination',
+    'defect_found',
+    'defect_description',
+    'quality_grade',
+    'param1',
+    'param2',
+    'param3',
+    'ml_label',
   ];
-  
-  const rows = diagnostics.map((diag) => [
-    diag.diag_id,
-    diag.object_id,
-    diag.method,
-    diag.date,
-    diag.temperature ?? "",
-    diag.humidity ?? "",
-    diag.illumination ?? "",
-    diag.defect_found ? "true" : "false",
-    `"${diag.defect_description ?? ""}"`,
-    diag.quality_grade ?? "",
-    diag.param1 ?? "",
-    diag.param2 ?? "",
-    diag.param3 ?? "",
-    diag.ml_label ?? "",
-  ].join(","));
-  
-  return [headers.join(","), ...rows].join("\n");
+
+  const rows = diagnostics.map((diag) =>
+    [
+      diag.diag_id,
+      diag.object_id,
+      diag.method,
+      diag.date,
+      diag.temperature ?? '',
+      diag.humidity ?? '',
+      diag.illumination ?? '',
+      diag.defect_found ? 'true' : 'false',
+      `"${diag.defect_description ?? ''}"`,
+      diag.quality_grade ?? '',
+      diag.param1 ?? '',
+      diag.param2 ?? '',
+      diag.param3 ?? '',
+      diag.ml_label ?? '',
+    ].join(','),
+  );
+
+  return [headers.join(','), ...rows].join('\n');
 }
 
 /**
@@ -281,17 +375,26 @@ export function diagnosticsToCsv(diagnostics: DiagnosticRow[]): string {
 export function generateSyntheticData(
   objectCountPerPipeline: number = 100,
   avgDiagnosticsPerObject: number = 5,
-  highRiskPercentage: number = 0.10
-): { objectsBlob: Blob; diagnosticsBlob: Blob; objectsCsv: string; diagnosticsCsv: string } {
+  highRiskPercentage: number = 0.1,
+): {
+  objectsBlob: Blob;
+  diagnosticsBlob: Blob;
+  objectsCsv: string;
+  diagnosticsCsv: string;
+} {
   const objects = generateObjects(objectCountPerPipeline);
-  const diagnostics = generateDiagnostics(objects, avgDiagnosticsPerObject, highRiskPercentage);
-  
+  const diagnostics = generateDiagnostics(
+    objects,
+    avgDiagnosticsPerObject,
+    highRiskPercentage,
+  );
+
   const objectsCsv = objectsToCsv(objects);
   const diagnosticsCsv = diagnosticsToCsv(diagnostics);
-  
+
   return {
-    objectsBlob: new Blob([objectsCsv], { type: "text/csv" }),
-    diagnosticsBlob: new Blob([diagnosticsCsv], { type: "text/csv" }),
+    objectsBlob: new Blob([objectsCsv], { type: 'text/csv' }),
+    diagnosticsBlob: new Blob([diagnosticsCsv], { type: 'text/csv' }),
     objectsCsv,
     diagnosticsCsv,
   };
@@ -302,7 +405,7 @@ export function generateSyntheticData(
  */
 export function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
+  const a = document.createElement('a');
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
@@ -316,12 +419,15 @@ export function downloadBlob(blob: Blob, filename: string): void {
  */
 export function downloadSyntheticData(
   objectCountPerPipeline: number = 100,
-  avgDiagnosticsPerObject: number = 5
+  avgDiagnosticsPerObject: number = 5,
 ): void {
-  const { objectsBlob, diagnosticsBlob } = generateSyntheticData(objectCountPerPipeline, avgDiagnosticsPerObject);
-  
-  downloadBlob(objectsBlob, "Objects.csv");
+  const { objectsBlob, diagnosticsBlob } = generateSyntheticData(
+    objectCountPerPipeline,
+    avgDiagnosticsPerObject,
+  );
+
+  downloadBlob(objectsBlob, 'Objects.csv');
   setTimeout(() => {
-    downloadBlob(diagnosticsBlob, "Diagnostics.csv");
+    downloadBlob(diagnosticsBlob, 'Diagnostics.csv');
   }, 100);
 }

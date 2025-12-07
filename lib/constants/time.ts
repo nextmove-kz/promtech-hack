@@ -1,0 +1,12 @@
+export const MILLISECONDS = {
+  SECOND: 1000,
+  MINUTE: 60 * 1000,
+  HOUR: 60 * 60 * 1000,
+  DAY: 24 * 60 * 60 * 1000,
+} as const;
+
+export const CACHE_TIMES = {
+  DEFAULT_STALE: MILLISECONDS.MINUTE,
+  RECENT_THRESHOLD_DAYS: 30,
+  API_RATE_LIMIT_DELAY: 300,
+} as const;
