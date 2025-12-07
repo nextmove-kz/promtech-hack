@@ -26,7 +26,6 @@ import { usePlanByObjectId, usePlanHistory } from '@/hooks/usePlan';
 import { ActionPlanModal } from './ActionPlanModal';
 import { useRouter } from 'next/navigation';
 import { PlanStatusOptions } from '@/app/api/api_types';
-import Link from 'next/link';
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
@@ -188,55 +187,57 @@ export function DiagnosticDetailsPanel({
                 </div>
               )}
 
-              {/* Plan history */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-medium text-foreground">
-                  История работ
-                </h3>
-                {planHistory && planHistory.length > 0 ? (
-                  <div className="space-y-2">
-                    {planHistory.map((p) => {
-                      const planDate = p.updated
-                        ? new Date(p.updated).toLocaleDateString('ru-RU')
-                        : '—';
-                      const status =
-                        planStatusConfig[
-                          p.status as keyof typeof planStatusConfig
-                        ] || planStatusConfig.unknown;
-                      return (
-                        <div
-                          key={p.id}
-                          className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm"
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-medium text-foreground">
-                              {planDate}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {p.problem || 'Без описания'}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant={status.variant} className="text-xs">
-                              {status.label}
-                            </Badge>
-                            <Link
-                              href={`/plan/${objectId}?planId=${p.id}`}
-                              className="text-xs text-primary underline-offset-2 hover:underline"
+              {/* Plan history (conditionally shown only if there are any plans) */}
+              {planHistory && planHistory.length > 0 && (
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="plan-history">
+                    <AccordionTrigger className="text-sm font-medium text-foreground hover:no-underline">
+                      История работ
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2">
+                        {planHistory.map((p) => {
+                          const planDate = p.updated
+                            ? new Date(p.updated).toLocaleDateString('ru-RU')
+                            : '—';
+                          const planHref = `/plan/${objectId}?planId=${p.id}`;
+                          const status =
+                            planStatusConfig[
+                              p.status as keyof typeof planStatusConfig
+                            ] || planStatusConfig.unknown;
+                          return (
+                            <div
+                              key={p.id}
+                              role="button"
+                              tabIndex={0}
+                              aria-label={`Открыть план от ${planDate}`}
+                              className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition"
+                              onClick={() => router.push(planHref)}
+                              onKeyDown={(event) => {
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  router.push(planHref);
+                                }
+                              }}
                             >
-                              Открыть
-                            </Link>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-xs text-muted-foreground">
-                    Планы для объекта отсутствуют.
-                  </div>
-                )}
-              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium text-foreground">
+                                  {planDate}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <Badge variant={status.variant} className="text-xs">
+                                  {status.label}
+                                </Badge>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              )}
 
               <Separator />
               {/* Diagnostic History Accordion */}

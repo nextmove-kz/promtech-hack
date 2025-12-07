@@ -6,7 +6,6 @@ import { AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import clientPocketBase from '@/app/api/client_pb';
-import { useObjectAnalysis } from '@/hooks/useAnalysis';
 
 type Candidate = {
   object_id: string;
@@ -25,10 +24,6 @@ export function ReanalysisAlert() {
     total: 0,
   });
   const queryClient = useQueryClient();
-
-  const { analyzeAsync } = useObjectAnalysis({
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['objects'] }),
-  });
 
   const {
     data,
@@ -162,32 +157,46 @@ export function ReanalysisAlert() {
     toast.dismiss('reanalysis-notify');
     updateProgressToast(0, candidates.length);
 
-    let success = 0;
-    let failed = 0;
+    try {
+      const res = await fetch('/api/reanalysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          object_ids: candidates.map((c) => c.object_id),
+        }),
+      });
 
-    for (let i = 0; i < candidates.length; i++) {
-      const candidate = candidates[i];
-      setProgress({ current: i + 1, total: candidates.length });
-      updateProgressToast(i + 1, candidates.length);
+      const data = (await res.json()) as {
+        success: boolean;
+        results?: Array<{ object_id: string }>;
+        skipped?: Array<{ object_id: string; reason: string }>;
+        errors?: Array<{ object_id: string; error: string }>;
+      };
 
-      try {
-        await analyzeAsync(candidate.object_id);
-        success += 1;
-      } catch (error) {
-        failed += 1;
-        console.error('Re-analysis failed', { candidate, error });
+      const successCount = data.results?.length ?? 0;
+      const skippedCount = data.skipped?.length ?? 0;
+      const failedCount = data.errors?.length ?? 0;
+
+      setProgress({ current: candidates.length, total: candidates.length });
+      updateProgressToast(candidates.length, candidates.length);
+      toast.dismiss('reanalysis-progress');
+      setIsRunning(false);
+      await refetch();
+      queryClient.invalidateQueries({ queryKey: ['objects'] });
+
+      if (successCount > 0) {
+        toast.success(
+          `Переоценка завершена: ${successCount} обновлено, ${skippedCount} пропущено`,
+        );
       }
-    }
-
-    toast.dismiss('reanalysis-progress');
-    setIsRunning(false);
-    await refetch();
-
-    if (success > 0) {
-      toast.success(`Переоценка завершена: ${success} объект(ов) обновлено`);
-    }
-    if (failed > 0) {
-      toast.error(`Ошибка при переоценке: ${failed} объект(ов)`);
+      if (failedCount > 0) {
+        toast.error(`Ошибка при переоценке: ${failedCount} объект(ов)`);
+      }
+    } catch (error) {
+      console.error('Re-analysis batch failed', error);
+      toast.dismiss('reanalysis-progress');
+      setIsRunning(false);
+      toast.error('Не удалось запустить переоценку');
     }
   };
 
