@@ -1,13 +1,13 @@
-import { type NextRequest, NextResponse } from "next/server";
-import { GoogleGenAI } from "@google/genai";
-import { pocketbase } from "../pocketbase";
+import { type NextRequest, NextResponse } from 'next/server';
+import { GoogleGenAI } from '@google/genai';
+import { pocketbase } from '../pocketbase';
 import type {
   ActionResponse,
   DiagnosticsResponse,
   ObjectsHealthStatusOptions,
   ObjectsResponse,
   PlanResponse,
-} from "../api_types";
+} from '../api_types';
 
 type ReanalysisCandidate = {
   object_id: string;
@@ -36,7 +36,7 @@ type ReanalysisResult = AiAnalysisResult & {
 
 const apiKey = process.env.GEMINI_API_KEY;
 if (!apiKey) {
-  throw new Error("GEMINI_API_KEY environment variable is required");
+  throw new Error('GEMINI_API_KEY environment variable is required');
 }
 
 const ai = new GoogleGenAI({
@@ -182,21 +182,21 @@ Return ONLY a valid JSON object:
 }`;
 
 const getLatestDiagnosticTimestamp = (
-  diagnostics: DiagnosticsResponse[]
+  diagnostics: DiagnosticsResponse[],
 ): number => {
   return diagnostics.reduce((latest, d) => {
     const ts = new Date(
       d.date ||
         (d as { updated?: string }).updated ||
         (d as { created?: string }).created ||
-        0
+        0,
     ).getTime();
     return Number.isFinite(ts) ? Math.max(latest, ts) : latest;
   }, 0);
 };
 
 const getLatestDiagnostic = (
-  diagnostics: DiagnosticsResponse[]
+  diagnostics: DiagnosticsResponse[],
 ): DiagnosticsResponse | undefined => {
   if (!diagnostics.length) return undefined;
 
@@ -206,53 +206,53 @@ const getLatestDiagnostic = (
         b.date ||
           (b as { updated?: string }).updated ||
           (b as { created?: string }).created ||
-          0
+          0,
       ).getTime() -
       new Date(
         a.date ||
           (a as { updated?: string }).updated ||
           (a as { created?: string }).created ||
-          0
-      ).getTime()
+          0,
+      ).getTime(),
   )[0];
 };
 
 const formatParam = (value?: number | string | null): string =>
-  value === undefined || value === null ? "n/a" : `${value}`;
+  value === undefined || value === null ? 'n/a' : `${value}`;
 
 const buildParamContext = (
   method?: string,
   p1?: number | string | null,
   p2?: number | string | null,
-  p3?: number | string | null
+  p3?: number | string | null,
 ): string => {
   switch (method) {
-    case "VIBRO":
+    case 'VIBRO':
       return `VIBRO params -> vibration velocity=${formatParam(
-        p1
+        p1,
       )} mm/s (critical if >7.1), acceleration=${formatParam(
-        p2
+        p2,
       )} m/s², frequency/temperature=${formatParam(p3)}.`;
-    case "MFL":
-    case "UTWM":
+    case 'MFL':
+    case 'UTWM':
       return `MFL/UTWM params -> corrosion depth=${formatParam(
-        p1
+        p1,
       )} mm (or % metal loss), remaining wall=${formatParam(
-        p2
+        p2,
       )} mm, defect length=${formatParam(p3)} mm.`;
-    case "VIK":
+    case 'VIK':
       return `VIK params -> size LxW=${formatParam(p1)}x${formatParam(
-        p2
+        p2,
       )} mm, depth=${formatParam(p3)} mm (if available).`;
     default:
       return `Params -> param1=${formatParam(p1)}, param2=${formatParam(
-        p2
+        p2,
       )}, param3=${formatParam(p3)}.`;
   }
 };
 
 const summarizePlan = (
-  plan?: PlanResponse<{ actions?: ActionResponse[] }>
+  plan?: PlanResponse<{ actions?: ActionResponse[] }>,
 ): {
   summary?: string;
   updatedTs: number;
@@ -303,11 +303,11 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     const pb = await pocketbase();
 
     const plans = await pb
-      .collection("plan")
+      .collection('plan')
       .getFullList<PlanResponse<{ object?: ObjectsResponse }>>({
         filter: 'status="done"',
-        sort: "-updated",
-        expand: "object",
+        sort: '-updated',
+        expand: 'object',
       });
 
     const candidates = new Map<string, ReanalysisCandidate & { ts: number }>();
@@ -333,7 +333,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       if (!existing || planTs > existing.ts) {
         candidates.set(object.id, {
           object_id: object.id,
-          object_name: object.name || "Без названия",
+          object_name: object.name || 'Без названия',
           plan_id: plan.id,
           plan_updated: plan.updated,
           object_last_analysis_at: object.last_analysis_at,
@@ -346,20 +346,20 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       items: Array.from(candidates.values()).map(
-        ({ ts, ...rest }): ReanalysisCandidate => rest
+        ({ ts, ...rest }): ReanalysisCandidate => rest,
       ),
     });
   } catch (error) {
-    console.error("Failed to fetch reanalysis candidates:", error);
+    console.error('Failed to fetch reanalysis candidates:', error);
     return NextResponse.json(
       {
         success: false,
         error:
           error instanceof Error
             ? error.message
-            : "Unknown server error occurred",
+            : 'Unknown server error occurred',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -371,15 +371,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     if (!object_ids || !Array.isArray(object_ids) || object_ids.length === 0) {
       return NextResponse.json(
-        { success: false, error: "object_ids array is required" },
-        { status: 400 }
+        { success: false, error: 'object_ids array is required' },
+        { status: 400 },
       );
     }
 
     const pb = await pocketbase();
     const idsToProcess = object_ids;
-    const objectFilter = idsToProcess.map((id) => `id="${id}"`).join(" || ");
-    const objects = await pb.collection("objects").getFullList({
+    const objectFilter = idsToProcess.map((id) => `id="${id}"`).join(' || ');
+    const objects = await pb.collection('objects').getFullList({
       filter: objectFilter,
     });
 
@@ -392,18 +392,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         | ObjectsResponse
         | undefined;
       if (!object) {
-        errors.push({ object_id, error: "Object not found" });
+        errors.push({ object_id, error: 'Object not found' });
         continue;
       }
 
       try {
-        const diagnostics = (await pb.collection("diagnostics").getFullList({
+        const diagnostics = (await pb.collection('diagnostics').getFullList({
           filter: `object="${object_id}"`,
-          sort: "-date",
+          sort: '-date',
         })) as DiagnosticsResponse[];
 
         if (diagnostics.length === 0) {
-          skipped.push({ object_id, reason: "no_diagnostics" });
+          skipped.push({ object_id, reason: 'no_diagnostics' });
           continue;
         }
 
@@ -416,11 +416,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         const latestDiagnosticTs = getLatestDiagnosticTimestamp(diagnostics);
 
         const donePlans = await pb
-          .collection("plan")
+          .collection('plan')
           .getList<PlanResponse<{ actions?: ActionResponse[] }>>(1, 1, {
             filter: `object="${object_id}" && status="done"`,
-            sort: "-updated",
-            expand: "actions",
+            sort: '-updated',
+            expand: 'actions',
           });
 
         const latestDonePlan = donePlans.items[0] ?? null;
@@ -432,7 +432,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         if (!hasFinishedPlanAfterLastAnalysis) {
           skipped.push({
             object_id,
-            reason: "no_finished_plan_after_last_analysis",
+            reason: 'no_finished_plan_after_last_analysis',
           });
           continue;
         }
@@ -442,7 +442,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             d.date ||
               (d as { updated?: string }).updated ||
               (d as { created?: string }).created ||
-              0
+              0,
           ).getTime();
           return ts > lastAnalysisTs;
         });
@@ -477,7 +477,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               d.date ||
                 (d as { updated?: string }).updated ||
                 (d as { created?: string }).created ||
-                0
+                0,
             ).getTime();
             return lastAnalysisTs ? ts <= lastAnalysisTs : true;
           }),
@@ -496,7 +496,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               d.method,
               d.param1,
               d.param2,
-              d.param3
+              d.param3,
             ),
             temperature: d.temperature,
             humidity: d.humidity,
@@ -508,10 +508,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         };
 
         const response = await ai.models.generateContent({
-          model: "gemini-2.0-flash-lite",
+          model: 'gemini-2.0-flash-lite',
           contents: [
             {
-              role: "user",
+              role: 'user',
               parts: [
                 {
                   text: `AUDIT REQUEST FOR PIPELINE OBJECT: "${
@@ -530,7 +530,7 @@ INTERVENTION (PLAN):
                     analysisData.plan?.actions_total
                   }
 - Actions Log: ${JSON.stringify(
-                    analysisData.plan?.actions?.map((a) => a.description)
+                    analysisData.plan?.actions?.map((a) => a.description),
                   )}
 
 
@@ -538,7 +538,7 @@ EVIDENCE (DIAGNOSTICS):
 - LATEST SCAN (Post-Work): ${
                     analysisData.diagnostics_after.length > 0
                       ? JSON.stringify(analysisData.latest_diagnostics[0])
-                      : "NONE - No verification scan found after work!"
+                      : 'NONE - No verification scan found after work!'
                   }
 
 
@@ -556,7 +556,7 @@ ${JSON.stringify(analysisData, null, 2)}`,
           ],
           config: {
             systemInstruction: REANALYSIS_SYSTEM_INSTRUCTION,
-            responseMimeType: "application/json",
+            responseMimeType: 'application/json',
             temperature: 0.3,
             maxOutputTokens: 2048,
           },
@@ -564,19 +564,19 @@ ${JSON.stringify(analysisData, null, 2)}`,
 
         const aiText = response.text;
         if (!aiText) {
-          throw new Error("Empty response from AI");
+          throw new Error('Empty response from AI');
         }
 
         let aiResult: AiAnalysisResult;
         try {
           let cleanedText = aiText.trim();
-          if (cleanedText.startsWith("```json")) {
+          if (cleanedText.startsWith('```json')) {
             cleanedText = cleanedText.slice(7);
           }
-          if (cleanedText.startsWith("```")) {
+          if (cleanedText.startsWith('```')) {
             cleanedText = cleanedText.slice(3);
           }
-          if (cleanedText.endsWith("```")) {
+          if (cleanedText.endsWith('```')) {
             cleanedText = cleanedText.slice(0, -3);
           }
           cleanedText = cleanedText.trim();
@@ -585,26 +585,26 @@ ${JSON.stringify(analysisData, null, 2)}`,
 
           if (
             !aiResult.health_status ||
-            typeof aiResult.urgency_score !== "number"
+            typeof aiResult.urgency_score !== 'number'
           ) {
-            throw new Error("Invalid response structure");
+            throw new Error('Invalid response structure');
           }
 
           aiResult.urgency_score = Math.max(
             0,
-            Math.min(100, Math.round(aiResult.urgency_score))
+            Math.min(100, Math.round(aiResult.urgency_score)),
           );
 
           if (aiResult.urgency_score <= 25) {
-            aiResult.health_status = "OK" as ObjectsHealthStatusOptions;
+            aiResult.health_status = 'OK' as ObjectsHealthStatusOptions;
           } else if (aiResult.urgency_score <= 65) {
-            aiResult.health_status = "WARNING" as ObjectsHealthStatusOptions;
+            aiResult.health_status = 'WARNING' as ObjectsHealthStatusOptions;
           } else {
-            aiResult.health_status = "CRITICAL" as ObjectsHealthStatusOptions;
+            aiResult.health_status = 'CRITICAL' as ObjectsHealthStatusOptions;
           }
         } catch (parseError) {
-          console.error("Failed to parse AI response:", aiText, parseError);
-          throw new Error("Failed to parse AI response");
+          console.error('Failed to parse AI response:', aiText, parseError);
+          throw new Error('Failed to parse AI response');
         }
 
         const latestDiagnostic = getLatestDiagnostic(diagnostics);
@@ -616,10 +616,10 @@ ${JSON.stringify(analysisData, null, 2)}`,
           has_defects: hasDefects,
         });
       } catch (error) {
-        console.error("Re-analysis error for object", object_id, error);
+        console.error('Re-analysis error for object', object_id, error);
         errors.push({
           object_id,
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
     }
@@ -627,7 +627,7 @@ ${JSON.stringify(analysisData, null, 2)}`,
     // Apply DB updates after AI responses are collected
     for (const result of results) {
       try {
-        await pb.collection("objects").update(result.object_id, {
+        await pb.collection('objects').update(result.object_id, {
           health_status: result.health_status,
           urgency_score: result.urgency_score,
           ai_summary: result.ai_summary,
@@ -638,7 +638,7 @@ ${JSON.stringify(analysisData, null, 2)}`,
       } catch (error) {
         errors.push({
           object_id: result.object_id,
-          error: error instanceof Error ? error.message : "DB update failed",
+          error: error instanceof Error ? error.message : 'DB update failed',
         });
       }
     }
@@ -650,13 +650,13 @@ ${JSON.stringify(analysisData, null, 2)}`,
       errors,
     });
   } catch (error) {
-    console.error("Re-analysis batch error:", error);
+    console.error('Re-analysis batch error:', error);
     return NextResponse.json(
       {
         success: false,
-        error: error instanceof Error ? error.message : "Unknown server error",
+        error: error instanceof Error ? error.message : 'Unknown server error',
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

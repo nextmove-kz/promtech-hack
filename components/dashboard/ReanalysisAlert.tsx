@@ -25,11 +25,10 @@ export function ReanalysisAlert() {
   });
   const queryClient = useQueryClient();
 
-  const {
-    data,
-    refetch,
-    isFetching,
-  } = useQuery<{ success: boolean; items: Candidate[] }>({
+  const { data, refetch, isFetching } = useQuery<{
+    success: boolean;
+    items: Candidate[];
+  }>({
     queryKey: ['reanalysis', 'candidates'],
     queryFn: async () => {
       const res = await fetch('/api/reanalysis');

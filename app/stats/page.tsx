@@ -13,6 +13,7 @@ import { LinearAssetVisualization } from '@/components/dashboard/stats/LinearAss
 import { MaterialDegradationChart } from '@/components/dashboard/stats/MaterialDegradationChart';
 import { AgeDefectsChart } from '@/components/dashboard/stats/AgeDefectsChart';
 import { DefectTypesChart } from '@/components/dashboard/stats/DefectTypesChart';
+import { GenerateReportButton } from '@/components/dashboard/stats/GenerateReportButton';
 
 export default function StatsPage() {
   const [filters, setFilters] = useAtom(filterAtom);
@@ -122,6 +123,14 @@ export default function StatsPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Generate Report Button */}
+        <div className="flex items-center justify-end">
+          <GenerateReportButton
+            selectedPipelineId={filters.advanced.pipeline}
+            selectedPipeline={selectedPipeline}
+          />
         </div>
 
         {/* KPI Cards */}
