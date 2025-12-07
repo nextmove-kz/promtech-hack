@@ -5,6 +5,8 @@ import type {
   ObjectsResponse,
   DiagnosticsResponse,
   ObjectsHealthStatusOptions,
+  PlanResponse,
+  ActionResponse,
 } from '../api_types';
 
 // Initialize Gemini AI
@@ -96,6 +98,11 @@ const SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer with 20
 ${ANALYSIS_RULES}
 ${PARAMETER_CONTEXT}
 
+POST-ACTION PLAN CONTEXT:
+- You may receive a completed action plan with actions_done/total.
+- If work is finished after the last analysis, you should reflect improvement, but stay conservative. Do NOT reset urgency_score to 0. Keep a realistic residual risk based on diagnostics and remaining uncertainties.
+- If diagnostics still show severe issues, keep the score high even if actions were performed.
+
 CRITICAL RULE - CONSISTENCY REQUIRED:
 The health_status MUST match the urgency_score range:
 - urgency_score 0-25 → health_status MUST be "OK"
@@ -180,6 +187,40 @@ const getLatestDiagnostic = (
 
 const formatParam = (value?: number | string | null): string =>
   value === undefined || value === null ? 'n/a' : `${value}`;
+
+const summarizePlan = (
+  plan?: PlanResponse<{ actions?: ActionResponse[] }>,
+): {
+  summary?: string;
+  updatedTs: number;
+  actionsDone: number;
+  actionsTotal: number;
+  problem?: string;
+} => {
+  if (!plan)
+    return {
+      summary: undefined,
+      updatedTs: 0,
+      actionsDone: 0,
+      actionsTotal: 0,
+      problem: undefined,
+    };
+
+  const actions = plan.expand?.actions ?? [];
+  const actionsTotal = actions.length;
+  const actionsDone = actions.filter((a) => !!a.status).length;
+  const updatedTs = new Date(plan.updated || 0).getTime();
+
+  const summary = `Plan ${plan.id} (status=${plan.status}) finished at ${plan.updated}. Actions done: ${actionsDone}/${actionsTotal}.`;
+
+  return {
+    summary,
+    updatedTs: Number.isFinite(updatedTs) ? updatedTs : 0,
+    actionsDone,
+    actionsTotal,
+    problem: plan.problem,
+  };
+};
 
 const buildParamContext = (
   method?: string,
@@ -278,7 +319,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const lastAnalysisTs = object.last_analysis_at
       ? new Date(object.last_analysis_at).getTime()
       : 0;
+    const objectUpdatedTs = object.updated
+      ? new Date(object.updated).getTime()
+      : 0;
     const hasUrgency = typeof object.urgency_score === 'number';
+
+    // Fetch the latest finished plan (if any)
+    let latestDonePlan: PlanResponse<{ actions?: ActionResponse[] }> | null =
+      null;
+    let latestDonePlanTs = 0;
+    try {
+      const donePlans = await pb
+        .collection('plan')
+        .getList<PlanResponse<{ actions?: ActionResponse[] }>>(1, 1, {
+          filter: `object="${object_id}" && status="done"`,
+          sort: '-updated',
+          expand: 'actions',
+        });
+      latestDonePlan = donePlans.items[0] || null;
+      const planMeta = summarizePlan(latestDonePlan ?? undefined);
+      latestDonePlanTs = planMeta.updatedTs;
+    } catch (e) {
+      console.error('Failed to fetch finished plan:', e);
+    }
+
+    const hasFinishedPlanAfterLastAnalysis =
+      latestDonePlanTs >
+      Math.max(lastAnalysisTs || 0, objectUpdatedTs || 0, 0);
 
     // Skip if no diagnostics
     if (diagnostics.length === 0) {
@@ -291,7 +358,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     // Skip if already analyzed and no new diagnostics since last analysis
-    if (hasUrgency && lastAnalysisTs && latestDiagnosticTs <= lastAnalysisTs) {
+    if (
+      hasUrgency &&
+      lastAnalysisTs &&
+      latestDiagnosticTs <= lastAnalysisTs &&
+      !hasFinishedPlanAfterLastAnalysis
+    ) {
       return NextResponse.json({
         success: true,
         object_id,
@@ -308,7 +380,26 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         type: object.type,
         material: object.material,
         year: object.year,
+        previous_ai_summary: object.ai_summary,
+        previous_recommendation: object.recommended_action,
+        previous_urgency: object.urgency_score,
+        last_analysis_at: object.last_analysis_at,
+        updated_at: object.updated,
       },
+      plan: latestDonePlan
+        ? {
+            id: latestDonePlan.id,
+            status: latestDonePlan.status,
+            updated: latestDonePlan.updated,
+            problem: latestDonePlan.problem,
+            actions: (latestDonePlan.expand?.actions ?? []).map((a) => ({
+              id: a.id,
+              description: a.description,
+              status: a.status,
+              updated: a.updated,
+            })),
+          }
+        : null,
       diagnostics: diagnostics.map((d) => ({
         date: d.date,
         method: d.method,
@@ -339,7 +430,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           role: 'user',
           parts: [
             {
-              text: `Context for parameters (method-specific meaning):\n${PARAMETER_CONTEXT}\n\nAnalyze this pipeline object diagnostic data and provide a health assessment. Use the param_context fields to understand numeric values.\n\n${JSON.stringify(
+              text: `Context for parameters (method-specific meaning):\n${PARAMETER_CONTEXT}\n\nAnalyze this pipeline object diagnostic data and provide a health assessment.\nIf a completed plan is provided, factor in the work done and expected risk reduction, but stay conservative and keep residual risk if diagnostics warrant it. Do NOT reset urgency to zero.\nUse the param_context fields to understand numeric values.\n\n${JSON.stringify(
                 analysisData,
                 null,
                 2,
@@ -392,6 +483,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         0,
         Math.min(100, Math.round(aiResult.urgency_score)),
       );
+
+      // Conservative clamp when re-evaluating after a finished plan:
+      // keep at least 35% of the previous score to avoid unrealistic resets.
+      const prevScore =
+        typeof object.urgency_score === 'number' ? object.urgency_score : null;
+      if (hasFinishedPlanAfterLastAnalysis && prevScore !== null) {
+        const floorScore = Math.max(0, Math.round(prevScore * 0.35));
+        aiResult.urgency_score = Math.max(aiResult.urgency_score, floorScore);
+      }
 
       // Enforce consistency between health_status and urgency_score
       // Score determines status, not the other way around

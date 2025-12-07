@@ -23,6 +23,8 @@ import {
 import { Progress } from '@/components/ui/progress';
 import { usePlans } from '@/hooks/usePlan';
 import { PlanStatusOptions } from '@/app/api/api_types';
+import { useObjectAnalysis } from '@/hooks/useAnalysis';
+import { toast } from 'sonner';
 
 interface PlanTrackerTableProps {
   onShowOnMap?: (objectId: string) => void;
@@ -57,6 +59,10 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
   const [urgencyFilter, setUrgencyFilter] = useState<
     'all' | 'high' | 'medium' | 'low' | 'none'
   >('all');
+  const [reanalyzingPlanId, setReanalyzingPlanId] = useState<string | null>(
+    null,
+  );
+  const { analyzeAsync } = useObjectAnalysis();
 
   const renderStatusBadge = (status?: PlanStatusOptions) => {
     const config = status ? statusConfig[status] : statusConfig.unknown;
@@ -197,6 +203,9 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
               <TableHead className="text-xs font-medium text-muted-foreground">
                 Прогресс
               </TableHead>
+              <TableHead className="text-xs font-medium text-muted-foreground">
+                Переоценка
+              </TableHead>
               <TableHead className="w-28 text-right text-xs font-medium text-muted-foreground">
                 На карте
               </TableHead>
@@ -215,6 +224,20 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                   ? Math.round((completedActions / totalActions) * 100)
                   : 0;
               const objectId = object?.id ?? plan.object ?? '';
+              const lastAnalysisTs = object?.last_analysis_at
+                ? new Date(object.last_analysis_at).getTime()
+                : 0;
+              const objectUpdatedTs = object?.updated
+                ? new Date(object.updated).getTime()
+                : 0;
+              const planUpdatedTs = new Date(plan.updated || 0).getTime();
+              const needsReeval =
+                plan.status === PlanStatusOptions.done &&
+                planUpdatedTs >
+                  Math.max(lastAnalysisTs || 0, objectUpdatedTs || 0, 0);
+              const lastAnalysisLabel = object?.last_analysis_at
+                ? new Date(object.last_analysis_at).toLocaleDateString('ru-RU')
+                : '—';
 
               return (
                 <TableRow
@@ -254,6 +277,48 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                       </div>
                       <Progress value={progress} className="h-2" />
                     </div>
+                  </TableCell>
+                  <TableCell className="space-y-1">
+                    <div className="text-[11px] text-muted-foreground">
+                      Анализ: {lastAnalysisLabel}
+                    </div>
+                    {needsReeval ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs"
+                        disabled={
+                          !objectId || reanalyzingPlanId === plan.id
+                        }
+                        onClick={async () => {
+                          if (!objectId) return;
+                          setReanalyzingPlanId(plan.id);
+                          try {
+                            await analyzeAsync(objectId);
+                            toast.success('Переоценка выполнена');
+                            refetch();
+                          } catch (err) {
+                            toast.error('Не удалось выполнить переоценку');
+                            console.error(err);
+                          } finally {
+                            setReanalyzingPlanId(null);
+                          }
+                        }}
+                      >
+                        {reanalyzingPlanId === plan.id ? (
+                          <>
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            Идёт...
+                          </>
+                        ) : (
+                          'Переоценить'
+                        )}
+                      </Button>
+                    ) : (
+                      <Badge variant="outline" className="text-[11px]">
+                        Актуально
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
