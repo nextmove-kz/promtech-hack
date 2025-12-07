@@ -8,6 +8,7 @@ import type {
   DiagnosticsResponse,
   PipelinesResponse,
 } from '../api_types';
+import { deriveUrgencyScore } from '@/lib/utils/urgency';
 
 // Initialize Gemini AI
 const apiKey = process.env.GEMINI_API_KEY;
@@ -38,12 +39,12 @@ const SYSTEM_INSTRUCTION = `
    - Геометрия дефекта (Длина/Ширина/Глубина). Трещины, вмятины, задиры.
 
 ТРЕБОВАНИЯ К ОТВЕТУ:
-Отвечай ТОЛЬКО валидным JSON объектом. Никакого маркдауна вокруг JSON.
+Отвечай ТОЛЬКО валидным JSON объектом. Никакого маркдауна вокруг JSON и внутри JSON.
 Язык: Профессиональный технический Русский.
 
 СТРУКТУРА JSON:
 {
-  "problem_summary": "Техническое заключение. 1 предложение. Пример: 'Критический питтинг коррозии глубиной 6мм (80% стенки) на участке сварного шва.'",
+  "problem_summary": "Техническое заключение. 1 объемный абзац, полно описывает все выявленные проблемы по объекту, включая параметры, локализацию, степень критичности и риски. Пример: 'Критический питтинг коррозии глубиной 6мм (80% стенки) на участке сварного шва, сопровождается снижением герметичности и риском разгерметизации при штатном давлении.'",
   "action_plan": [
     "Список конкретных шагов в повелительном наклонении.",
     "Пример: 1. Обесточить агрегат и повесить замок LOTO.",
@@ -127,6 +128,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       );
     }
 
+    const urgencyScore = deriveUrgencyScore(object);
+
     // Prepare data for AI analysis
     const analysisData = {
       object: {
@@ -136,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         material: object.material,
         year: object.year,
         health_status: object.health_status,
-        urgency_score: object.urgency_score,
+        urgency_score: urgencyScore,
         ai_summary: object.ai_summary,
         recommended_action: object.recommended_action,
       },
@@ -238,7 +241,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           'Неизвестный тип',
         pipeline_name: pipeline?.name || 'Неизвестный трубопровод',
         health_status: object.health_status || 'UNKNOWN',
-        urgency_score: object.urgency_score ?? 0,
+        urgency_score: urgencyScore,
       },
     } as ActionPlanResponse);
   } catch (error) {

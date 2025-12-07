@@ -22,6 +22,7 @@ import { cn } from '@/lib/utils';
 import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from '@/lib/constants';
 import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
 import { useDiagnostic } from '@/hooks/useDiagnostic';
+import { useObject } from '@/hooks/useObject';
 import { usePlanByObjectId, usePlanHistory } from '@/hooks/usePlan';
 import { ActionPlanModal } from './ActionPlanModal';
 import { useRouter } from 'next/navigation';
@@ -49,6 +50,7 @@ export function DiagnosticDetailsPanel({
 }: DiagnosticDetailsPanelProps) {
   const { data: diagnostics, isLoading, error } = useDiagnostic(objectId);
   const { data: plan } = usePlanByObjectId(objectId);
+  const { data: objectFromQuery } = useObject(objectId);
   const { data: planHistory } = usePlanHistory(objectId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
@@ -72,7 +74,7 @@ export function DiagnosticDetailsPanel({
   const firstDiagnostic = diagnosticsList[0] ?? null;
 
   // Prefer expanded object from diagnostics, otherwise fall back to direct fetch
-  const object = firstDiagnostic?.expand?.object ?? null;
+  const object = firstDiagnostic?.expand?.object ?? objectFromQuery ?? null;
   const pipeline = object?.expand?.pipeline;
   const objectType = object?.type;
   const objectName = object?.name;
