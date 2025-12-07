@@ -10,6 +10,8 @@ import { useAtomValue } from 'jotai';
 import { cn } from '@/lib/utils';
 import { mapViewportAtom } from '@/store/mapViewportStore';
 import { filterAtom } from '@/store/filterStore';
+import { useDebounce } from '@/hooks/useDebounce';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface ObjectCardListProps {
   onCardSelect: (id: string) => void;
@@ -24,7 +26,7 @@ export function ObjectCardList({
   onExpandTable,
   selectedId,
 }: ObjectCardListProps) {
-  const [sortState, setSortState] = useState<SortState>('desc');
+  const [sortState, setSortState] = useState<SortState>('neutral');
   const filters = useAtomValue(filterAtom);
   const viewportBounds = useAtomValue(mapViewportAtom);
   const nonBoundsSignature = useMemo(
@@ -41,6 +43,7 @@ export function ObjectCardList({
     if (!viewportBounds) return 'no-bounds';
     return `${viewportBounds.south}:${viewportBounds.west}:${viewportBounds.north}:${viewportBounds.east}`;
   }, [viewportBounds]);
+  const debouncedBoundsSignature = useDebounce(boundsSignature, 500);
   const prevNonBoundsRef = useRef<string | null>(null);
   const prevBoundsRef = useRef<string | null>(null);
   const [lastChange, setLastChange] = useState<
@@ -53,7 +56,8 @@ export function ObjectCardList({
 
     const nonBoundsChanged =
       prevNonBounds !== null && prevNonBounds !== nonBoundsSignature;
-    const boundsChanged = prevBounds !== null && prevBounds !== boundsSignature;
+    const boundsChanged =
+      prevBounds !== null && prevBounds !== debouncedBoundsSignature;
 
     if (nonBoundsChanged) {
       setLastChange('nonBounds');
@@ -62,8 +66,8 @@ export function ObjectCardList({
     }
 
     prevNonBoundsRef.current = nonBoundsSignature;
-    prevBoundsRef.current = boundsSignature;
-  }, [nonBoundsSignature, boundsSignature]);
+    prevBoundsRef.current = debouncedBoundsSignature;
+  }, [nonBoundsSignature, debouncedBoundsSignature]);
 
   const {
     data,
@@ -92,11 +96,30 @@ export function ObjectCardList({
   });
 
   const allObjects = data?.pages.flatMap((page) => page.items) ?? [];
+  const sortedObjects = useMemo(() => {
+    if (sortState === 'asc') {
+      return [...allObjects].sort((a, b) => {
+        const ua = a.urgency_score ?? Number.POSITIVE_INFINITY;
+        const ub = b.urgency_score ?? Number.POSITIVE_INFINITY;
+        return ua - ub;
+      });
+    }
+
+    if (sortState === 'desc') {
+      return [...allObjects].sort((a, b) => {
+        const ua = a.urgency_score ?? Number.NEGATIVE_INFINITY;
+        const ub = b.urgency_score ?? Number.NEGATIVE_INFINITY;
+        return ub - ua;
+      });
+    }
+
+    return allObjects;
+  }, [allObjects, sortState]);
   const totalItems = data?.pages[0]?.totalItems ?? 0;
   const hasInitialData = allObjects.length > 0;
-  const shouldShowPrimaryLoader =
-    (!hasInitialData && isLoading) ||
-    (isFetching && lastChange === 'nonBounds' && !isFetchingNextPage);
+  const shouldShowSkeleton =
+    isLoading ||
+    (isFetching && !isFetchingNextPage && lastChange !== 'initial');
 
   return (
     <div className="flex h-full w-1/4 shrink-0 flex-col border-l border-border bg-card overflow-hidden">
@@ -149,41 +172,59 @@ export function ObjectCardList({
 
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto">
         <div className="space-y-2 p-3">
-          {shouldShowPrimaryLoader && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          {shouldShowSkeleton ? (
+            <div className="space-y-3">
+              {Array.from({ length: 6 }, (_, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-lg border border-border bg-card p-3 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <Skeleton className="h-5 w-24" />
+                    <Skeleton className="h-4 w-12" />
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-4 w-1/2" />
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-          {isError && (
-            <div className="py-8 text-center text-sm text-destructive">
-              Ошибка загрузки данных
-            </div>
-          )}
-          {!shouldShowPrimaryLoader && !isError && allObjects.length === 0 && (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              Нет объектов
-            </div>
-          )}
+          ) : (
+            <>
+              {isError && (
+                <div className="py-8 text-center text-sm text-destructive">
+                  Ошибка загрузки данных
+                </div>
+              )}
+              {!isError && allObjects.length === 0 && (
+                <div className="py-8 text-center text-sm text-muted-foreground">
+                  Нет объектов
+                </div>
+              )}
 
-          {allObjects.map((obj) => (
-            <ObjectCard
-              key={obj.id}
-              object={obj}
-              isSelected={selectedId === obj.id}
-              onSelect={onCardSelect}
-            />
-          ))}
+              {sortedObjects.map((obj) => (
+                <ObjectCard
+                  key={obj.id}
+                  object={obj}
+                  isSelected={selectedId === obj.id}
+                  onSelect={onCardSelect}
+                />
+              ))}
 
+              {!hasNextPage && allObjects.length > 0 && (
+                <p className="py-2 text-center text-xs text-muted-foreground">
+                  Все объекты загружены
+                </p>
+              )}
+            </>
+          )}
           <div ref={loadMoreRef} className="h-1" />
-          {isFetchingNextPage && (
+          {isFetchingNextPage && !shouldShowSkeleton && (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
             </div>
-          )}
-          {!hasNextPage && allObjects.length > 0 && (
-            <p className="py-2 text-center text-xs text-muted-foreground">
-              Все объекты загружены
-            </p>
           )}
         </div>
       </div>

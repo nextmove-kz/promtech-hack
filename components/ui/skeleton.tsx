@@ -11,4 +11,3 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
     />
   );
 }
-

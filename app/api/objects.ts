@@ -4,6 +4,7 @@ import type {
   ObjectsResponse,
   PipelinesResponse,
 } from './api_types';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 export interface GetObjectsParams {
   page?: number;
@@ -32,7 +33,7 @@ export async function getObjects(
   const page = params.page ?? 1;
   const perPage = params.perPage ?? 20;
   const filter = params.filter;
-  const sort = params.sort;
+  const sort = params.sort ?? '-updated';
   const diagnosticMethod = params.diagnosticMethod;
   const hasActivePlan = params.hasActivePlan;
 
@@ -48,7 +49,9 @@ export async function getObjects(
 
     const planObjectIds = Array.from(
       new Set(
-        plans.map((plan) => plan.object).filter((id): id is string => Boolean(id)),
+        plans
+          .map((plan) => plan.object)
+          .filter((id): id is string => Boolean(id)),
       ),
     );
 
@@ -62,9 +65,7 @@ export async function getObjects(
       };
     }
 
-    const planClause = planObjectIds
-      .map((id) => `id = "${id}"`)
-      .join(' || ');
+    const planClause = planObjectIds.map((id) => `id = "${id}"`).join(' || ');
 
     combinedFilter = combinedFilter
       ? `(${combinedFilter}) && (${planClause})`
@@ -116,12 +117,16 @@ export async function getObjects(
       sort,
     });
 
+  const normalizedItems = result.items.map((item) =>
+    withDerivedUrgencyScore(item),
+  );
+
   return {
     page: result.page,
     perPage: result.perPage,
     totalItems: result.totalItems,
     totalPages: result.totalPages,
-    items: result.items,
+    items: normalizedItems,
   };
 }
 
@@ -135,7 +140,7 @@ export async function getObjectById(
         expand: 'pipeline',
       });
 
-    return record;
+    return withDerivedUrgencyScore(record);
   } catch {
     return null;
   }
