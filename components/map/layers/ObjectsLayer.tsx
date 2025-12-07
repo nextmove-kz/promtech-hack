@@ -1,12 +1,12 @@
 'use client';
 
+import type { CircleMarker as LeafletCircleMarker } from 'leaflet';
 import { useEffect, useRef } from 'react';
 import { CircleMarker, Popup } from 'react-leaflet';
-import type { CircleMarker as LeafletCircleMarker } from 'leaflet';
 import type {
-  ObjectsResponse,
   DiagnosticsMlLabelOptions,
   ObjectsHealthStatusOptions,
+  ObjectsResponse,
 } from '@/app/api/api_types';
 
 export type ObjectStatus = 'critical' | 'warning' | 'normal' | 'unknown';

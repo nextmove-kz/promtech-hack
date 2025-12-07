@@ -1,6 +1,20 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
+import type { ObjectsResponse } from '@/app/api/api_types';
+import pb from '@/app/api/client_pb';
 import {
   Card,
   CardContent,
@@ -8,22 +22,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import pb from '@/app/api/client_pb';
-import { useAtom } from 'jotai';
-import { filterAtom } from '@/store/filterStore';
-import type { ObjectsResponse } from '@/app/api/api_types';
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from 'recharts';
-import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
 import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
+import { filterAtom } from '@/store/filterStore';
 
 export function LinearAssetVisualization() {
   const [filters] = useAtom(filterAtom);

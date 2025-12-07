@@ -1,13 +1,13 @@
-import { type NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from '@google/genai';
-import { pocketbase } from '../pocketbase';
+import { type NextRequest, NextResponse } from 'next/server';
 import type {
-  ObjectsResponse,
+  ActionResponse,
   DiagnosticsResponse,
   ObjectsHealthStatusOptions,
+  ObjectsResponse,
   PlanResponse,
-  ActionResponse,
 } from '../api_types';
+import { pocketbase } from '../pocketbase';
 
 // Initialize Gemini AI
 const apiKey = process.env.GEMINI_API_KEY;

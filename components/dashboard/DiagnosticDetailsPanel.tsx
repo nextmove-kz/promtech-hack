@@ -1,32 +1,32 @@
 'use client';
 
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Calendar,
+  ClipboardList,
+  Loader2,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
+import { PlanStatusOptions } from '@/app/api/api_types';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import {
-  ArrowLeft,
-  AlertTriangle,
-  Calendar,
-  Loader2,
-  ClipboardList,
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from '@/lib/constants';
-import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Separator } from '@/components/ui/separator';
 import { useDiagnostic } from '@/hooks/useDiagnostic';
 import { useObject } from '@/hooks/useObject';
 import { usePlanByObjectId, usePlanHistory } from '@/hooks/usePlan';
+import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from '@/lib/constants';
+import { cn } from '@/lib/utils';
+import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
 import { ActionPlanModal } from './ActionPlanModal';
-import { useRouter } from 'next/navigation';
-import { PlanStatusOptions } from '@/app/api/api_types';
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
@@ -219,8 +219,8 @@ export function DiagnosticDetailsPanel({
                                   event.key === 'Enter' ||
                                   event.key === ' '
                                 ) {
-                                  event.preventDefault()
-                                  router.push(planHref)
+                                  event.preventDefault();
+                                  router.push(planHref);
                                 }
                               }}
                             >

@@ -1,9 +1,9 @@
 import type {
-  ObjectsResponse,
-  DiagnosticsResponse,
   DiagnosticsMethodOptions,
-  DiagnosticsQualityGradeOptions,
   DiagnosticsMlLabelOptions,
+  DiagnosticsQualityGradeOptions,
+  DiagnosticsResponse,
+  ObjectsResponse,
 } from '@/app/api/api_types';
 
 /**

@@ -1,13 +1,13 @@
-export { PipelineMap } from './PipelineMap';
-export { PipelineMarker } from './PipelineMarker';
-export { MapCanvas } from './MapCanvas';
-export { PipelinesLayer } from './layers/PipelinesLayer';
 export { ObjectsLayer } from './layers/ObjectsLayer';
+export { PipelinesLayer } from './layers/PipelinesLayer';
+export { MapCanvas } from './MapCanvas';
 export {
-  getMarkerColorByType,
-  createColoredIcon,
   calculateBounds,
-  toBounds,
+  createColoredIcon,
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
+  getMarkerColorByType,
+  toBounds,
 } from './map-utils';
+export { PipelineMap } from './PipelineMap';
+export { PipelineMarker } from './PipelineMarker';

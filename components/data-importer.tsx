@@ -1,9 +1,11 @@
 'use client';
 
+import { useQueryClient } from '@tanstack/react-query';
+import { Brain, Loader2, Upload, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Brain, Loader2, X } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -12,10 +14,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useDataImport } from '@/hooks/use-data-import';
-import { toast } from 'sonner';
 
 export function DataImporter({ className }: { className?: string }) {
   const queryClient = useQueryClient();

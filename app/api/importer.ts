@@ -1,10 +1,10 @@
-import pb from './client_pb';
 import type {
-  ObjectsRecord,
   DiagnosticsRecord,
-  PipelinesResponse,
+  ObjectsRecord,
   ObjectsResponse,
+  PipelinesResponse,
 } from './api_types';
+import pb from './client_pb';
 
 // Pipeline names mapping
 export const PIPELINE_NAMES: Record<string, string> = {

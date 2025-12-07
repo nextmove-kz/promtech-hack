@@ -1,8 +1,8 @@
 'use client';
 
-import { MapContainer, TileLayer, CircleMarker, Popup } from 'react-leaflet';
-import type { ObjectsResponse } from '@/app/api/api_types';
 import type { LatLngBoundsExpression } from 'leaflet';
+import { CircleMarker, MapContainer, Popup, TileLayer } from 'react-leaflet';
+import type { ObjectsResponse } from '@/app/api/api_types';
 
 interface MapExportProps {
   objects: ObjectsResponse[];
@@ -24,7 +24,7 @@ const KAZAKHSTAN_BOUNDS: [[number, number], [number, number]] = [
   [55.0, 87.3], // Northeast corner (a bit inside border)
 ];
 
-export function MapExport({ objects, bounds }: MapExportProps) {
+export function MapExport({ objects }: MapExportProps) {
   // Always use Kazakhstan bounds to show full country
   const center: [number, number] = KAZAKHSTAN_CENTER;
 
