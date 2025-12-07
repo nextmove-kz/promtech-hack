@@ -30,11 +30,10 @@ export function ReanalysisAlert() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['objects'] }),
   });
 
-  const {
-    data,
-    refetch,
-    isFetching,
-  } = useQuery<{ success: boolean; items: Candidate[] }>({
+  const { data, refetch, isFetching } = useQuery<{
+    success: boolean;
+    items: Candidate[];
+  }>({
     queryKey: ['reanalysis', 'candidates'],
     queryFn: async () => {
       const res = await fetch('/api/reanalysis');
@@ -102,7 +101,8 @@ export function ReanalysisAlert() {
             </div>
             <div className="text-xs text-amber-800">
               {subtitle}{' '}
-              {listedNames && `(${listedNames}${candidates.length > 3 ? '…' : ''})`}
+              {listedNames &&
+                `(${listedNames}${candidates.length > 3 ? '…' : ''})`}
             </div>
             <div className="flex gap-2 pt-1">
               <Button

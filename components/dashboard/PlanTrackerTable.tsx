@@ -287,9 +287,7 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                         size="sm"
                         variant="outline"
                         className="gap-1.5 text-xs"
-                        disabled={
-                          !objectId || reanalyzingPlanId === plan.id
-                        }
+                        disabled={!objectId || reanalyzingPlanId === plan.id}
                         onClick={async () => {
                           if (!objectId) return;
                           setReanalyzingPlanId(plan.id);

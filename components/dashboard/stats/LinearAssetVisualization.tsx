@@ -307,7 +307,10 @@ export function LinearAssetVisualization() {
                 Требуют внимания
               </div>
               <div className="mt-1 text-lg font-semibold text-amber-700">
-                {processedData.filter((d) => d.risk >= 40 && d.risk < 70).length}
+                {
+                  processedData.filter((d) => d.risk >= 40 && d.risk < 70)
+                    .length
+                }
               </div>
             </div>
           </div>

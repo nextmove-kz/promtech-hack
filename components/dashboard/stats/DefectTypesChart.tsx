@@ -40,10 +40,14 @@ export function DefectTypesChart() {
 
   // Get object IDs for the selected pipeline
   const pipelineObjectIds = selectedPipelineId
-    ? allObjects.filter((obj) => obj.pipeline === selectedPipelineId).map((obj) => obj.id)
+    ? allObjects
+        .filter((obj) => obj.pipeline === selectedPipelineId)
+        .map((obj) => obj.id)
     : allObjects.map((obj) => obj.id);
 
-  const { data: allDiagnostics = [], isLoading } = useQuery<DiagnosticsResponse[]>({
+  const { data: allDiagnostics = [], isLoading } = useQuery<
+    DiagnosticsResponse[]
+  >({
     queryKey: ['diagnostics'],
     queryFn: async () => {
       return await pb
@@ -56,7 +60,7 @@ export function DefectTypesChart() {
 
   // Filter diagnostics by pipeline objects
   const diagnostics = allDiagnostics.filter((diag) =>
-    pipelineObjectIds.includes(diag.object)
+    pipelineObjectIds.includes(diag.object),
   );
 
   // Group by diagnostic method (as proxy for defect type)
@@ -165,10 +169,12 @@ export function DefectTypesChart() {
                           Дефектов: <span className="font-medium">{value}</span>
                         </div>
                         <div className="text-slate-600">
-                          Всего проверок: <span className="font-medium">{total}</span>
+                          Всего проверок:{' '}
+                          <span className="font-medium">{total}</span>
                         </div>
                         <div className="text-slate-600">
-                          Процент: <span className="font-medium">{percentage}%</span>
+                          Процент:{' '}
+                          <span className="font-medium">{percentage}%</span>
                         </div>
                       </div>,
                       name,

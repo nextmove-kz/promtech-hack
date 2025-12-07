@@ -15,13 +15,13 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
   try {
     const pb = await pocketbase();
 
-    const plans = await pb.collection('plan').getFullList<
-      PlanResponse<{ object?: ObjectsResponse }>
-    >({
-      filter: 'status="done"',
-      sort: '-updated',
-      expand: 'object',
-    });
+    const plans = await pb
+      .collection('plan')
+      .getFullList<PlanResponse<{ object?: ObjectsResponse }>>({
+        filter: 'status="done"',
+        sort: '-updated',
+        expand: 'object',
+      });
 
     const candidates = new Map<string, ReanalysisCandidate & { ts: number }>();
 
@@ -68,10 +68,11 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
       {
         success: false,
         error:
-          error instanceof Error ? error.message : 'Unknown server error occurred',
+          error instanceof Error
+            ? error.message
+            : 'Unknown server error occurred',
       },
       { status: 500 },
     );
   }
 }
-

@@ -1,33 +1,33 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion";
+} from '@/components/ui/accordion';
 import {
   ArrowLeft,
   AlertTriangle,
   Calendar,
   Loader2,
   ClipboardList,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from "@/lib/constants";
-import { renderDiagnosticParams } from "@/lib/utils/diagnosticParams";
-import { useDiagnostic } from "@/hooks/useDiagnostic";
-import { useObject } from "@/hooks/useObject";
-import { usePlanByObjectId, usePlanHistory } from "@/hooks/usePlan";
-import { ActionPlanModal } from "./ActionPlanModal";
-import { useRouter } from "next/navigation";
-import { PlanStatusOptions } from "@/app/api/api_types";
-import Link from "next/link";
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from '@/lib/constants';
+import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
+import { useDiagnostic } from '@/hooks/useDiagnostic';
+import { useObject } from '@/hooks/useObject';
+import { usePlanByObjectId, usePlanHistory } from '@/hooks/usePlan';
+import { ActionPlanModal } from './ActionPlanModal';
+import { useRouter } from 'next/navigation';
+import { PlanStatusOptions } from '@/app/api/api_types';
+import Link from 'next/link';
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
@@ -35,14 +35,14 @@ interface DiagnosticDetailsPanelProps {
 }
 
 const planStatusConfig: Record<
-  PlanStatusOptions | "unknown",
-  { label: string; variant: "default" | "secondary" | "outline" }
+  PlanStatusOptions | 'unknown',
+  { label: string; variant: 'default' | 'secondary' | 'outline' }
 > = {
-  [PlanStatusOptions.done]: { label: "Выполнен", variant: "default" },
-  [PlanStatusOptions.pending]: { label: "В работе", variant: "secondary" },
-  [PlanStatusOptions.created]: { label: "Создан", variant: "outline" },
-  [PlanStatusOptions.archive]: { label: "Архив", variant: "outline" },
-  unknown: { label: "Неизвестно", variant: "outline" },
+  [PlanStatusOptions.done]: { label: 'Выполнен', variant: 'default' },
+  [PlanStatusOptions.pending]: { label: 'В работе', variant: 'secondary' },
+  [PlanStatusOptions.created]: { label: 'Создан', variant: 'outline' },
+  [PlanStatusOptions.archive]: { label: 'Архив', variant: 'outline' },
+  unknown: { label: 'Неизвестно', variant: 'outline' },
 };
 
 export function DiagnosticDetailsPanel({
@@ -86,11 +86,11 @@ export function DiagnosticDetailsPanel({
   const displayId = object?.id || firstDiagnostic?.id || objectId;
 
   const statusKey = (healthStatus ??
-    "UNKNOWN") as keyof typeof HEALTH_STATUS_CONFIG;
+    'UNKNOWN') as keyof typeof HEALTH_STATUS_CONFIG;
   const statusConfig =
     HEALTH_STATUS_CONFIG[statusKey] ?? HEALTH_STATUS_CONFIG.UNKNOWN;
 
-  const contentState = error ? "error" : hasDiagnostics ? "data" : "empty";
+  const contentState = error ? 'error' : hasDiagnostics ? 'data' : 'empty';
 
   return (
     <div className="h-full w-1/4 shrink-0 border-l border-border bg-card overflow-hidden">
@@ -106,15 +106,15 @@ export function DiagnosticDetailsPanel({
             Назад к списку
           </Button>
           <div className="flex items-start gap-2.5">
-            <div className={cn("rounded p-1.5 mt-0.5", statusConfig.iconBg)}>
+            <div className={cn('rounded p-1.5 mt-0.5', statusConfig.iconBg)}>
               <AlertTriangle
-                className={cn("h-4 w-4", statusConfig.iconColor)}
+                className={cn('h-4 w-4', statusConfig.iconColor)}
               />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="font-semibold text-xl text-foreground truncate">
-                  {objectName || "Объект без имени"}
+                  {objectName || 'Объект без имени'}
                 </h2>
               </div>
               <div className="mt-1 text-xs text-muted-foreground/70">
@@ -128,7 +128,7 @@ export function DiagnosticDetailsPanel({
                         objectType as keyof typeof OBJECT_TYPE_LABELS
                       ] ||
                         objectType ||
-                        "Неизвестный тип"}
+                        'Неизвестный тип'}
                     </div>
                   )}
                   {pipelineName && <div>{pipelineName}</div>}
@@ -139,7 +139,7 @@ export function DiagnosticDetailsPanel({
         </div>
 
         <div className="flex-1 overflow-auto p-4">
-          {contentState === "data" && firstDiagnostic ? (
+          {contentState === 'data' && firstDiagnostic ? (
             <div className="space-y-6">
               {(urgencyScore !== undefined || aiSummary) && (
                 <div className="space-y-4">
@@ -156,8 +156,8 @@ export function DiagnosticDetailsPanel({
                           <div className="flex items-end gap-2">
                             <span
                               className={cn(
-                                "text-2xl font-bold tabular-nums",
-                                statusConfig.iconColor
+                                'text-2xl font-bold tabular-nums',
+                                statusConfig.iconColor,
                               )}
                             >
                               {urgencyScore}
@@ -176,8 +176,8 @@ export function DiagnosticDetailsPanel({
                         <div
                           className={
                             urgencyScore !== undefined
-                              ? "pt-3 border-t border-border/50"
-                              : ""
+                              ? 'pt-3 border-t border-border/50'
+                              : ''
                           }
                         >
                           <p className="text-sm text-foreground leading-relaxed">
@@ -199,8 +199,8 @@ export function DiagnosticDetailsPanel({
                   <div className="space-y-2">
                     {planHistory.map((p) => {
                       const planDate = p.updated
-                        ? new Date(p.updated).toLocaleDateString("ru-RU")
-                        : "—";
+                        ? new Date(p.updated).toLocaleDateString('ru-RU')
+                        : '—';
                       const status =
                         planStatusConfig[
                           p.status as keyof typeof planStatusConfig
@@ -215,7 +215,7 @@ export function DiagnosticDetailsPanel({
                               {planDate}
                             </span>
                             <span className="text-xs text-muted-foreground">
-                              {p.problem || "Без описания"}
+                              {p.problem || 'Без описания'}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
@@ -249,8 +249,8 @@ export function DiagnosticDetailsPanel({
                 {diagnosticsList.map((diagnostic) => {
                   const hasDiagnosticIssue = diagnostic.defect_found ?? false;
                   const diagnosticDate = diagnostic.date
-                    ? new Date(diagnostic.date).toLocaleDateString("ru-RU")
-                    : "-";
+                    ? new Date(diagnostic.date).toLocaleDateString('ru-RU')
+                    : '-';
 
                   return (
                     <AccordionItem key={diagnostic.id} value={diagnostic.id}>
@@ -263,15 +263,15 @@ export function DiagnosticDetailsPanel({
                             </span>
                           </div>
                           <span className="text-xs text-muted-foreground">
-                            {diagnostic.method || "-"}
+                            {diagnostic.method || '-'}
                           </span>
                           <Badge
                             variant={
-                              hasDiagnosticIssue ? "destructive" : "outline"
+                              hasDiagnosticIssue ? 'destructive' : 'outline'
                             }
                             className="text-xs shrink-0"
                           >
-                            {hasDiagnosticIssue ? "Дефект" : "Норма"}
+                            {hasDiagnosticIssue ? 'Дефект' : 'Норма'}
                           </Badge>
                         </div>
                       </AccordionTrigger>
@@ -294,7 +294,7 @@ export function DiagnosticDetailsPanel({
                                 Метод
                               </span>
                               <p className="font-medium text-foreground">
-                                {diagnostic.method || "-"}
+                                {diagnostic.method || '-'}
                               </p>
                             </div>
                             {diagnostic.temperature !== undefined && (
@@ -345,12 +345,12 @@ export function DiagnosticDetailsPanel({
                                 <Badge
                                   variant={
                                     hasDiagnosticIssue
-                                      ? "destructive"
-                                      : "outline"
+                                      ? 'destructive'
+                                      : 'outline'
                                   }
                                   className="text-xs"
                                 >
-                                  {hasDiagnosticIssue ? "Да" : "Нет"}
+                                  {hasDiagnosticIssue ? 'Да' : 'Нет'}
                                 </Badge>
                               </div>
                             )}
@@ -361,7 +361,7 @@ export function DiagnosticDetailsPanel({
                               diagnostic.method,
                               diagnostic.param1,
                               diagnostic.param2,
-                              diagnostic.param3
+                              diagnostic.param3,
                             );
                             if (!paramsContent) return null;
 
@@ -390,26 +390,26 @@ export function DiagnosticDetailsPanel({
                   <AlertTriangle className="h-5 w-5 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium text-foreground">
-                  {contentState === "error"
-                    ? "Ошибка загрузки данных диагностики"
-                    : "Диагностики не найдены"}
+                  {contentState === 'error'
+                    ? 'Ошибка загрузки данных диагностики'
+                    : 'Диагностики не найдены'}
                 </p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  {contentState === "error"
-                    ? "Попробуйте обновить страницу или выбрать другой объект."
-                    : "Для этого объекта нет диагностик, поэтому AI-анализ и история недоступны."}
+                  {contentState === 'error'
+                    ? 'Попробуйте обновить страницу или выбрать другой объект.'
+                    : 'Для этого объекта нет диагностик, поэтому AI-анализ и история недоступны.'}
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {contentState === "data" && firstDiagnostic && (
+        {contentState === 'data' && firstDiagnostic && (
           <div className="border-t border-border p-4">
             {plan && plan.status !== PlanStatusOptions.archive ? (
               <Button
                 className="w-full gap-2"
-                onClick={() => router.push(`/plan/${plan?.object ?? ""}`)}
+                onClick={() => router.push(`/plan/${plan?.object ?? ''}`)}
               >
                 <ClipboardList className="h-4 w-4" />
                 Перейти к плану
@@ -427,7 +427,7 @@ export function DiagnosticDetailsPanel({
         )}
       </div>
 
-      {contentState === "data" && firstDiagnostic && (
+      {contentState === 'data' && firstDiagnostic && (
         <ActionPlanModal
           diagnosticId={firstDiagnostic.id}
           diagnostic={firstDiagnostic}

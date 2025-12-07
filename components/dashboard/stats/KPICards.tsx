@@ -1,12 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import {
-  Shield,
-  AlertTriangle,
-  CheckCircle,
-  TrendingUp,
-} from 'lucide-react';
+import { Shield, AlertTriangle, CheckCircle, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import pb from '@/app/api/client_pb';
 import { useAtom } from 'jotai';
@@ -22,10 +17,12 @@ export function KPICards() {
   const { data: allObjects = [] } = useQuery<ObjectsResponse[]>({
     queryKey: ['objects'],
     queryFn: async () => {
-      const records = await pb.collection('objects').getFullList<ObjectsResponse>({
-        sort: '-created',
-        expand: 'pipeline',
-      });
+      const records = await pb
+        .collection('objects')
+        .getFullList<ObjectsResponse>({
+          sort: '-created',
+          expand: 'pipeline',
+        });
 
       return records.map((record) => withDerivedUrgencyScore(record));
     },

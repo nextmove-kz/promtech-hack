@@ -17,7 +17,7 @@ import { DefectTypesChart } from '@/components/dashboard/stats/DefectTypesChart'
 export default function StatsPage() {
   const [filters, setFilters] = useAtom(filterAtom);
 
-  const { data: pipelines = [], isLoading: pipelinesLoading} = useQuery<
+  const { data: pipelines = [], isLoading: pipelinesLoading } = useQuery<
     PipelinesResponse[]
   >({
     queryKey: ['pipelines'],

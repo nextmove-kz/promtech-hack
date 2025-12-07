@@ -168,7 +168,8 @@ export function MaterialDegradationChart() {
                     name: string,
                     _item: Payload<number, string>,
                   ) => {
-                    if (name === 'defectRate') return [`${value}%`, 'Доля дефектов'];
+                    if (name === 'defectRate')
+                      return [`${value}%`, 'Доля дефектов'];
                     if (name === 'avgRisk') return [value, 'Средний риск'];
                     return [value, name];
                   }}

@@ -27,4 +27,3 @@ export function withDerivedUrgencyScore<T extends UrgencySource>(
     urgency_score: deriveUrgencyScore(source),
   };
 }
-

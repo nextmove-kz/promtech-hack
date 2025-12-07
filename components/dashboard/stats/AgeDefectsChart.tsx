@@ -31,12 +31,12 @@ export function AgeDefectsChart() {
   const { data: allObjects = [], isLoading } = useQuery<ObjectsResponse[]>({
     queryKey: ['objects'],
     queryFn: async () => {
-      const records = await pb.collection('objects').getFullList<ObjectsResponse>(
-        {
+      const records = await pb
+        .collection('objects')
+        .getFullList<ObjectsResponse>({
           sort: '-created',
           expand: 'pipeline',
-        },
-      );
+        });
 
       return records.map((record) => withDerivedUrgencyScore(record));
     },
@@ -101,7 +101,9 @@ export function AgeDefectsChart() {
         ) : (
           <>
             <ResponsiveContainer width="100%" height={240}>
-              <ScatterChart margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+              <ScatterChart
+                margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
+              >
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="#e2e8f0"
@@ -151,7 +153,9 @@ export function AgeDefectsChart() {
                     const data = payload[0].payload;
                     return (
                       <div className="rounded-lg border border-slate-200 bg-white p-2.5 shadow-sm">
-                        <div className="font-medium text-slate-700">{data.name}</div>
+                        <div className="font-medium text-slate-700">
+                          {data.name}
+                        </div>
                         <div className="mt-1 text-xs text-slate-500">
                           Возраст: {data.age} лет ({data.year})
                         </div>
