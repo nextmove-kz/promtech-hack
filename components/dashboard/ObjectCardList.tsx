@@ -116,10 +116,11 @@ export function ObjectCardList({
     return allObjects;
   }, [allObjects, sortState]);
   const totalItems = data?.pages[0]?.totalItems ?? 0;
-  const _hasInitialData = allObjects.length > 0;
+  const hasInitialData = allObjects.length > 0;
+  // Only show skeleton on initial load (isLoading) or when filters/bounds change and we have no data
+  // Never show skeleton during background refetches when data already exists
   const shouldShowSkeleton =
-    isLoading ||
-    (isFetching && !isFetchingNextPage && lastChange !== 'initial');
+    isLoading || (isFetching && !isFetchingNextPage && !hasInitialData);
 
   return (
     <div className="flex h-full w-1/4 shrink-0 flex-col border-l border-border bg-card overflow-hidden">

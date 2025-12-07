@@ -41,6 +41,12 @@ const patchObjectsCache = (
 
       if ('pages' in existing) {
         const data = existing as InfiniteData<GetObjectsResult>;
+        // Check if object exists in any page before patching
+        const objectExists = data.pages.some((page) =>
+          page.items.some((item) => item.id === objectId),
+        );
+        if (!objectExists) return existing;
+
         return {
           ...data,
           pages: data.pages.map((page) => ({
@@ -52,6 +58,10 @@ const patchObjectsCache = (
 
       if ('items' in existing) {
         const data = existing as GetObjectsResult;
+        // Check if object exists before patching
+        const objectExists = data.items.some((item) => item.id === objectId);
+        if (!objectExists) return existing;
+
         return {
           ...data,
           items: data.items.map(applyPatch),
