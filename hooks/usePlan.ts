@@ -4,6 +4,7 @@ import {
   getPlan,
   getPlanByObjectId,
   getLatestDiagnostic,
+  getPlanHistory,
   updateActionStatus,
   updatePlanStatus,
   type PlanWithExpanded,
@@ -50,6 +51,21 @@ export function usePlan(planId: string | null) {
     },
     enabled: !!planId,
     staleTime: 60000, // 1 minute
+  });
+}
+
+/**
+ * Hook to fetch all plans for an object (history)
+ */
+export function usePlanHistory(objectId: string | null) {
+  return useQuery<PlanWithExpanded[]>({
+    queryKey: ['plan', 'history', objectId],
+    queryFn: () => {
+      if (!objectId) return [];
+      return getPlanHistory(objectId);
+    },
+    enabled: !!objectId,
+    staleTime: 60000,
   });
 }
 

@@ -55,6 +55,23 @@ export async function getPlanByObjectId(
 }
 
 /**
+ * Get all plans for an object (history)
+ */
+export async function getPlanHistory(
+  objectId: string,
+): Promise<PlanWithExpanded[]> {
+  const plans = await clientPocketBase
+    .collection('plan')
+    .getFullList<PlanWithExpanded>({
+      filter: `object = "${objectId}"`,
+      sort: '-updated',
+      expand: 'actions,object,object.pipeline',
+    });
+
+  return plans;
+}
+
+/**
  * Get a plan by plan ID with expanded relations (for backward compatibility)
  */
 export async function getPlan(id: string): Promise<PlanWithExpanded> {

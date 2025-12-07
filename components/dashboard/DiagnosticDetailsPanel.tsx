@@ -22,15 +22,27 @@ import { cn } from '@/lib/utils';
 import { HEALTH_STATUS_CONFIG, OBJECT_TYPE_LABELS } from '@/lib/constants';
 import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
 import { useDiagnostic } from '@/hooks/useDiagnostic';
-import { usePlanByObjectId } from '@/hooks/usePlan';
+import { usePlanByObjectId, usePlanHistory } from '@/hooks/usePlan';
 import { ActionPlanModal } from './ActionPlanModal';
 import { useRouter } from 'next/navigation';
 import { PlanStatusOptions } from '@/app/api/api_types';
+import Link from 'next/link';
 
 interface DiagnosticDetailsPanelProps {
   objectId: string | null;
   onClose: () => void;
 }
+
+const planStatusConfig: Record<
+  PlanStatusOptions | 'unknown',
+  { label: string; variant: 'default' | 'secondary' | 'outline' }
+> = {
+  [PlanStatusOptions.done]: { label: 'Выполнен', variant: 'default' },
+  [PlanStatusOptions.pending]: { label: 'В работе', variant: 'secondary' },
+  [PlanStatusOptions.created]: { label: 'Создан', variant: 'outline' },
+  [PlanStatusOptions.archive]: { label: 'Архив', variant: 'outline' },
+  unknown: { label: 'Неизвестно', variant: 'outline' },
+};
 
 export function DiagnosticDetailsPanel({
   objectId,
@@ -38,6 +50,7 @@ export function DiagnosticDetailsPanel({
 }: DiagnosticDetailsPanelProps) {
   const { data: diagnostics, isLoading, error } = useDiagnostic(objectId);
   const { data: plan } = usePlanByObjectId(objectId);
+  const { data: planHistory } = usePlanHistory(objectId);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
 
@@ -174,6 +187,56 @@ export function DiagnosticDetailsPanel({
                   </div>
                 </div>
               )}
+
+              {/* Plan history */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-foreground">
+                  История работ
+                </h3>
+                {planHistory && planHistory.length > 0 ? (
+                  <div className="space-y-2">
+                    {planHistory.map((p) => {
+                      const planDate = p.updated
+                        ? new Date(p.updated).toLocaleDateString('ru-RU')
+                        : '—';
+                      const status =
+                        planStatusConfig[
+                          p.status as keyof typeof planStatusConfig
+                        ] || planStatusConfig.unknown;
+                      return (
+                        <div
+                          key={p.id}
+                          className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm"
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-medium text-foreground">
+                              {planDate}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {p.problem || 'Без описания'}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant={status.variant} className="text-xs">
+                              {status.label}
+                            </Badge>
+                            <Link
+                              href={`/plan/${objectId}?planId=${p.id}`}
+                              className="text-xs text-primary underline-offset-2 hover:underline"
+                            >
+                              Открыть
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-xs text-muted-foreground">
+                    Планы для объекта отсутствуют.
+                  </div>
+                )}
+              </div>
 
               <Separator />
               {/* Diagnostic History Accordion */}
@@ -341,7 +404,7 @@ export function DiagnosticDetailsPanel({
 
         {contentState === 'data' && firstDiagnostic && (
           <div className="border-t border-border p-4">
-            {plan?.status !== PlanStatusOptions.archive ? (
+            {(plan && plan.status !== PlanStatusOptions.archive) ? (
               <Button
                 className="w-full gap-2"
                 onClick={() => router.push(`/plan/${plan?.object ?? ''}`)}

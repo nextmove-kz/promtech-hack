@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Gauge } from 'lucide-react';
 import { FilterBar } from '@/components/dashboard/FilterBar';
+import { ReanalysisAlert } from '@/components/dashboard/ReanalysisAlert';
 import { DataImporter } from '@/components/data-importer';
 import { Button } from '@/components/ui/button';
 
@@ -26,6 +27,7 @@ export function Header() {
           <DataImporter />
         </div>
       </div>
+      <ReanalysisAlert />
       <FilterBar />
     </header>
   );

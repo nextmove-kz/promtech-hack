@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import {
   ArrowLeft,
@@ -27,6 +27,7 @@ import { OBJECT_TYPE_LABELS } from '@/lib/constants';
 import { renderDiagnosticParams } from '@/lib/utils/diagnosticParams';
 import {
   usePlanByObjectId,
+  usePlan,
   useLatestDiagnostic,
   useUpdateActionStatus,
   useUpdatePlanStatus,
@@ -37,13 +38,20 @@ import Link from 'next/link';
 export default function PlanPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const objectId = params.id as string;
+  const planId = searchParams.get('planId');
 
   const {
-    data: plan,
+    data: planByObject,
     isLoading: planLoading,
     error: planError,
   } = usePlanByObjectId(objectId);
+  const {
+    data: planById,
+    isLoading: planByIdLoading,
+    error: planByIdError,
+  } = usePlan(planId);
   const { data: diagnostic, isLoading: diagnosticLoading } =
     useLatestDiagnostic(objectId);
 
@@ -88,7 +96,11 @@ export default function PlanPage() {
     setShowConfirmDialog(false);
   };
 
-  if (planLoading) {
+  const plan = planById ?? planByObject;
+  const isPlanLoading = planId ? planByIdLoading : planLoading;
+  const planLoadError = planId ? planByIdError : planError;
+
+  if (isPlanLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -96,7 +108,7 @@ export default function PlanPage() {
     );
   }
 
-  if (planError || !plan) {
+  if (planLoadError || !plan) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-4">
         <div className="text-center">

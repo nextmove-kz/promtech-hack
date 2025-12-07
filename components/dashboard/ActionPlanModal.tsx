@@ -105,6 +105,7 @@ export function ActionPlanModal({
   const [planId, setPlanId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const hasRequestedRef = useRef(false);
 
   const generateActionPlan = useCallback(async () => {
     if (!diagnosticId) return;
@@ -145,14 +146,14 @@ export function ActionPlanModal({
 
   // Trigger generation when modal opens
   useEffect(() => {
-    if (isOpen && diagnosticId && !actionPlanData && !isGenerating) {
+    if (isOpen && diagnosticId && !hasRequestedRef.current) {
+      hasRequestedRef.current = true;
       generateActionPlan();
     }
-
     return () => {
       abortControllerRef.current?.abort();
     };
-  }, [isOpen, diagnosticId, actionPlanData, isGenerating, generateActionPlan]);
+  }, [isOpen, diagnosticId, generateActionPlan]);
 
   const savePlanToPocketBase = useCallback(
     async (planData: ActionPlanResult, objectId: string) => {
