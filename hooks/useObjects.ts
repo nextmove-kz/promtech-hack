@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAtomValue } from 'jotai';
-import { getObjects, type GetObjectsResult } from '@/app/api/objects';
+import { useMemo } from 'react';
+import { type GetObjectsResult, getObjects } from '@/app/api/objects';
+import { buildObjectsFilter } from '@/lib/utils/filters';
 import { filterAtom } from '@/store/filterStore';
 import { useDebounce } from './useDebounce';
-import { buildObjectsFilter } from '@/lib/utils/filters';
 
 interface UseObjectsParams {
   page?: number;

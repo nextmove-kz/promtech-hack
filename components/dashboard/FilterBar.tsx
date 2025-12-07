@@ -1,20 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
 import {
-  Layers,
+  ChevronDown,
   Flame,
-  X,
+  Layers,
+  ListChecks,
   Search,
   SlidersHorizontal,
-  ChevronDown,
-  ListChecks,
+  X,
 } from 'lucide-react';
-import { useAtom } from 'jotai';
-import { cn } from '@/lib/utils';
-import type { FilterState, FilterOptionId } from '@/store/filterStore';
-import { defaultAdvancedFilters, filterAtom } from '@/store/filterStore';
+import { useMemo, useState } from 'react';
 import {
   DiagnosticsMethodOptions,
   ObjectsHealthStatusOptions,
@@ -22,6 +19,9 @@ import {
   type PipelinesResponse,
 } from '@/app/api/api_types';
 import clientPocketBase from '@/app/api/client_pb';
+import { cn } from '@/lib/utils';
+import type { FilterOptionId, FilterState } from '@/store/filterStore';
+import { defaultAdvancedFilters, filterAtom } from '@/store/filterStore';
 
 const MATERIAL_OPTIONS = ['Ст3', '09Г2С', '17Г1С', '13ХФА', '20А', '10Г2'];
 

@@ -1,6 +1,6 @@
-import clientPocketBase from './client_pb';
 import type { DiagnosticWithObject } from '@/lib/types/api';
 import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
+import clientPocketBase from './client_pb';
 
 export type { DiagnosticWithObject } from '@/lib/types/api';
 

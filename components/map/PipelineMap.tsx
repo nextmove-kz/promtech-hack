@@ -3,13 +3,13 @@
 import { useEffect } from 'react';
 import { MapContainer, TileLayer, useMap } from 'react-leaflet';
 import type { PipelineObject } from '@/lib/types/pipeline';
-import { PipelineMarker } from './PipelineMarker';
 import {
   calculateBounds,
-  toBounds,
   DEFAULT_CENTER,
   DEFAULT_ZOOM,
+  toBounds,
 } from './map-utils';
+import { PipelineMarker } from './PipelineMarker';
 
 interface PipelineMapProps {
   objects: PipelineObject[];

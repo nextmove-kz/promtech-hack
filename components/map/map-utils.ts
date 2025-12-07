@@ -1,9 +1,9 @@
 import L from 'leaflet';
 import type {
-  PipelineObject,
-  ObjectType,
-  MarkerColor,
   MapBounds,
+  MarkerColor,
+  ObjectType,
+  PipelineObject,
 } from '@/lib/types/pipeline';
 
 /**

@@ -1,33 +1,33 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { AlertTriangle, Download, FileText, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Download, AlertTriangle, Loader2, FileText } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { getHealthLabel } from '@/lib/constants';
-import { getHealthStyles } from '@/lib/objectHealthStyles';
-import { generateActionPlanPdf } from '@/lib/pdf-generator';
-import clientPocketBase from '@/app/api/client_pb';
-import type {
-  ObjectsHealthStatusOptions,
-  DiagnosticsResponse,
-  PlanStatusOptions,
-} from '@/app/api/api_types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type {
   ActionPlanResponse,
   ActionPlanResult,
 } from '@/app/api/action-plan/route';
+import type {
+  DiagnosticsResponse,
+  ObjectsHealthStatusOptions,
+  PlanStatusOptions,
+} from '@/app/api/api_types';
+import clientPocketBase from '@/app/api/client_pb';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { getHealthLabel } from '@/lib/constants';
+import { getHealthStyles } from '@/lib/objectHealthStyles';
+import { generateActionPlanPdf } from '@/lib/pdf-generator';
+import { cn } from '@/lib/utils';
 
 interface ActionPlanModalProps {
   objectId: string | null;
@@ -178,8 +178,7 @@ export function ActionPlanModal({
 
   // Keep raw textarea text in sync with fetched plan
   useEffect(() => {
-    const joinedPlan =
-      actionPlanData?.result?.action_plan?.join('\n') ?? '';
+    const joinedPlan = actionPlanData?.result?.action_plan?.join('\n') ?? '';
     setActionPlanText(joinedPlan);
   }, [actionPlanData?.result?.action_plan]);
 
@@ -249,7 +248,11 @@ export function ActionPlanModal({
   const router = useRouter();
 
   const handleDownloadPdf = async () => {
-    if (!actionPlanData?.result || !actionPlanData.object_data || !selectedDiagnostic)
+    if (
+      !actionPlanData?.result ||
+      !actionPlanData.object_data ||
+      !selectedDiagnostic
+    )
       return;
 
     try {
@@ -489,7 +492,9 @@ export function ActionPlanModal({
                   </span>
                   <span className="text-muted-foreground">
                     {selectedDiagnostic.date
-                      ? new Date(selectedDiagnostic.date).toLocaleDateString('ru-RU')
+                      ? new Date(selectedDiagnostic.date).toLocaleDateString(
+                          'ru-RU',
+                        )
                       : 'Дата не указана'}
                   </span>
                 </div>

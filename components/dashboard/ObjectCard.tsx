@@ -1,9 +1,9 @@
 'use client';
 
-import { Badge } from '@/components/ui/badge';
 import type { ObjectsResponse } from '@/app/api/api_types';
-import { getHealthStyles } from '@/lib/objectHealthStyles';
+import { Badge } from '@/components/ui/badge';
 import { OBJECT_TYPE_LABELS } from '@/lib/constants';
+import { getHealthStyles } from '@/lib/objectHealthStyles';
 
 interface ObjectCardProps {
   object: ObjectsResponse;

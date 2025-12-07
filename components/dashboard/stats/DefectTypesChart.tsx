@@ -1,6 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
+import type { DiagnosticsResponse, ObjectsResponse } from '@/app/api/api_types';
+import pb from '@/app/api/client_pb';
 import {
   Card,
   CardContent,
@@ -8,12 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import pb from '@/app/api/client_pb';
-import { useAtom } from 'jotai';
 import { filterAtom } from '@/store/filterStore';
-import type { DiagnosticsResponse, ObjectsResponse } from '@/app/api/api_types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import type { Payload } from 'recharts/types/component/DefaultTooltipContent';
 
 type MethodStats = { count: number; withDefects: number };
 type MethodChartEntry = {

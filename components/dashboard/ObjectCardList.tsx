@@ -1,17 +1,17 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Maximize2, Loader2, ArrowDownUp } from 'lucide-react';
-import { useInfiniteObjects } from '@/hooks/useInfiniteObjects';
-import { ObjectCard } from './ObjectCard';
-import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAtomValue } from 'jotai';
-import { cn } from '@/lib/utils';
-import { mapViewportAtom } from '@/store/mapViewportStore';
-import { filterAtom } from '@/store/filterStore';
-import { useDebounce } from '@/hooks/useDebounce';
+import { ArrowDownUp, Loader2, Maximize2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useDebounce } from '@/hooks/useDebounce';
+import { useInfiniteObjects } from '@/hooks/useInfiniteObjects';
+import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { cn } from '@/lib/utils';
+import { filterAtom } from '@/store/filterStore';
+import { mapViewportAtom } from '@/store/mapViewportStore';
+import { ObjectCard } from './ObjectCard';
 
 interface ObjectCardListProps {
   onCardSelect: (id: string) => void;
@@ -116,7 +116,7 @@ export function ObjectCardList({
     return allObjects;
   }, [allObjects, sortState]);
   const totalItems = data?.pages[0]?.totalItems ?? 0;
-  const hasInitialData = allObjects.length > 0;
+  const _hasInitialData = allObjects.length > 0;
   const shouldShowSkeleton =
     isLoading ||
     (isFetching && !isFetchingNextPage && lastChange !== 'initial');
@@ -176,7 +176,7 @@ export function ObjectCardList({
             <div className="space-y-3">
               {Array.from({ length: 6 }, (_, idx) => (
                 <div
-                  key={idx}
+                  key={`skeleton-${idx}`}
                   className="rounded-lg border border-border bg-card p-3 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-2">

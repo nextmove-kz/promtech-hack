@@ -2,13 +2,13 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
-import clientPocketBase from '@/app/api/client_pb';
 import type {
-  ObjectsResponse,
   DiagnosticsResponse,
-  PlanResponse,
+  ObjectsResponse,
   PipelinesResponse,
+  PlanResponse,
 } from '@/app/api/api_types';
+import clientPocketBase from '@/app/api/client_pb';
 import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 export interface StatsReportData {

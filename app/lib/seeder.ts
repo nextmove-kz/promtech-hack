@@ -1,16 +1,16 @@
-import type {
-  ObjectRow,
-  DiagnosticRow,
-  ObjectType,
-  Method,
-  QualityGrade,
-  MlLabel,
-} from './schemas';
 import {
-  PIPELINE_ROUTES,
   generateObjectsAlongPath,
+  PIPELINE_ROUTES,
   type PipelineId,
 } from '@/lib/generator-utils';
+import type {
+  DiagnosticRow,
+  Method,
+  MlLabel,
+  ObjectRow,
+  ObjectType,
+  QualityGrade,
+} from './schemas';
 
 // Pipeline definitions matching PIPELINE_ROUTES
 const PIPELINES: { id: PipelineId; name: string }[] = [

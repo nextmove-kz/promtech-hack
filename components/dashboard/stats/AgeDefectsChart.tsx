@@ -1,6 +1,19 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
+import { useAtom } from 'jotai';
+import {
+  CartesianGrid,
+  ResponsiveContainer,
+  Scatter,
+  ScatterChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+  ZAxis,
+} from 'recharts';
+import type { ObjectsResponse } from '@/app/api/api_types';
+import pb from '@/app/api/client_pb';
 import {
   Card,
   CardContent,
@@ -8,21 +21,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import pb from '@/app/api/client_pb';
-import { useAtom } from 'jotai';
-import { filterAtom } from '@/store/filterStore';
-import type { ObjectsResponse } from '@/app/api/api_types';
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ZAxis,
-} from 'recharts';
 import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
+import { filterAtom } from '@/store/filterStore';
 
 export function AgeDefectsChart() {
   const [filters] = useAtom(filterAtom);

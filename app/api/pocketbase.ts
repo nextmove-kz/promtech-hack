@@ -1,6 +1,6 @@
+import { cookies } from 'next/headers';
 import PocketBase from 'pocketbase';
 import type { TypedPocketBase } from './api_types';
-import { cookies } from 'next/headers';
 
 export async function pocketbase() {
   const pb = new PocketBase(process.env.PB_TYPEGEN_URL) as TypedPocketBase;

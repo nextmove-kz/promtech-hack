@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  getAllDiagnosticsByObjectId,
   type DiagnosticWithObject,
+  getAllDiagnosticsByObjectId,
 } from '@/app/api/diagnostics';
 
 export function useDiagnostic(objectId: string | null) {

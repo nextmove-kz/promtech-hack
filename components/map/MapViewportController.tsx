@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useCallback } from 'react';
-import { useMap } from 'react-leaflet';
-import type { LatLngBounds } from 'leaflet';
 import { useAtomValue, useSetAtom } from 'jotai';
-import {
-  mapViewportAtom,
-  type MapViewportBounds,
-} from '@/store/mapViewportStore';
+import type { LatLngBounds } from 'leaflet';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useMap } from 'react-leaflet';
 import { filterAtom } from '@/store/filterStore';
+import {
+  type MapViewportBounds,
+  mapViewportAtom,
+} from '@/store/mapViewportStore';
 
 const DEFAULT_CENTER: [number, number] = [48.0, 66.5];
 const DEFAULT_ZOOM = 5;

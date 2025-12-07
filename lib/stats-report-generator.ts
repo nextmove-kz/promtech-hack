@@ -1,9 +1,8 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { HEALTH_STATUS_LABELS, getObjectTypeLabel } from './constants';
-import robotoFont from './fonts/roboto-regular.json';
 import type { StatsReportData } from '@/hooks/useStatsReportData';
-import type { ObjectsResponse } from '@/app/api/api_types';
+import { getObjectTypeLabel } from './constants';
+import robotoFont from './fonts/roboto-regular.json';
 
 // Constants
 const PAGE_CONFIG = {
@@ -358,7 +357,7 @@ function addCriticalObjects(doc: jsPDF, data: StatsReportData): void {
     if (obj.ai_summary) {
       const summary =
         obj.ai_summary.length > 200
-          ? obj.ai_summary.substring(0, 200) + '...'
+          ? `${obj.ai_summary.substring(0, 200)}...`
           : obj.ai_summary;
       const lines = doc.splitTextToSize(summary, pageWidth - margin * 2 - 10);
       doc.setTextColor(...PAGE_CONFIG.colors.muted);
