@@ -214,6 +214,15 @@ export function DiagnosticDetailsPanel({
                               aria-label={`Открыть план от ${planDate}`}
                               className="flex w-full items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition text-left"
                               onClick={() => router.push(planHref)}
+                              onKeyDown={(event) => {
+                                if (
+                                  event.key === 'Enter' ||
+                                  event.key === ' '
+                                ) {
+                                  event.preventDefault()
+                                  router.push(planHref)
+                                }
+                              }}
                             >
                               <div className="flex flex-col">
                                 <span className="font-medium text-foreground">

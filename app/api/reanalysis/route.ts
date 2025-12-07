@@ -186,7 +186,7 @@ Return ONLY a valid JSON object:
 }`
 
 const getLatestDiagnosticTimestamp = (
-  diagnostics: DiagnosticsResponse[]
+  diagnostics: DiagnosticsResponse[],
 ): number => {
   return diagnostics.reduce((latest, d) => {
     const ts = new Date(
@@ -200,7 +200,7 @@ const getLatestDiagnosticTimestamp = (
 }
 
 const getLatestDiagnostic = (
-  diagnostics: DiagnosticsResponse[]
+  diagnostics: DiagnosticsResponse[],
 ): DiagnosticsResponse | undefined => {
   if (!diagnostics.length) return undefined
 
@@ -228,7 +228,7 @@ const buildParamContext = (
   method?: string,
   p1?: number | string | null,
   p2?: number | string | null,
-  p3?: number | string | null
+  p3?: number | string | null,
 ): string => {
   switch (method) {
     case 'VIBRO':
@@ -256,7 +256,7 @@ const buildParamContext = (
 }
 
 const summarizePlan = (
-  plan?: PlanResponse<{ actions?: ActionResponse[] }>
+  plan?: PlanResponse<{ actions?: ActionResponse[] }>,
 ): {
   summary?: string
   updatedTs: number
@@ -350,7 +350,7 @@ export async function GET(_request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({
       success: true,
       items: Array.from(candidates.values()).map(
-        ({ ts, ...rest }): ReanalysisCandidate => rest
+        ({ ts, ...rest }): ReanalysisCandidate => rest,
       ),
     })
   } catch (error) {
@@ -500,7 +500,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
               d.method,
               d.param1,
               d.param2,
-              d.param3
+              d.param3,
             ),
             temperature: d.temperature,
             humidity: d.humidity,
