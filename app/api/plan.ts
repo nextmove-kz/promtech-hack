@@ -6,6 +6,7 @@ import type {
   PlanStatusOptions,
 } from './api_types';
 import type { DiagnosticWithObject } from '@/lib/types/api';
+import { withDerivedUrgencyScore } from '@/lib/utils/urgency';
 
 export type { DiagnosticWithObject } from '@/lib/types/api';
 
@@ -15,6 +16,22 @@ export type PlanWithExpanded = PlanResponse<{
     pipeline?: { name: string };
   }>;
 }>;
+
+const normalizePlanObject = (plan: PlanWithExpanded): PlanWithExpanded => {
+  const normalizedObject = plan.expand?.object
+    ? withDerivedUrgencyScore(plan.expand.object)
+    : plan.expand?.object;
+
+  return plan.expand
+    ? {
+        ...plan,
+        expand: {
+          ...plan.expand,
+          object: normalizedObject,
+        },
+      }
+    : plan;
+};
 
 /**
  * Get all plans with expanded relations
@@ -28,7 +45,7 @@ export async function getAllPlans(): Promise<PlanWithExpanded[]> {
       sort: '-created',
     });
 
-  return plans;
+  return plans.map(normalizePlanObject);
 }
 
 /**
@@ -47,7 +64,8 @@ export async function getPlanByObjectId(
         expand: 'actions,object,object.pipeline',
       });
 
-    return result.items[0] || null;
+    const plan = result.items[0] || null;
+    return plan ? normalizePlanObject(plan) : null;
   } catch (error) {
     console.error('Error fetching plan:', error);
     return null;
@@ -81,7 +99,7 @@ export async function getPlan(id: string): Promise<PlanWithExpanded> {
       expand: 'actions,object,object.pipeline',
     });
 
-  return plan;
+  return normalizePlanObject(plan);
 }
 
 /**
@@ -99,7 +117,22 @@ export async function getLatestDiagnostic(
         expand: 'object',
       });
 
-    return result.items[0] || null;
+    const diagnostic = result.items[0] || null;
+    if (!diagnostic) return null;
+
+    const normalizedObject = diagnostic.expand?.object
+      ? withDerivedUrgencyScore(diagnostic.expand.object)
+      : diagnostic.expand?.object;
+
+    return diagnostic.expand
+      ? {
+          ...diagnostic,
+          expand: {
+            ...diagnostic.expand,
+            object: normalizedObject,
+          },
+        }
+      : diagnostic;
   } catch (error) {
     console.error('Error fetching diagnostic:', error);
     return null;

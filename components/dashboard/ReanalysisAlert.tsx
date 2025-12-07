@@ -97,7 +97,8 @@ export function ReanalysisAlert() {
             </div>
             <div className="text-xs text-amber-800">
               {subtitle}{' '}
-              {listedNames && `(${listedNames}${candidates.length > 3 ? '…' : ''})`}
+              {listedNames &&
+                `(${listedNames}${candidates.length > 3 ? '…' : ''})`}
             </div>
             <div className="flex gap-2 pt-1">
               <Button

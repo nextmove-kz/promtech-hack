@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Gauge } from 'lucide-react';
+import { Gauge, LineChart } from 'lucide-react';
 import { FilterBar } from '@/components/dashboard/FilterBar';
 import { ReanalysisAlert } from '@/components/dashboard/ReanalysisAlert';
 import { DataImporter } from '@/components/data-importer';
@@ -15,9 +15,17 @@ export function Header() {
           <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary">
             <Gauge className="h-5 w-5 text-primary-foreground" />
           </div>
-          <span className="text-lg font-semibold text-foreground">
-            IntegrityOS
-          </span>
+          <div className="flex items-center">
+            <span className="text-lg font-semibold text-foreground">
+              IntegrityOS
+            </span>
+            <Link
+              href="/stats"
+              className="ml-2  text-sm font-normal hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 p-1 rounded-md"
+            >
+              <LineChart className="h-5 w-5" />
+            </Link>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
