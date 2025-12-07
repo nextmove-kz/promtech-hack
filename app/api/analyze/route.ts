@@ -98,6 +98,9 @@ const SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer with 20
 ${ANALYSIS_RULES}
 ${PARAMETER_CONTEXT}
 
+LANGUAGE RULE:
+- The "ai_summary" must be a clear, human-readable summary in Russian (no English, no transliteration). Keep it concise (1-2 sentences).
+
 POST-ACTION PLAN CONTEXT:
 - You may receive a completed action plan with actions_done/total.
 - If work is finished after the last analysis, you should reflect improvement, but stay conservative. Do NOT reset urgency_score to 0. Keep a realistic residual risk based on diagnostics and remaining uncertainties.
@@ -124,6 +127,9 @@ const BATCH_SYSTEM_INSTRUCTION = `You are a Senior Pipeline Integrity Engineer w
 
 ${ANALYSIS_RULES}
 ${PARAMETER_CONTEXT}
+
+LANGUAGE RULE:
+- The "ai_summary" for each object must be a clear, human-readable summary in Russian (no English, no transliteration). Keep it concise (1-2 sentences).
 
 CRITICAL RULE - CONSISTENCY REQUIRED:
 The health_status MUST match the urgency_score range:

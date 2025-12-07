@@ -208,20 +208,19 @@ export function DiagnosticDetailsPanel({
                               p.status as keyof typeof planStatusConfig
                             ] || planStatusConfig.unknown;
                           return (
-                            <div
+                            <button
                               key={p.id}
-                              role="button"
-                              tabIndex={0}
+                              type="button"
                               aria-label={`Открыть план от ${planDate}`}
-                              className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition"
+                              className="flex w-full items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition text-left"
                               onClick={() => router.push(planHref)}
                               onKeyDown={(event) => {
                                 if (
                                   event.key === 'Enter' ||
                                   event.key === ' '
                                 ) {
-                                  event.preventDefault();
-                                  router.push(planHref);
+                                  event.preventDefault()
+                                  router.push(planHref)
                                 }
                               }}
                             >
@@ -238,7 +237,7 @@ export function DiagnosticDetailsPanel({
                                   {status.label}
                                 </Badge>
                               </div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -436,7 +435,7 @@ export function DiagnosticDetailsPanel({
 
       {contentState === 'data' && firstDiagnostic && (
         <ActionPlanModal
-          diagnosticId={firstDiagnostic.id}
+          objectId={objectId}
           diagnostic={firstDiagnostic}
           isOpen={isModalOpen}
           onOpenChange={setIsModalOpen}
