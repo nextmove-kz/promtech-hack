@@ -6,6 +6,7 @@ import {
   type InfiniteData,
 } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
+import type { IsoAutoDateString } from '@/app/api/api_types';
 import type { AnalysisResponse, AnalysisResult } from '@/app/api/analyze/route';
 import type { GetObjectsResult, ObjectWithPipeline } from '@/app/api/objects';
 
@@ -66,7 +67,7 @@ const buildAnalysisPatch = (
   objectId: string,
   result: AnalysisResult,
 ): Partial<ObjectWithPipeline> => {
-  const timestamp = new Date().toISOString();
+  const timestamp = new Date().toISOString() as IsoAutoDateString;
   return {
     id: objectId,
     health_status: result.health_status,
