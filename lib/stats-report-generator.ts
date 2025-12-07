@@ -1,7 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import html2canvas from 'html2canvas';
-import { HEALTH_STATUS_LABELS } from './constants';
+import { HEALTH_STATUS_LABELS, getObjectTypeLabel } from './constants';
 import robotoFont from './fonts/roboto-regular.json';
 import type { StatsReportData } from '@/hooks/useStatsReportData';
 import type { ObjectsResponse } from '@/app/api/api_types';
@@ -241,6 +240,13 @@ function addDefectsTable(doc: jsPDF, data: StatsReportData): void {
   doc.line(margin, yPos, pageWidth - margin, yPos);
   yPos += 8;
 
+  // Total defects count
+  const totalDefects = data.defectiveDiagnostics.length;
+  doc.setFontSize(PAGE_CONFIG.fontSize.body);
+  doc.setTextColor(...PAGE_CONFIG.colors.text);
+  doc.text(`Всего обнаружено дефектов: ${totalDefects}`, margin, yPos);
+  yPos += 8;
+
   // Prepare table data
   const tableData = data.defectiveDiagnostics.map((diag) => {
     const objectName = diag.expand?.object?.name || '-';
@@ -343,7 +349,8 @@ function addCriticalObjects(doc: jsPDF, data: StatsReportData): void {
 
     // Type
     if (obj.type) {
-      doc.text(`   Тип: ${obj.type}`, margin, yPos);
+      const typeLabel = getObjectTypeLabel(obj.type);
+      doc.text(`   Тип: ${typeLabel}`, margin, yPos);
       yPos += PAGE_CONFIG.lineHeight;
     }
 
@@ -370,14 +377,30 @@ function addCriticalObjects(doc: jsPDF, data: StatsReportData): void {
   }
 }
 
-// Section 4: Map capture (placeholder for now)
-async function captureMapView(
-  criticalObjects: ObjectsResponse[],
-): Promise<string | null> {
-  // TODO: Implement map capture with html2canvas
-  // This is complex and requires React component rendering
-  // For now, return null (map section will be skipped)
-  return null;
+// Section 4: Load static map image
+async function loadStaticMapImage(): Promise<string | null> {
+  try {
+    // Use static Kazakhstan map image instead of dynamic rendering
+    const mapImagePath = '/assets/kazakhstan-pipeline-map.png';
+
+    // Fetch the image and convert to base64
+    const response = await fetch(mapImagePath);
+    if (!response.ok) {
+      console.warn('Static map image not found, skipping map section');
+      return null;
+    }
+
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch (error) {
+    console.error('Error loading static map:', error);
+    return null;
+  }
 }
 
 // Section 4: Add map section
@@ -388,6 +411,7 @@ function addMapSection(
 ): void {
   const margin = PAGE_CONFIG.margin;
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   let yPos = margin;
 
   // Section title
@@ -399,33 +423,55 @@ function addMapSection(
   doc.setDrawColor(...PAGE_CONFIG.colors.border);
   doc.setLineWidth(0.2);
   doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
+  yPos += 8;
 
-  // Add map image
+  // Map scope description
+  doc.setFontSize(PAGE_CONFIG.fontSize.small);
+  doc.setTextColor(...PAGE_CONFIG.colors.muted);
+  doc.text('Охват: Вся территория Казахстана', margin, yPos);
+  yPos += 8;
+
+  // Add map image - static Kazakhstan pipeline map
   const imgWidth = pageWidth - margin * 2;
-  const imgHeight = 120; // Fixed height for map
+  // Calculate height to fit available space while maintaining aspect ratio
+  const availableHeight = pageHeight - yPos - margin - 35; // Reserve space for legend
+  // Assuming landscape orientation, use a reasonable aspect ratio
+  const imgHeight = Math.min(imgWidth * 0.6, availableHeight, 100); // 5:3 aspect ratio
 
   doc.addImage(mapImageDataUrl, 'PNG', margin, yPos, imgWidth, imgHeight);
-  yPos += imgHeight + 10;
+  yPos += imgHeight + 8;
 
-  // Legend
+  // Legend section
   doc.setFontSize(PAGE_CONFIG.fontSize.body);
   doc.setTextColor(...PAGE_CONFIG.colors.text);
   doc.text('Легенда:', margin, yPos);
   yPos += PAGE_CONFIG.lineHeight;
 
+  // Legend items with counts
   doc.setFontSize(PAGE_CONFIG.fontSize.small);
-  doc.text(
-    `🔴 Критический: ${data.kpiMetrics.criticalCount}`,
-    margin + 5,
-    yPos,
-  );
-  yPos += 5;
-  doc.text(
-    `🟡 Предупреждение: ${data.kpiMetrics.warningCount}`,
-    margin + 5,
-    yPos,
-  );
+  doc.setTextColor(...PAGE_CONFIG.colors.text);
+
+  const legendItems = [
+    {
+      symbol: '🔴',
+      label: 'Критический',
+      count: data.kpiMetrics.criticalCount,
+    },
+    {
+      symbol: '🟡',
+      label: 'Предупреждение',
+      count: data.kpiMetrics.warningCount,
+    },
+  ];
+
+  for (const item of legendItems) {
+    doc.text(
+      `${item.symbol} ${item.label}: ${item.count} объектов`,
+      margin + 5,
+      yPos,
+    );
+    yPos += 5;
+  }
 }
 
 // Main export function
@@ -457,11 +503,8 @@ export async function generateStatsReport(
   addCriticalObjects(doc, data);
 
   // Page 4: Map (optional)
-  if (
-    options?.includeMap &&
-    (data.kpiMetrics.criticalCount > 0 || data.kpiMetrics.warningCount > 0)
-  ) {
-    const mapImage = await captureMapView(data.criticalObjects);
+  if (options?.includeMap) {
+    const mapImage = await loadStaticMapImage();
     if (mapImage) {
       doc.addPage();
       setupCyrillicFont(doc);

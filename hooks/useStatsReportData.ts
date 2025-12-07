@@ -27,6 +27,7 @@ export interface StatsReportData {
     warningCount: number;
   };
   criticalObjects: ObjectsResponse[];
+  criticalWarningObjects: ObjectsResponse[]; // All critical + warning for map
   defectiveDiagnostics: Array<
     DiagnosticsResponse & { expand?: { object?: ObjectsResponse } }
   >;
@@ -124,6 +125,12 @@ export function useStatsReportData(pipelineId: string | null | undefined) {
       .sort((a, b) => (b.urgency_score || 0) - (a.urgency_score || 0))
       .slice(0, 5);
 
+    // Get ALL critical and warning objects for map
+    const criticalWarningObjects = objects.filter(
+      (obj) =>
+        obj.health_status === 'CRITICAL' || obj.health_status === 'WARNING',
+    );
+
     // Get defective diagnostics
     const defectiveDiagnostics = diagnostics.filter(
       (d) => d.defect_found === true,
@@ -145,6 +152,7 @@ export function useStatsReportData(pipelineId: string | null | undefined) {
         warningCount,
       },
       criticalObjects,
+      criticalWarningObjects,
       defectiveDiagnostics,
     };
   }, [isLoading, pipelineId, pipelines, allObjects, allDiagnostics, allPlans]);

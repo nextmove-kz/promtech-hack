@@ -32,7 +32,7 @@ export function GenerateReportButton({
 
     setIsGenerating(true);
     try {
-      await generateStatsReport(data, { includeMap: false });
+      await generateStatsReport(data, { includeMap: true });
       toast.success('Отчет успешно создан');
     } catch (err) {
       console.error('Report generation error:', err);
