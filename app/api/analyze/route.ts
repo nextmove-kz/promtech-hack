@@ -758,6 +758,7 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
         const resultFromAi = { ...rawResult };
 
         // Clamp urgency_score to 0-100
+        const diagList = diagnosticsMap.get(resultFromAi.object_id) || [];
         resultFromAi.urgency_score = Math.max(
           0,
           Math.min(100, Math.round(resultFromAi.urgency_score)),
@@ -773,7 +774,6 @@ export async function PATCH(request: NextRequest): Promise<NextResponse> {
           resultFromAi.health_status = 'CRITICAL' as ObjectsHealthStatusOptions;
         }
 
-        const diagList = diagnosticsMap.get(resultFromAi.object_id) || [];
         const latestDiagnostic = getLatestDiagnostic(diagList);
         const hasDefects = Boolean(latestDiagnostic?.defect_found);
         const result: BatchAnalysisResult = {

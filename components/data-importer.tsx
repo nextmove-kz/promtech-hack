@@ -93,9 +93,10 @@ export function DataImporter({ className }: { className?: string }) {
 
           const data = await res.json();
 
-          if (data.success) {
-            if (data.health_status === 'CRITICAL') critical++;
-            else if (data.health_status === 'WARNING') warning++;
+          if (data.success && data.result) {
+            const status = data.result.health_status;
+            if (status === 'CRITICAL') critical++;
+            else if (status === 'WARNING') warning++;
             else ok++;
           } else {
             errors++;

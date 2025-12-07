@@ -1,8 +1,13 @@
 'use client';
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  type InfiniteData,
+} from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import type { AnalysisResponse, AnalysisResult } from '@/app/api/analyze/route';
+import type { GetObjectsResult, ObjectWithPipeline } from '@/app/api/objects';
 
 interface UseAnalysisOptions {
   onSuccess?: (result: AnalysisResult) => void;
@@ -17,6 +22,62 @@ interface BatchAnalysisState {
   results: Map<string, AnalysisResult>;
   errors: Map<string, string>;
 }
+
+type ObjectsQueryData = GetObjectsResult | InfiniteData<GetObjectsResult>;
+
+const patchObjectsCache = (
+  queryClient: ReturnType<typeof useQueryClient>,
+  objectId: string,
+  patch: Partial<ObjectWithPipeline>,
+) => {
+  queryClient.setQueriesData<ObjectsQueryData>(
+    { queryKey: ['objects'] },
+    (existing) => {
+      if (!existing) return existing;
+
+      const applyPatch = (item: ObjectWithPipeline) =>
+        item.id === objectId ? { ...item, ...patch } : item;
+
+      if ('pages' in existing) {
+        const data = existing as InfiniteData<GetObjectsResult>;
+        return {
+          ...data,
+          pages: data.pages.map((page) => ({
+            ...page,
+            items: page.items.map(applyPatch),
+          })),
+        };
+      }
+
+      if ('items' in existing) {
+        const data = existing as GetObjectsResult;
+        return {
+          ...data,
+          items: data.items.map(applyPatch),
+        };
+      }
+
+      return existing;
+    },
+  );
+};
+
+const buildAnalysisPatch = (
+  objectId: string,
+  result: AnalysisResult,
+): Partial<ObjectWithPipeline> => {
+  const timestamp = new Date().toISOString();
+  return {
+    id: objectId,
+    health_status: result.health_status,
+    urgency_score: result.urgency_score,
+    ai_summary: result.ai_summary,
+    recommended_action: result.recommended_action,
+    has_defects: result.has_defects,
+    last_analysis_at: timestamp,
+    updated: timestamp,
+  };
+};
 
 /**
  * Hook for analyzing a single object
@@ -41,8 +102,11 @@ export function useObjectAnalysis(options: UseAnalysisOptions = {}) {
     onSuccess: (data) => {
       if (data.success && data.result) {
         options.onSuccess?.(data.result);
-        // Invalidate objects query to refresh the list
-        queryClient.invalidateQueries({ queryKey: ['objects'] });
+        patchObjectsCache(
+          queryClient,
+          data.object_id,
+          buildAnalysisPatch(data.object_id, data.result),
+        );
       }
     },
     onError: (error) => {
@@ -142,6 +206,11 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
 
             if (response.success && response.result) {
               results.set(objectId, response.result);
+              patchObjectsCache(
+                queryClient,
+                objectId,
+                buildAnalysisPatch(objectId, response.result),
+              );
             } else {
               errors.set(objectId, response.error || 'Unknown error');
             }
@@ -164,9 +233,6 @@ export function useBatchAnalysis(options: UseAnalysisOptions = {}) {
             await new Promise((resolve) => setTimeout(resolve, delayMs));
           }
         }
-
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries({ queryKey: ['objects'] });
 
         onComplete?.();
 
