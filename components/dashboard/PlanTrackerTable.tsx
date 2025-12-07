@@ -249,7 +249,8 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                       type="button"
                       className="text-left text-sm font-semibold leading-tight cursor-pointer underline-offset-2 hover:underline"
                       onClick={() =>
-                        objectId && router.push(`/plan/${objectId}?planId=${plan.id}`)
+                        objectId &&
+                        router.push(`/plan/${objectId}?planId=${plan.id}`)
                       }
                     >
                       {object?.name ?? 'Без названия'}
@@ -287,9 +288,7 @@ export function PlanTrackerTable({ onShowOnMap }: PlanTrackerTableProps) {
                         size="sm"
                         variant="outline"
                         className="gap-1.5 text-xs"
-                        disabled={
-                          !objectId || reanalyzingPlanId === plan.id
-                        }
+                        disabled={!objectId || reanalyzingPlanId === plan.id}
                         onClick={async () => {
                           if (!objectId) return;
                           setReanalyzingPlanId(plan.id);

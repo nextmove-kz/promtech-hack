@@ -206,19 +206,12 @@ export function DiagnosticDetailsPanel({
                               p.status as keyof typeof planStatusConfig
                             ] || planStatusConfig.unknown;
                           return (
-                            <div
+                            <button
                               key={p.id}
-                              role="button"
-                              tabIndex={0}
+                              type="button"
                               aria-label={`Открыть план от ${planDate}`}
-                              className="flex items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition"
+                              className="flex w-full items-center justify-between rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm cursor-pointer hover:bg-muted/30 transition text-left"
                               onClick={() => router.push(planHref)}
-                              onKeyDown={(event) => {
-                                if (event.key === 'Enter' || event.key === ' ') {
-                                  event.preventDefault();
-                                  router.push(planHref);
-                                }
-                              }}
                             >
                               <div className="flex flex-col">
                                 <span className="font-medium text-foreground">
@@ -226,11 +219,14 @@ export function DiagnosticDetailsPanel({
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
-                                <Badge variant={status.variant} className="text-xs">
+                                <Badge
+                                  variant={status.variant}
+                                  className="text-xs"
+                                >
                                   {status.label}
                                 </Badge>
                               </div>
-                            </div>
+                            </button>
                           );
                         })}
                       </div>
@@ -405,7 +401,7 @@ export function DiagnosticDetailsPanel({
 
         {contentState === 'data' && firstDiagnostic && (
           <div className="border-t border-border p-4">
-            {(plan && plan.status !== PlanStatusOptions.archive) ? (
+            {plan && plan.status !== PlanStatusOptions.archive ? (
               <Button
                 className="w-full gap-2"
                 onClick={() => router.push(`/plan/${plan?.object ?? ''}`)}

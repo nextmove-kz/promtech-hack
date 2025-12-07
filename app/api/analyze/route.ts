@@ -344,8 +344,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 
     const hasFinishedPlanAfterLastAnalysis =
-      latestDonePlanTs >
-      Math.max(lastAnalysisTs || 0, objectUpdatedTs || 0, 0);
+      latestDonePlanTs > Math.max(lastAnalysisTs || 0, objectUpdatedTs || 0, 0);
 
     // Skip if no diagnostics
     if (diagnostics.length === 0) {

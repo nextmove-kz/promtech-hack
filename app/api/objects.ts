@@ -48,7 +48,9 @@ export async function getObjects(
 
     const planObjectIds = Array.from(
       new Set(
-        plans.map((plan) => plan.object).filter((id): id is string => Boolean(id)),
+        plans
+          .map((plan) => plan.object)
+          .filter((id): id is string => Boolean(id)),
       ),
     );
 
@@ -62,9 +64,7 @@ export async function getObjects(
       };
     }
 
-    const planClause = planObjectIds
-      .map((id) => `id = "${id}"`)
-      .join(' || ');
+    const planClause = planObjectIds.map((id) => `id = "${id}"`).join(' || ');
 
     combinedFilter = combinedFilter
       ? `(${combinedFilter}) && (${planClause})`
