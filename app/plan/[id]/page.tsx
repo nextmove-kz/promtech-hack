@@ -34,6 +34,7 @@ import {
 } from '@/hooks/usePlan'
 import { PlanStatusOptions } from '@/app/api/api_types'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function PlanPage() {
   const params = useParams()
@@ -244,14 +245,24 @@ export default function PlanPage() {
               )}
               {object.lat !== undefined && object.lon !== undefined && (
                 <div className='flex flex-col gap-2 pt-1'>
-                  <Button asChild size='sm' className='w-full justify-between'>
+                  <Button
+                    asChild
+                    size='default'
+                    className='w-full justify-between bg-green-500 hover:bg-green-600 text-white py-6'
+                  >
                     <Link
                       href={`https://2gis.kz/geo/${object.lon},${object.lat}?m=${object.lon},${object.lat}/17`}
                       target='_blank'
                       rel='noreferrer'
                     >
-                      <span>Открыть в 2ГИС</span>
-                      <span className='text-xs '>
+                      <Image
+                        src='/2gis.svg'
+                        alt='2ГИС'
+                        width={72}
+                        height={24}
+                        className='h-6 w-auto'
+                      />
+                      <span className='text-xs text-black'>
                         {object.lon.toFixed(4)}, {object.lat.toFixed(4)}
                       </span>
                     </Link>
