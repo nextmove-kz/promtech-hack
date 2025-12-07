@@ -11,13 +11,15 @@ export interface ActionPlanPdfData {
     pipeline_name: string;
     health_status: string;
     urgency_score: number;
-    last_diagnostic?: {
+    critical_diagnostic?: {
+      id: string;
       date: string;
       method: string;
       params: Record<string, unknown>;
       ml_label?: string;
       quality_grade?: string;
       temperature?: number;
+      humidity?: number;
       illumination?: number;
       defect_found?: boolean;
     };
@@ -29,6 +31,7 @@ export interface ActionPlanPdfData {
     safety_requirements: string;
     expected_outcome: string;
   };
+  critical_reason?: string;
 }
 
 const FONT_SIZE = {
@@ -72,7 +75,7 @@ const setupCyrillicFont = (doc: jsPDF): void => {
 export async function generateActionPlanPdf(
   data: ActionPlanPdfData,
 ): Promise<void> {
-  const { object_data, result } = data;
+  const { object_data, result, critical_reason } = data;
   const qrLink = `https://link-integrity.netlify.app/plan/${object_data.id}`;
   const qrDataUrl = await QRCode.toDataURL(qrLink, { margin: 1, scale: 6 });
 
@@ -166,24 +169,37 @@ export async function generateActionPlanPdf(
   yPos += 5;
 
   // Diagnostic Info
-  if (object_data.last_diagnostic) {
+  if (object_data.critical_diagnostic) {
     doc.setFontSize(FONT_SIZE.sectionTitle);
     doc.setTextColor(...COLORS.primary);
-    doc.text('ПОСЛЕДНЯЯ ДИАГНОСТИКА', margin, yPos);
+    doc.text('КЛЮЧЕВАЯ ДИАГНОСТИКА', margin, yPos);
     yPos += 8;
 
     doc.setFontSize(FONT_SIZE.text);
-    const diag = object_data.last_diagnostic;
+    const diag = object_data.critical_diagnostic;
 
     const diagDate = diag.date
       ? new Date(diag.date).toLocaleDateString('ru-RU')
       : '-';
 
+    drawField('ID диагностики:', diag.id || '-');
     drawField('Дата:', diagDate);
     drawField('Метод:', diag.method || '-');
 
+    if (critical_reason) {
+      doc.setTextColor(...COLORS.muted);
+      const reasonLines = splitTextToLines(doc, critical_reason, contentWidth);
+      for (const line of reasonLines) {
+        doc.text(line, margin, yPos);
+        yPos += 5;
+      }
+      yPos += 2;
+    }
+
     if (diag.temperature !== undefined)
       drawField('Температура:', `${diag.temperature}°C`);
+    if (diag.humidity !== undefined)
+      drawField('Влажность:', `${diag.humidity}%`);
     if (diag.illumination !== undefined)
       drawField('Освещенность:', diag.illumination);
 

@@ -86,7 +86,7 @@ ML labels: `normal`, `medium`, `high`
 - **Single Analysis**: POST to `/api/analyze` with `object_id`
 - **Batch Analysis**: PATCH to `/api/analyze` with array of `object_id` (max 10 per call)
 - **Prioritization**: PUT to `/api/analyze` returns sorted object IDs by risk level
-- **Action Plan Generation**: POST to `/api/action-plan` with `diagnostic_id`
+- **Action Plan Generation**: POST to `/api/action-plan` with `object_id` (AI сам выбирает критичную диагностику)
 
 **Health Status Consistency Rule**: `health_status` must align with `urgency_score`:
 - 0-25: OK

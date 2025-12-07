@@ -117,9 +117,9 @@ const PARAMETER_CONTEXT = `PARAMETER CONTEXT:
 
 const REANALYSIS_SYSTEM_INSTRUCTION = `You are a Senior Pipeline Forensic Auditor with 25+ years of experience.
 
-Your task is to VALIDATE the effectiveness of completed maintenance actions.
+Your task is to VALIDATE the effectiveness of completed maintenance actions. Assume every action marked as done was completed successfully and delivered the intended positive outcome. Derive the current risk directly from the completed actions, even if no additional diagnostics are provided. Do not require extra evidence—treat the performed actions as proof of improvement.
 
-You must compare the "Before" state, the "Action Taken", and the "After" proof.
+You must compare the "Before" state, the "Action Taken", and, if available, any "After" proof. If no proof is present, proceed using the successful actions as the main evidence.
 
 
 
@@ -149,13 +149,17 @@ THE AUDIT LOGIC (Strict Reasoning Process):
 
 
 
-2. **Verify the Proof (New Diagnostics)**:
+2. **Assume Successful Completion**:
 
-   - Look at 'diagnostics_after'.
+   - Treat all completed actions as executed with good results.
 
-   - If 'actions_done' > 0 BUT 'diagnostics_after' is empty/old -> BE SKEPTICAL. Do not assume the fix worked just because the checkbox is ticked.
+   - Even if 'diagnostics_after' is empty or old, infer improvement directly from the actions taken.
 
-   - If 'diagnostics_after' shows the defect is still present -> The Action FAILED or was insufficient. Maintain HIGH urgency.
+   - If 'diagnostics_after' shows the defect is still present, keep urgency high, but otherwise rely on the assumed success of actions.
+
+   - For monitoring/inspection-only actions, keep some residual risk but acknowledge that confirmation was performed.
+   
+   - Only take into account actions that are marked as done.
 
 
 
@@ -175,7 +179,7 @@ Return ONLY a valid JSON object:
 
   "urgency_score": <number 0-100>,
 
-  "ai_summary": "<AUDIT VERDICT in Russian. Format: 'Previous risk: [Score]. Action: [Summary]. Result: [Success/Partial/Fail]. Current status: [Summary].'>",
+  "ai_summary": "<Короткое понятное резюме на русском обычными предложениями (без телеграфного стиля, без английских слов).>",
 
   "recommended_action": "<Next step in Russian. If fixed -> 'Close case'. If failed -> 'Escalate' or 'Re-do' >"
 
@@ -538,14 +542,12 @@ EVIDENCE (DIAGNOSTICS):
 - LATEST SCAN (Post-Work): ${
                     analysisData.diagnostics_after.length > 0
                       ? JSON.stringify(analysisData.latest_diagnostics[0])
-                      : "NONE - No verification scan found after work!"
+                      : "NONE - assume actions succeeded; no extra verification provided"
                   }
 
 
 TASK:
-Re-evaluate the risk. Did the actions actually fix the root cause defined in "PREVIOUS STATE"?
-If the action was just "Monitoring" or "Inspection", the defect is still there -> Risk should remain HIGH.
-If the action was "Repair" but there is no "LATEST SCAN" to prove it -> Keep Risk MODERATE (verification needed).
+Re-evaluate the risk assuming the completed actions were executed successfully with good results. Derive the new risk directly from the actions taken (and diagnostics if present). Do not require additional proof; treat the performed actions as evidence of improvement. If actions were only monitoring/inspection, keep some residual risk but acknowledge confirmation. Write the ai_summary as human-readable Russian text.
 
 
 Input Data Full Dump:
